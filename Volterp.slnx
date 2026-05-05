@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Volterp.Api/Volterp.Api.csproj" />
+  <Project Path="Volterp.Application/Volterp.Application.csproj" />
+  <Project Path="Volterp.Domain/Volterp.Domain.csproj" />
+  <Project Path="Volterp.Infrastructure/Volterp.Infrastructure.csproj" />
+</Solution>

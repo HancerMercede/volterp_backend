@@ -1,0 +1,15 @@
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\bin\Debug\net10.0\Volterp.Application.deps.json
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\bin\Debug\net10.0\Volterp.Application.dll
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\bin\Debug\net10.0\Volterp.Application.pdb
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\bin\Debug\net10.0\Volterp.Domain.dll
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\bin\Debug\net10.0\Volterp.Domain.pdb
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.csproj.AssemblyReference.cache
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.AssemblyInfoInputs.cache
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.AssemblyInfo.cs
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.csproj.CoreCompileInputs.cache
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp..F8F06D13.Up2Date
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.dll
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\refint\Volterp.Application.dll
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.pdb
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\ref\Volterp.Application.dll
