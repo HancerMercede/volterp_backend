@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
 using Volterp.Application.Interfaces;
+using Volterp.Domain.Entities;
 
 namespace Volterp.Api.Controllers;
 
@@ -17,21 +19,20 @@ public class ProductsController(IUnitOfWork unitOfWork) : BaseController
         var companyId = GetCurrentUserCompanyId();
         var products = await unitOfWork.Products.GetAllProductsByCompanyAsync(companyId, ct);
 
-        var dtos = new List<ProductDto>();
+        var productsDtos = new List<ProductDto>();
         foreach (var p in products)
         {
             var categoryName = p.CategoryId.HasValue
                 ? (await unitOfWork.Categories.GetCategoryByIdAsync(p.CategoryId.Value, ct))?.Name
                 : null;
-
-            dtos.Add(new ProductDto(
+        
+            productsDtos.Add(new ProductDto(
                 p.Id, p.Name, p.Category, p.Description, p.Price, p.Stock,
                 p.CategoryId, categoryName, p.CompanyId, p.IsActive,
                 p.ImageUrl, p.CreatedAt, p.UpdatedAt
             ));
         }
-
-        return Ok(dtos);
+        return Ok(productsDtos);
     }
 
     [HttpGet("{id}")]
@@ -47,11 +48,12 @@ public class ProductsController(IUnitOfWork unitOfWork) : BaseController
             ? (await unitOfWork.Categories.GetCategoryByIdAsync(product.CategoryId.Value, ct))?.Name
             : null;
 
-        return Ok(new ProductDto(
+        var productDto = product.Map(product => new ProductDto(
             product.Id, product.Name, product.Category, product.Description,
             product.Price, product.Stock, product.CategoryId, categoryName,
             product.CompanyId, product.IsActive, product.ImageUrl, product.CreatedAt, product.UpdatedAt
-        ));
+            ));
+        return Ok(productDto);
     }
 
     [HttpPost]
@@ -70,19 +72,19 @@ public class ProductsController(IUnitOfWork unitOfWork) : BaseController
                 return BadRequest(new ErrorResponse("Category not found"));
         }
 
-        var product = new Domain.Entities.Product
+        var product = request.Map(p => new Product
         {
-            Name = request.Name,
-            Category = request.Category,
-            Description = request.Description,
-            Price = request.Price,
-            Stock = request.Stock,
-            CategoryId = request.CategoryId,
-            ImageUrl = request.ImageUrl,
+            Name = p.Name,
+            Category = p.Category,
+            Description = p.Description,
+            Price = p.Price,
+            Stock = p.Stock,
+            CategoryId = p.CategoryId,
+            ImageUrl = p.ImageUrl,
             CompanyId = companyId,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
-        };
+        });
 
         await unitOfWork.Products.AddProductAsync(product, ct);
         await unitOfWork.CommitAsync(ct);
@@ -91,13 +93,14 @@ public class ProductsController(IUnitOfWork unitOfWork) : BaseController
             ? (await unitOfWork.Categories.GetCategoryByIdAsync(product.CategoryId.Value, ct))?.Name
             : null;
 
-        var dto = new ProductDto(
-            product.Id, product.Name, product.Category, product.Description,
-            product.Price, product.Stock, product.CategoryId, categoryName,
-            product.CompanyId, product.IsActive, product.ImageUrl, product.CreatedAt, product.UpdatedAt
-        );
+        var dto = product.Map(p => new ProductDto
+        (
+            p.Id, p.Name, p.Category, p.Description,
+            p.Price, p.Stock, p.CategoryId, categoryName,
+            p.CompanyId, p.IsActive, p.ImageUrl, p.CreatedAt, p.UpdatedAt
+        ));
 
-        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, dto);
+        return CreatedAtAction(nameof(GetProduct), new { id = dto.Id }, dto);
     }
 
     [HttpPut("{id}")]
@@ -120,15 +123,19 @@ public class ProductsController(IUnitOfWork unitOfWork) : BaseController
                 return BadRequest(new ErrorResponse("Category not found"));
         }
 
-        product.Name = request.Name;
-        product.Category = request.Category;
-        product.Description = request.Description;
-        product.Price = request.Price;
-        product.Stock = request.Stock;
-        product.CategoryId = request.CategoryId;
-        product.ImageUrl = request.ImageUrl;
-        product.IsActive = request.IsActive;
-        product.UpdatedAt = DateTime.UtcNow;
+        product.Apply(p =>
+        {
+            p.Name = request.Name;
+            p.Category = request.Category;
+            p.Description = request.Description;
+            p.Price = request.Price;
+            p.Stock = request.Stock;
+            p.CategoryId = request.CategoryId;
+            p.ImageUrl = request.ImageUrl;
+            p.IsActive = request.IsActive;
+            p.UpdatedAt = DateTime.UtcNow;
+        });
+        
 
         await unitOfWork.Products.UpdateProductAsync(product, ct);
         await unitOfWork.CommitAsync(ct);
@@ -137,11 +144,12 @@ public class ProductsController(IUnitOfWork unitOfWork) : BaseController
             ? (await unitOfWork.Categories.GetCategoryByIdAsync(product.CategoryId.Value, ct))?.Name
             : null;
 
-        return Ok(new ProductDto(
-            product.Id, product.Name, product.Category, product.Description,
-            product.Price, product.Stock, product.CategoryId, categoryName,
-            product.CompanyId, product.IsActive, product.ImageUrl, product.CreatedAt, product.UpdatedAt
+        var productDto = product.Map(p => new ProductDto(
+            p.Id, p.Name, p.Category, p.Description,
+            p.Price, p.Stock, p.CategoryId, categoryName,
+            p.CompanyId, p.IsActive, p.ImageUrl, p.CreatedAt, p.UpdatedAt
         ));
+        return Ok(productDto);
     }
 
     [HttpDelete("{id}")]

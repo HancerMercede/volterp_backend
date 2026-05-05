@@ -189,3 +189,4 @@ C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\obj\Debug\net10.0\refin
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\obj\Debug\net10.0\Volterp.Api.pdb
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\obj\Debug\net10.0\Volterp.Api.genruntimeconfig.cache
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\obj\Debug\net10.0\ref\Volterp.Api.dll
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\obj\Debug\net10.0\Volterp.Api.sourcelink.json

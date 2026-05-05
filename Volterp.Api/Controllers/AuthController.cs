@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
 using Volterp.Application.Interfaces;
+using Volterp.Domain.Entities;
 
 namespace Volterp.Api.Controllers;
 
@@ -19,7 +21,7 @@ public class AuthController(IUnitOfWork unitOfWork, IJwtService jwtService, IPas
         if (!companyExists)
             return BadRequest(new ErrorResponse("Invalid company", "The specified company does not exist."));
 
-        var user = new Domain.Entities.User
+        var user = request.Map(r => new User
         {
             Username = request.Username,
             PasswordHash = passwordHasher.Hash(request.Password),
@@ -27,7 +29,8 @@ public class AuthController(IUnitOfWork unitOfWork, IJwtService jwtService, IPas
             FullName = request.FullName,
             Role = "User",
             CompanyId = request.CompanyId
-        };
+        });
+       
 
         await unitOfWork.Users.AddUserAsync(user, ct);
         await unitOfWork.CommitAsync(ct);

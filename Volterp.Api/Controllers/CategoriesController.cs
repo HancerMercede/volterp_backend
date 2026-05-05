@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
 using Volterp.Application.Interfaces;
+using Volterp.Domain.Entities;
 
 namespace Volterp.Api.Controllers;
 
@@ -18,11 +20,13 @@ public class CategoriesController(IUnitOfWork unitOfWork) : BaseController
         var companyId = GetCurrentUserCompanyId();
         var categories = await unitOfWork.Categories.GetAllCategoriesByCompanyAsync(companyId, ct);
 
-        var dtos = categories.Select(c => new CategoryDto(
+        var categoriesDtos = categories.Select(c => 
+            new CategoryDto(
             c.Id, c.Name, c.Description, c.CompanyId, c.IsActive, c.CreatedAt
         )).ToList();
-
-        return Ok(dtos);
+        
+        
+        return Ok(categoriesDtos);
     }
 
     [HttpGet("{id}")]
@@ -34,10 +38,11 @@ public class CategoriesController(IUnitOfWork unitOfWork) : BaseController
         if (category is null || category.CompanyId != companyId)
             return NotFound(new ErrorResponse("Category not found"));
 
-        return Ok(new CategoryDto(
-            category.Id, category.Name, category.Description,
-            category.CompanyId, category.IsActive, category.CreatedAt
+        var categoryDto = category.Map(c => new CategoryDto(
+            c.Id, c.Name, c.Description,
+            c.CompanyId, c.IsActive, c.CreatedAt
         ));
+        return Ok(categoryDto);
     }
 
     [HttpPost]
@@ -49,24 +54,24 @@ public class CategoriesController(IUnitOfWork unitOfWork) : BaseController
 
         var companyId = GetCurrentUserCompanyId();
 
-        var category = new Domain.Entities.Category
+        var category = request.Map(c=> new Category
         {
-            Name = request.Name,
-            Description = request.Description,
+            Name = c.Name,
+            Description = c.Description,
             CompanyId = companyId,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
-        };
+        });
 
         await unitOfWork.Categories.AddCategoryAsync(category, ct);
         await unitOfWork.CommitAsync(ct);
 
-        var dto = new CategoryDto(
-            category.Id, category.Name, category.Description,
-            category.CompanyId, category.IsActive, category.CreatedAt
-        );
+        var categoryDto = category.Map(c=> new CategoryDto(
+            c.Id, c.Name, c.Description,
+            c.CompanyId, c.IsActive, c.CreatedAt
+        ));
 
-        return CreatedAtAction(nameof(GetCategory), new { id = category.Id }, dto);
+        return CreatedAtAction(nameof(GetCategory), new { id = categoryDto.Id }, categoryDto);
     }
 
     [HttpPut("{id}")]
@@ -82,17 +87,23 @@ public class CategoriesController(IUnitOfWork unitOfWork) : BaseController
         if (category is null || category.CompanyId != companyId)
             return NotFound(new ErrorResponse("Category not found"));
 
-        category.Name = request.Name;
-        category.Description = request.Description;
-        category.IsActive = request.IsActive;
+        category.Apply(c =>
+        {
+            c.Name = request.Name;
+            c.Description = request.Description;
+            c.IsActive = request.IsActive;
+        });
+        
+        
 
         await unitOfWork.Categories.UpdateCategoryAsync(category, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return Ok(new CategoryDto(
-            category.Id, category.Name, category.Description,
-            category.CompanyId, category.IsActive, category.CreatedAt
+        var categoryDto = category.Map(c => new CategoryDto(
+            c.Id, c.Name, c.Description,
+            c.CompanyId, c.IsActive, c.CreatedAt
         ));
+        return Ok(categoryDto);
     }
 
     [HttpDelete("{id}")]
@@ -107,7 +118,7 @@ public class CategoriesController(IUnitOfWork unitOfWork) : BaseController
         if (category is null || category.CompanyId != companyId)
             return NotFound(new ErrorResponse("Category not found"));
 
-        await unitOfWork.Categories.DeleteCategoryAsync(id, ct);
+        await unitOfWork.Categories.DeleteCategoryAsync(category.Id, ct);
         await unitOfWork.CommitAsync(ct);
 
         return NoContent();
