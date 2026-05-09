@@ -20,6 +20,7 @@ var dbSettings = new DatabaseSettings
 
 ServiceExtensions.ConfigureDbContext(builder.Services, dbSettings);
 ServiceExtensions.ConfigureUnitOfWork(builder.Services);
+ServiceExtensions.ConfigureServiceManager(builder.Services);
 ServiceExtensions.ConfigureJwt(builder.Services, jwtSettings);
 ServiceExtensions.ConfigureControllers(builder.Services);
 ServiceExtensions.ConfigureCors(builder.Services);

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Volterp.Api.Configuration;
 using Volterp.Application.Interfaces;
+using Volterp.Application.Services;
 using Volterp.Infrastructure.Data;
 using Volterp.Infrastructure.Services;
 using Volterp.Infrastructure.UnitOfWork;
@@ -19,6 +20,9 @@ public static class ServiceExtensions
     public static void ConfigureUnitOfWork(IServiceCollection services)
         => services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+    public static void ConfigureServiceManager(IServiceCollection services)
+        => services.AddScoped<IServiceManager, ServiceManager>();
+    
     public static void ConfigureJwt(IServiceCollection services, JwtSettings jwtSettings)
     {
         services.AddScoped<IJwtService, JwtService>();

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "Osy9WwiPXs8=",
+  "dgSpecHash": "rbsHGhqlXUI=",
   "success": true,
   "projectFilePath": "C:\\Users\\HANCER MERCEDE\\source\\repos\\Volterp\\Volterp.Api\\Volterp.Api.csproj",
   "expectedPackageFiles": [
@@ -17,9 +17,9 @@
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.codeanalysis.csharp.workspaces\\4.14.0\\microsoft.codeanalysis.csharp.workspaces.4.14.0.nupkg.sha512",
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.codeanalysis.workspaces.common\\4.14.0\\microsoft.codeanalysis.workspaces.common.4.14.0.nupkg.sha512",
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.codeanalysis.workspaces.msbuild\\4.14.0\\microsoft.codeanalysis.workspaces.msbuild.4.14.0.nupkg.sha512",
-    "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore\\10.0.0\\microsoft.entityframeworkcore.10.0.0.nupkg.sha512",
-    "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\10.0.0\\microsoft.entityframeworkcore.abstractions.10.0.0.nupkg.sha512",
-    "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\10.0.0\\microsoft.entityframeworkcore.analyzers.10.0.0.nupkg.sha512",
+    "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore\\10.0.7\\microsoft.entityframeworkcore.10.0.7.nupkg.sha512",
+    "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\10.0.7\\microsoft.entityframeworkcore.abstractions.10.0.7.nupkg.sha512",
+    "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\10.0.7\\microsoft.entityframeworkcore.analyzers.10.0.7.nupkg.sha512",
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore.design\\10.0.0\\microsoft.entityframeworkcore.design.10.0.0.nupkg.sha512",
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore.relational\\10.0.0\\microsoft.entityframeworkcore.relational.10.0.0.nupkg.sha512",
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.extensions.dependencymodel\\10.0.0\\microsoft.extensions.dependencymodel.10.0.0.nupkg.sha512",

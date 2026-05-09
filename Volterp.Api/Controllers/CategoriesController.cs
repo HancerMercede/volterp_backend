@@ -1,48 +1,37 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
+using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
-using Volterp.Domain.Entities;
 
 namespace Volterp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class CategoriesController(IUnitOfWork unitOfWork) : BaseController
+public class CategoriesController(IServiceManager services) : BaseController
 {
-
     [HttpGet]
-    public async Task<ActionResult<List<CategoryDto>>> GetCategories(CancellationToken ct)
+    public async Task<ActionResult<PagedResult<CategoryDto>>> GetCategories(
+        [FromQuery] PaginationParameters pagination,
+        CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var categories = await unitOfWork.Categories.GetAllCategoriesByCompanyAsync(companyId, ct);
-
-        var categoriesDtos = categories.Select(c => 
-            new CategoryDto(
-            c.Id, c.Name, c.Description, c.CompanyId, c.IsActive, c.CreatedAt
-        )).ToList();
-        
-        
-        return Ok(categoriesDtos);
+        var result = await services.Categories.GetAllAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<CategoryDto>> GetCategory(int id, CancellationToken ct)
     {
         var companyId = GetCurrentUserCompanyId();
-        var category = await unitOfWork.Categories.GetCategoryByIdAsync(id, ct);
-
-        if (category is null || category.CompanyId != companyId)
+        var result = await services.Categories.GetByIdAsync(id, companyId, ct);
+        
+        if (result is null)
             return NotFound(new ErrorResponse("Category not found"));
-
-        var categoryDto = category.Map(c => new CategoryDto(
-            c.Id, c.Name, c.Description,
-            c.CompanyId, c.IsActive, c.CreatedAt
-        ));
-        return Ok(categoryDto);
+        
+        return Ok(result);
     }
 
     [HttpPost]
@@ -53,25 +42,16 @@ public class CategoriesController(IUnitOfWork unitOfWork) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-
-        var category = request.Map(c=> new Category
+        
+        try
         {
-            Name = c.Name,
-            Description = c.Description,
-            CompanyId = companyId,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        });
-
-        await unitOfWork.Categories.AddCategoryAsync(category, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        var categoryDto = category.Map(c=> new CategoryDto(
-            c.Id, c.Name, c.Description,
-            c.CompanyId, c.IsActive, c.CreatedAt
-        ));
-
-        return CreatedAtAction(nameof(GetCategory), new { id = categoryDto.Id }, categoryDto);
+            var result = await services.Categories.CreateAsync(request, companyId, ct);
+            return CreatedAtAction(nameof(GetCategory), new { id = result.Id }, result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ErrorResponse(ex.Message));
+        }
     }
 
     [HttpPut("{id}")]
@@ -82,28 +62,16 @@ public class CategoriesController(IUnitOfWork unitOfWork) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        var category = await unitOfWork.Categories.GetCategoryByIdAsync(id, ct);
-
-        if (category is null || category.CompanyId != companyId)
-            return NotFound(new ErrorResponse("Category not found"));
-
-        category.Apply(c =>
+        
+        try
         {
-            c.Name = request.Name;
-            c.Description = request.Description;
-            c.IsActive = request.IsActive;
-        });
-        
-        
-
-        await unitOfWork.Categories.UpdateCategoryAsync(category, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        var categoryDto = category.Map(c => new CategoryDto(
-            c.Id, c.Name, c.Description,
-            c.CompanyId, c.IsActive, c.CreatedAt
-        ));
-        return Ok(categoryDto);
+            var result = await services.Categories.UpdateAsync(id, request, companyId, ct);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ErrorResponse(ex.Message));
+        }
     }
 
     [HttpDelete("{id}")]
@@ -113,14 +81,15 @@ public class CategoriesController(IUnitOfWork unitOfWork) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        var category = await unitOfWork.Categories.GetCategoryByIdAsync(id, ct);
-
-        if (category is null || category.CompanyId != companyId)
-            return NotFound(new ErrorResponse("Category not found"));
-
-        await unitOfWork.Categories.DeleteCategoryAsync(category.Id, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        return NoContent();
+        
+        try
+        {
+            await services.Categories.DeleteAsync(id, companyId, ct);
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new ErrorResponse(ex.Message));
+        }
     }
 }
