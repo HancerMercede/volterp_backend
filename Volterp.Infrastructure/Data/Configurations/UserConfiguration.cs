@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Infrastructure.Data.Configurations;
 
@@ -29,7 +30,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             PasswordHash = "$2a$12$XLgan9fXGIGfO.UcBuUweegkVWrYJqDgOZY48h4/udZJyNASNol3O",
             Email = "admin@hm.com",
             FullName = "Administrador",
-            Role = "Admin",
+            Role = UserRole.SuperAdmin,
             CompanyId = 1,
             IsActive = true,
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)

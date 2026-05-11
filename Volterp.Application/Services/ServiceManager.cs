@@ -1,6 +1,18 @@
+using Volterp.Application.Interfaces;
+
 namespace Volterp.Application.Services;
 
-public class ServiceManager
+public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher) : IServiceManager
 {
+    private IProductService? _products;
+    public IProductService Products => _products ??= new ProductService(unitOfWork);
+
+    private ICategoryService? _categories;
+    public ICategoryService Categories => _categories ??= new CategoryService(unitOfWork);
+
+    private IUserService? _users;
+    public IUserService Users => _users ??= new UserService(unitOfWork, passwordHasher);
     
+    private ICompanyService? _companies;
+    public ICompanyService Companies => _companies  ??= new CompanyService(unitOfWork);
 }

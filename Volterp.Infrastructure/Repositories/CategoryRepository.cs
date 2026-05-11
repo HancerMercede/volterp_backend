@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Infrastructure.Data;
@@ -9,11 +10,11 @@ public class CategoryRepository(VolterpDbContext context)
     : RepositoryBase<Category>(context), ICategoryRepository
 {
     public async Task<Category?> GetCategoryByIdAsync(int id, CancellationToken ct = default)
-        => await Set().SingleOrDefaultAsync(c => c.Id == id, ct);
+        => await GetByCondictionsAsync(c => c.Id == id, ct);
 
-    public async Task<List<Category>> GetAllCategoriesByCompanyAsync(int companyId, CancellationToken ct = default)
-        => await GetAllAsync(c => c.CompanyId == companyId, ct);
-
+    public async Task<PagedResult<Category>> GetAllCategoriesByCompanyAsync(int companyId, int pageNumber, int pageSize,
+        CancellationToken ct = default)=>await GetAllAsync(c => c.CompanyId == companyId, pageNumber, pageSize, ct);
+    
     public async Task<Category> AddCategoryAsync(Category category, CancellationToken ct = default)
     {
         await AddAsync(category, ct);

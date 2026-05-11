@@ -8,7 +8,6 @@ public record ProductDto(
     decimal Price,
     int Stock,
     int? CategoryId,
-    string? CategoryName,
     int CompanyId,
     bool IsActive,
     string? ImageUrl,

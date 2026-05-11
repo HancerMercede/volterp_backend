@@ -1,6 +1,9 @@
 namespace Volterp.Application.Interfaces;
 
-public class IServiceManager
+public interface IServiceManager
 {
-    
+    IProductService Products { get; }
+    ICategoryService Categories { get; }
+    IUserService Users { get; }
+    ICompanyService Companies { get; }
 }

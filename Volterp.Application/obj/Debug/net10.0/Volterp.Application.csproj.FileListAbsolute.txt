@@ -13,3 +13,4 @@ C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\refint\Volterp.Application.dll
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.pdb
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\ref\Volterp.Application.dll
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.sourcelink.json

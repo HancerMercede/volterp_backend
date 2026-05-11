@@ -10,7 +10,7 @@ namespace Volterp.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class CompanyController(IServiceManager serviceManager, ILogger<CompanyController> logger):BaseController
+public class CompaniesController(IServiceManager serviceManager, ILogger<CompaniesController> logger):BaseController
 {
     [HttpGet]
     public async Task<ActionResult<PagedResult<CompanyDto>>> GetAllCompanies([FromQuery] PaginationParameters parameters, CancellationToken ct = default)
@@ -74,8 +74,8 @@ public class CompanyController(IServiceManager serviceManager, ILogger<CompanyCo
 
         try
         {
-            await serviceManager.Companies.UpdateCompanyAsync(id, updateCompanyDto, ct);
-            return NoContent();
+            var company = await serviceManager.Companies.UpdateCompanyAsync(id, updateCompanyDto, ct);
+            return Ok(company);
         }
         catch (Exception e)
         {

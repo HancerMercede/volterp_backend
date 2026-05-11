@@ -13,21 +13,22 @@ namespace Volterp.Api.Controllers;
 [Authorize]
 public class UsersController(IServiceManager serviceManager, IPasswordHasher passwordHasher) : BaseController
 {
+    // Unificado: Admin y SuperAdmin tienen acceso
     private bool IsAdmin()
-        => User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value.ToLower() == "admin";
+    {
+        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value.ToLower();
+        return role == "admin" || role == "superadmin";
+    }
 
     private bool IsSuperAdmin()
         => User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value.ToLower() == "superadmin";
 
     private bool CanManageUser(UserRole targetRole, UserRole? newRole = null)
     {
-        // Admin can only manage non-admin users
         if (IsSuperAdmin()) return true;
         if (IsAdmin())
         {
-            // Admin cannot manage SuperAdmin or Admin users
             if (targetRole == UserRole.SuperAdmin || targetRole == UserRole.Admin) return false;
-            // Admin cannot assign Admin or SuperAdmin roles
             if (newRole == UserRole.SuperAdmin || newRole == UserRole.Admin) return false;
             return true;
         }

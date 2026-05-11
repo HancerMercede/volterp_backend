@@ -1,16 +1,18 @@
+using Volterp.Domain.Enums;
+
 namespace Volterp.Domain.Entities;
 
-public class User
+public class User : IAuditEntity
 {
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
-    public string Role { get; set; } = "User";
+    public UserRole Role { get; set; } = UserRole.Ventas;
     public bool IsActive { get; set; } = true;
     public int CompanyId { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    
     public DateTime? LastLoginAt { get; set; }
 
     public Company Company { get; set; } = null!;

@@ -2,10 +2,10 @@ namespace Volterp.Domain.Enums;
 
 public enum UserRole
 {
-    SuperAdmin = 0,
-    Admin = 1,
-    Ventas = 2,
-    Inventario = 3,
-    Contabilidad = 4,
-    RRHH = 5
+    SuperAdmin = 1,
+    Admin = 2,
+    Ventas = 3,
+    Inventario = 4,
+    Contabilidad = 5,
+    RRHH = 6
 }

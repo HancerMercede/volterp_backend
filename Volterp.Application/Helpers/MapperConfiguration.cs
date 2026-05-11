@@ -1,4 +1,4 @@
-namespace Volterp.Api.Helpers;
+namespace Volterp.Application.Helpers;
 
 /// <summary>
 /// Lightweight mapping helpers. Zero reflection, zero overhead.
@@ -27,6 +27,23 @@ public static class MapperConfiguration
         Func<TSource, TDestination> selector) => source.Select(selector).ToList();
 
     /// <summary>
+    /// Maps a PagedResult to a new type, preserving pagination metadata.
+    /// </summary>
+    /// <example>
+    /// var dtos = pagedCategories.Map(c => new CategoryDto(c.Id, c.Name));
+    /// </example>
+    public static PagedResult<TDestination> Map<TSource, TDestination>(
+        this PagedResult<TSource> source,
+        Func<TSource, TDestination> selector)
+        => new()
+        {
+            Items = source.Items.Select(selector).ToList(),
+            RowCount = source.RowCount,
+            PageCount = source.PageCount,
+            PageNumber = source.PageNumber,
+            PageSize = source.PageSize
+        };
+    /// <summary>
     /// Mutates an object in place and returns the same instance.
     /// Use for updates — Apply() modifies, Map() projects.
     /// </summary>
@@ -41,4 +58,8 @@ public static class MapperConfiguration
         mutator(source);
         return source;
     }
+    public static TSource Apply<TSource>(this TSource source, Func<TSource, TSource> transform)
+        => transform(source);
+    
+    
 }

@@ -15,3 +15,4 @@ C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\ne
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\refint\Volterp.Infrastructure.dll
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp.Infrastructure.pdb
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\ref\Volterp.Infrastructure.dll
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp.Infrastructure.sourcelink.json

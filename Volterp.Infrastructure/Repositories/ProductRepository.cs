@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Infrastructure.Data;
@@ -11,11 +12,12 @@ public class ProductRepository(VolterpDbContext context)
     public async Task<Product?> GetProductByIdAsync(int id, CancellationToken ct = default)
         => await GetByCondictionsAsync(p => p.Id == id, ct);
 
-    public async Task<List<Product>> GetAllProductsByCompanyAsync(int companyId, CancellationToken ct = default)
-        => await GetAllAsync(p => p.CompanyId == companyId, ct);
-
-   
-
+    public async Task<PagedResult<Product>> GetAllProductsByCompanyAsync(int companyId,int pageNumber, int pageSize, CancellationToken ct = default)
+    {
+        return await GetAllAsync(p => p.CompanyId == companyId, pageNumber, pageSize, ct);
+    }
+ 
+    
     public async Task<Product> AddProductAsync(Product product, CancellationToken ct = default)
     {
         await AddAsync(product, ct);
