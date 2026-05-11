@@ -15,4 +15,7 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
     
     private ICompanyService? _companies;
     public ICompanyService Companies => _companies  ??= new CompanyService(unitOfWork);
+
+    private ISaleService? _sales;
+    public ISaleService Sales => _sales ??= new SaleService(unitOfWork);
 }

@@ -6,4 +6,5 @@ public interface IServiceManager
     ICategoryService Categories { get; }
     IUserService Users { get; }
     ICompanyService Companies { get; }
+    ISaleService Sales { get; }
 }
