@@ -14,14 +14,37 @@ public abstract class RepositoryBase<T>(VolterpDbContext context) : IRepositoryB
     public virtual async Task<T?> GetByIdAsync(int id, CancellationToken ct = default)
         => await Set().FindAsync([id], ct);
 
-    public virtual async Task<PagedResult<T>> GetAllAsync(Expression<Func<T, bool>> predicate,int pageNumber, int pageSize,
-        CancellationToken ct = default)
-        => await Set().Where(predicate)
-            .AsNoTracking()
-            .ToPagedResultAsync(pageNumber, pageSize, ct);
+    public virtual async Task<PagedResult<T>> GetAllAsync(Expression<Func<T, bool>> predicate, 
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default,
+        Func<IQueryable<T>, IQueryable<T>>? includes = null)
+    {
+       var query = Set()
+               .Where(predicate)
+               .AsNoTracking();
+           
+           if(includes is not null)
+               query = includes(query);
+           
+           return await query.ToPagedResultAsync(pageNumber, pageSize, ct);
+    }
 
-    public async Task<T?> GetByCondictionsAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default) => 
-        await Set().Where(predicate).FirstOrDefaultAsync(ct);
+    public async Task<T?> GetByCondictionsAsync(Expression<Func<T, bool>> predicate,
+        CancellationToken ct = default, 
+        Func<IQueryable<T>, IQueryable<T>>? includes = null)
+    {
+       var query = Set()
+           .Where(predicate)
+           .AsNoTracking();
+       
+           if(includes is not null)
+               query = includes(query);
+                   
+           return await query.FirstOrDefaultAsync(ct);
+    }
+
+   
 
     public virtual async Task AddAsync(T entity, CancellationToken ct = default)=>
         await Set().AddAsync(entity, ct);

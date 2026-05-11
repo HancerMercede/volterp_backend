@@ -1,4 +1,4 @@
-using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Application.DTOs;
 

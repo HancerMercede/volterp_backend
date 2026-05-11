@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Volterp.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9880f26c2c2e64a4e472d8876baa9be6b5962c4b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+90830c348b7c173c581073c33a55ab0d37082128")]
 [assembly: System.Reflection.AssemblyProductAttribute("Volterp.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Volterp.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
