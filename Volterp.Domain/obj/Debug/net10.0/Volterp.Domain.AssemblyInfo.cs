@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Volterp.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e814d06924133f5817c01e2118685f13b450585d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6267b8249ad566b57dd005ba1e977a1b23d5c6e3")]
 [assembly: System.Reflection.AssemblyProductAttribute("Volterp.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Volterp.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

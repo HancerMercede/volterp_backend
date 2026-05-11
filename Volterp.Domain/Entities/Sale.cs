@@ -21,7 +21,7 @@ public class Sale : IAuditEntity
     public ICollection<SaleItem> Items { get; set; } = new List<SaleItem>();
 }
 
-public enum SaleStatus
+public enum  SaleStatus
 {
     Pending = 0,  // Borrador/pendiente - no cerrada
     Completed = 1 // Completada - cerrada

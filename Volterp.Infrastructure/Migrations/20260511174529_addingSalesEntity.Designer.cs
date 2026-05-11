@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Volterp.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Volterp.Infrastructure.Data;
 namespace Volterp.Infrastructure.Migrations
 {
     [DbContext(typeof(VolterpDbContext))]
-    partial class VolterpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260511174529_addingSalesEntity")]
+    partial class addingSalesEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
