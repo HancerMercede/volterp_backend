@@ -14,7 +14,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return sales.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes, 
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
         ));
     }
 
@@ -25,7 +25,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return sales.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes, 
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
         ));
     }
 
@@ -38,7 +38,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return sale.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes,
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
         ));
     }
 
@@ -57,6 +57,9 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             {
                 ProductId = i.ProductId,
                 ProductName = i.ProductName,
+                ProductCategory = i.ProductCategory,
+                ProductCode = i.ProductCode,
+                ProductImageUrl = i.ProductImageUrl,
                 Quantity = i.Quantity,
                 UnitPrice = i.UnitPrice,
                 Subtotal = i.Subtotal
@@ -69,7 +72,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return sale.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes,
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
         ));
     }
 
@@ -84,6 +87,9 @@ public async Task<SaleDto> UpdateSaleAsync(int id, int companyId, UpdateSaleRequ
         {
             ProductId = i.ProductId,
             ProductName = i.ProductName,
+            ProductCategory = i.ProductCategory,
+            ProductCode = i.ProductCode,
+            ProductImageUrl = i.ProductImageUrl,
             Quantity = i.Quantity,
             UnitPrice = i.UnitPrice,
             Subtotal = i.Subtotal
@@ -105,7 +111,7 @@ public async Task<SaleDto> UpdateSaleAsync(int id, int companyId, UpdateSaleRequ
         return sale.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes,
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
         ));
     }
 
@@ -128,7 +134,7 @@ sale.Apply(s =>
         return sale.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes,
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
         ));
     }
 

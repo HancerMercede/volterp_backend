@@ -19,6 +19,9 @@ public record SaleItemDto(
     int Id,
     int ProductId,
     string ProductName,
+    string? ProductCategory,
+    string? ProductCode,
+    string? ProductImageUrl,
     int Quantity,
     decimal UnitPrice,
     decimal Subtotal
@@ -36,6 +39,9 @@ public record CreateSaleRequest(
 public record CreateSaleItemRequest(
     int ProductId,
     string ProductName,
+    string? ProductCategory,
+    string? ProductCode,
+    string? ProductImageUrl,
     int Quantity,
     decimal UnitPrice,
     decimal Subtotal
