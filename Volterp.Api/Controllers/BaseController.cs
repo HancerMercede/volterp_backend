@@ -9,5 +9,11 @@ public abstract class BaseController : ControllerBase
         => int.Parse(User.FindFirst("companyId")?.Value ?? "0");
 
     protected bool IsAdmin()
-        => User.FindFirst(ClaimTypes.Role)?.Value.ToLower() == "admin";
+    {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value.ToLower();
+        return role == "admin" || role == "superadmin";
+    }
+
+    protected bool IsSuperAdminOnly()
+        => User.FindFirst(ClaimTypes.Role)?.Value.ToLower() == "superadmin";
 }

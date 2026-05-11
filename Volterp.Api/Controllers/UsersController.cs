@@ -13,19 +13,9 @@ namespace Volterp.Api.Controllers;
 [Authorize]
 public class UsersController(IServiceManager serviceManager, IPasswordHasher passwordHasher) : BaseController
 {
-    // Unificado: Admin y SuperAdmin tienen acceso
-    private bool IsAdmin()
-    {
-        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value.ToLower();
-        return role == "admin" || role == "superadmin";
-    }
-
-    private bool IsSuperAdmin()
-        => User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value.ToLower() == "superadmin";
-
     private bool CanManageUser(UserRole targetRole, UserRole? newRole = null)
     {
-        if (IsSuperAdmin()) return true;
+        if (IsSuperAdminOnly()) return true;
         if (IsAdmin())
         {
             if (targetRole == UserRole.SuperAdmin || targetRole == UserRole.Admin) return false;
@@ -50,7 +40,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         if (!IsAdmin()) return Forbid();
 
         // Only SuperAdmin can create Admin or SuperAdmin users
-        if ((request.Role == UserRole.Admin || request.Role == UserRole.SuperAdmin) && !IsSuperAdmin())
+        if ((request.Role == UserRole.Admin || request.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
@@ -105,7 +95,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         if (user is null) return NotFound(new ErrorResponse("User not found"));
 
         // Only SuperAdmin can modify status of Admin or SuperAdmin users
-        if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdmin())
+        if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
 
         var userWithNewStatus = user.Apply(r => r with { IsActive = request.IsActive });
@@ -135,7 +125,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         if (user is null) return NotFound(new ErrorResponse("User not found"));
         
         // Only SuperAdmin can delete Admin or SuperAdmin users
-        if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdmin())
+        if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
 
         await serviceManager.Users.DeleteAsync(id, ct);
