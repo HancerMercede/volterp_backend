@@ -15,4 +15,5 @@ public class Company:IAuditEntity
     public ICollection<User> Users { get; set; } = new List<User>();
     public ICollection<Product> Products { get; set; } = new List<Product>();
     public ICollection<Category> Categories { get; set; } = new List<Category>();
+    public ICollection<Sale> Sales { get; set; } = new List<Sale>();
 }
