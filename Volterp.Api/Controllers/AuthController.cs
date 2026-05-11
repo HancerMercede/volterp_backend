@@ -23,9 +23,9 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
 
         var user = await serviceManager.Users.CreateAsync(request, ct);
 
-        var token = jwtService.GenerateToken(user.Username, user.Email, user.Role, user.CompanyId);
+        var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId);
 
-        return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role, user.CompanyId));
+        return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(), user.CompanyId));
     }
 
     [HttpPost("login")]
@@ -45,8 +45,8 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
             await serviceManager.Users.UpdateAsync(user.Id, user, ct);
         }
 
-        var token = jwtService.GenerateToken(user.Username, user.Email, user.Role, user.CompanyId);
+        var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId);
 
-        return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role, user.CompanyId));
+        return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(), user.CompanyId));
     }
 }

@@ -4,6 +4,7 @@ using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Api.Controllers;
 
@@ -15,8 +16,26 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     private bool IsAdmin()
         => User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value.ToLower() == "admin";
 
+    private bool IsSuperAdmin()
+        => User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value.ToLower() == "superadmin";
+
+    private bool CanManageUser(UserRole targetRole, UserRole? newRole = null)
+    {
+        // Admin can only manage non-admin users
+        if (IsSuperAdmin()) return true;
+        if (IsAdmin())
+        {
+            // Admin cannot manage SuperAdmin or Admin users
+            if (targetRole == UserRole.SuperAdmin || targetRole == UserRole.Admin) return false;
+            // Admin cannot assign Admin or SuperAdmin roles
+            if (newRole == UserRole.SuperAdmin || newRole == UserRole.Admin) return false;
+            return true;
+        }
+        return false;
+    }
+
     [HttpGet]
-    public async Task<ActionResult<List<UserDto>>> GetUsers(CancellationToken ct, [FromQuery]PaginationParameters pagination)
+    public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(CancellationToken ct, [FromQuery]PaginationParameters pagination)
     {
         if (!IsAdmin()) return Forbid();
 
@@ -28,6 +47,10 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserRequest request, CancellationToken ct)
     {
         if (!IsAdmin()) return Forbid();
+
+        // Only SuperAdmin can create Admin or SuperAdmin users
+        if ((request.Role == UserRole.Admin || request.Role == UserRole.SuperAdmin) && !IsSuperAdmin())
+            return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
         
@@ -44,14 +67,18 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
        return Created("", user);
     }
 
-    [HttpPut("{id}/role")]
+[HttpPut("{id}/role")]
     public async Task<ActionResult<UserDto>> UpdateUserRole(int id, [FromBody] UpdateUserRoleRequest request, CancellationToken ct)
     {
         if (!IsAdmin()) return Forbid();
 
         var user = await serviceManager.Users.GetByIdAsync(id, ct);
         if (user is null) return NotFound(new ErrorResponse("User not found"));
-        
+
+        // Check if current user can manage this target user
+        if (!CanManageUser(user.Role, request.Role))
+            return Forbid();
+
         var userWithNewRole = user.Apply(r => r with { Role = request.Role });
 
         var userForUpdate = userWithNewRole.Map(u => new UserWithPasswordHashDto
@@ -62,7 +89,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
             Email = u.Email,
             FullName = u.FullName
         });
-       
+        
         var userDto =  await serviceManager.Users.UpdateAsync(user.Id, userForUpdate, ct);
         
         return Ok(userDto);
@@ -76,15 +103,21 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         var user = await serviceManager.Users.GetByIdAsync(id, ct);
         if (user is null) return NotFound(new ErrorResponse("User not found"));
 
+        // Only SuperAdmin can modify status of Admin or SuperAdmin users
+        if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdmin())
+            return Forbid();
+
         var userWithNewStatus = user.Apply(r => r with { IsActive = request.IsActive });
 
-        var userForUpdate = userWithNewStatus.Map(u => new UserWithPasswordHashDto
+        var userForUpdate = userWithNewStatus.Map(u => 
+            new UserWithPasswordHashDto
         {
             Id = u.Id,
             Role = u.Role,
             Username = u.Username,
             Email = u.Email,
-            FullName = u.FullName
+            FullName = u.FullName,
+            IsActive = u.IsActive
         });
         
         var userDto = await serviceManager.Users.UpdateAsync(user.Id, userForUpdate, ct);
@@ -99,7 +132,10 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         var user = await serviceManager.Users.GetByIdAsync(id, ct);
         if (user is null) return NotFound(new ErrorResponse("User not found"));
-        if (user.Role == "Admin") return BadRequest(new ErrorResponse("Cannot delete an admin user"));
+        
+        // Only SuperAdmin can delete Admin or SuperAdmin users
+        if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdmin())
+            return Forbid();
 
         await serviceManager.Users.DeleteAsync(id, ct);
         return NoContent();
