@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -47,7 +48,9 @@ public static class ServiceExtensions
     }
 
     public static void ConfigureControllers(IServiceCollection services)
-        => services.AddControllers();
+        => services.AddControllers()
+            .AddJsonOptions(options =>
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
     public static void ConfigureCors(IServiceCollection services)
         => services.AddCors(options =>

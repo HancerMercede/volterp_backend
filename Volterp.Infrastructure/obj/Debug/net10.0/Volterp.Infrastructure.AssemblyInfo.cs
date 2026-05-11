@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Volterp.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6267b8249ad566b57dd005ba1e977a1b23d5c6e3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9880f26c2c2e64a4e472d8876baa9be6b5962c4b")]
 [assembly: System.Reflection.AssemblyProductAttribute("Volterp.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Volterp.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

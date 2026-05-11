@@ -14,7 +14,9 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return sales.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes, 
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => 
+                new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal))
+                .ToList()
         ));
     }
 
@@ -49,7 +51,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             CompanyId = r.CompanyId,
             ClienteId = r.ClienteId,
             ClienteName = r.ClienteName,
-            Status = SaleStatus.Pending,
+            Status = r.Status,
             Total = r.Total,
             Notes = r.Notes,
             CreatedAt = DateTime.UtcNow,
@@ -99,6 +101,7 @@ public async Task<SaleDto> UpdateSaleAsync(int id, int companyId, UpdateSaleRequ
         {
             s.ClienteId = request.ClienteId;
             s.ClienteName = request.ClienteName;
+            s.Status = request.Status;
             s.Total = request.Total;
             s.Notes = request.Notes;
             s.UpdatedAt = DateTime.UtcNow;

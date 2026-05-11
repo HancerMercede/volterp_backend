@@ -9,7 +9,7 @@ namespace Volterp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class SalesController(ISaleService saleService) : BaseController
+public class SalesController(IServiceManager serviceManager) : BaseController
 {
     /// <summary>
     /// Obtener todas las ventas de la empresa (paginado)
@@ -20,7 +20,7 @@ public class SalesController(ISaleService saleService) : BaseController
         CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await saleService.GetAllSalesAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+        var result = await serviceManager.Sales.GetAllSalesAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
         return Ok(result);
     }
 
@@ -34,7 +34,7 @@ public class SalesController(ISaleService saleService) : BaseController
         CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await saleService.GetSalesByStatusAsync(companyId, status, pagination.PageNumber, pagination.PageSize, ct);
+        var result = await serviceManager.Sales.GetSalesByStatusAsync(companyId, status, pagination.PageNumber, pagination.PageSize, ct);
         return Ok(result);
     }
 
@@ -47,7 +47,7 @@ public class SalesController(ISaleService saleService) : BaseController
         CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await saleService.GetSalesByStatusAsync(companyId, SaleStatus.Pending, pagination.PageNumber, pagination.PageSize, ct);
+        var result = await serviceManager.Sales.GetSalesByStatusAsync(companyId, SaleStatus.Pending, pagination.PageNumber, pagination.PageSize, ct);
         return Ok(result);
     }
 
@@ -58,7 +58,7 @@ public class SalesController(ISaleService saleService) : BaseController
     public async Task<ActionResult<SaleDto>> GetSale(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var sale = await saleService.GetSaleByIdAsync(id, companyId, ct);
+        var sale = await serviceManager.Sales.GetSaleByIdAsync(id, companyId, ct);
         
         if (sale is null)
             return NotFound(new { message = "Venta no encontrada" });
@@ -72,7 +72,7 @@ public class SalesController(ISaleService saleService) : BaseController
     [HttpPost]
     public async Task<ActionResult<SaleDto>> CreateSale([FromBody] CreateSaleRequest request, CancellationToken ct = default)
     {
-        var sale = await saleService.CreateSaleAsync(request, ct);
+        var sale = await serviceManager.Sales.CreateSaleAsync(request, ct);
         return CreatedAtAction(nameof(GetSale), new { id = sale.Id }, sale);
     }
 
@@ -86,7 +86,7 @@ public class SalesController(ISaleService saleService) : BaseController
         
         try
         {
-            var sale = await saleService.UpdateSaleAsync(id, companyId, request, ct);
+            var sale = await serviceManager.Sales.UpdateSaleAsync(id, companyId, request, ct);
             return Ok(sale);
         }
         catch (ArgumentException ex)
@@ -105,7 +105,7 @@ public class SalesController(ISaleService saleService) : BaseController
         
         try
         {
-            var sale = await saleService.CompleteSaleAsync(id, companyId, ct);
+            var sale = await serviceManager.Sales.CompleteSaleAsync(id, companyId, ct);
             return Ok(sale);
         }
         catch (ArgumentException ex)
@@ -124,7 +124,7 @@ public class SalesController(ISaleService saleService) : BaseController
         
         try
         {
-            await saleService.DeleteSaleAsync(id, companyId, ct);
+            await serviceManager.Sales.DeleteSaleAsync(id, companyId, ct);
             return NoContent();
         }
         catch (ArgumentException ex)

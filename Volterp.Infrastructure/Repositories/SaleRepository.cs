@@ -9,12 +9,18 @@ namespace Volterp.Infrastructure.Repositories;
 public class SaleRepository(VolterpDbContext context) : RepositoryBase<Sale>(context), ISaleRepository
 {
     public async Task<Sale?> GetSaleByIdAsync(int id, int companyId, CancellationToken ct = default)
-        => await GetByCondictionsAsync(s => s.Id == id && s.CompanyId == companyId, ct);
+        => await Set().Where(s => s.Id == id && s.CompanyId == companyId)
+            .Include(s => s.Items)
+            .FirstOrDefaultAsync(ct);
+     
+    
+    
 
     public async Task<PagedResult<Sale>> GetAllSalesByCompanyAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
-    {
-        return await GetAllAsync(s => s.CompanyId == companyId, pageNumber, pageSize, ct);
-    }
+        => await Set().Where(s => s.CompanyId == companyId)
+            .Include(s => s.Items)
+            .ToPagedResultAsync(pageNumber, pageSize, ct);
+
 
     public async Task<PagedResult<Sale>> GetSalesByStatusAsync(int companyId, SaleStatus status, int pageNumber, int pageSize, CancellationToken ct = default)
     {

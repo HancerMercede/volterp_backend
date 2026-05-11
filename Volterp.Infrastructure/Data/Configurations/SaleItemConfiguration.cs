@@ -15,7 +15,7 @@ public class SaleItemConfiguration : IEntityTypeConfiguration<SaleItem>
         entity.Property(e => e.ProductName).IsRequired().HasMaxLength(200);
         entity.Property(e => e.ProductCategory).HasMaxLength(100);
         entity.Property(e => e.ProductCode).HasMaxLength(50);
-        entity.Property(e => e.ProductImageUrl).HasMaxLength(500);
+        entity.Property(e => e.ProductImageUrl).HasColumnType("text");
         entity.Property(e => e.UnitPrice).HasPrecision(18, 2);
         entity.Property(e => e.Subtotal).HasPrecision(18, 2);
 

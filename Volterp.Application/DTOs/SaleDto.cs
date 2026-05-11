@@ -31,6 +31,7 @@ public record CreateSaleRequest(
     int CompanyId,
     int? ClienteId,
     string? ClienteName,
+    SaleStatus Status,
     decimal Total,
     string? Notes,
     List<CreateSaleItemRequest> Items
@@ -50,6 +51,7 @@ public record CreateSaleItemRequest(
 public record UpdateSaleRequest(
     int? ClienteId,
     string? ClienteName,
+    SaleStatus Status,
     decimal Total,
     string? Notes,
     List<CreateSaleItemRequest> Items
