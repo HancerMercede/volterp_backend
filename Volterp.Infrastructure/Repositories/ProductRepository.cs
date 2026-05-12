@@ -16,7 +16,6 @@ public class ProductRepository(VolterpDbContext context)
     {
         return await GetAllAsync(p => p.CompanyId == companyId, pageNumber, pageSize, ct);
     }
- 
     
     public async Task<Product> AddProductAsync(Product product, CancellationToken ct = default)
     {

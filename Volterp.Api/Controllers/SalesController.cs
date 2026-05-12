@@ -17,7 +17,10 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.Sales.GetAllSalesAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+        var result = await serviceManager
+            .Sales
+            .GetAllSalesAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+        
         return Ok(result);
     }
     
@@ -28,7 +31,10 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.Sales.GetSalesByStatusAsync(companyId, status, pagination.PageNumber, pagination.PageSize, ct);
+        var result = await serviceManager
+            .Sales
+            .GetSalesByStatusAsync(companyId, status, pagination.PageNumber, pagination.PageSize, ct);
+        
         return Ok(result);
     }
     
@@ -38,7 +44,10 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.Sales.GetSalesByStatusAsync(companyId, SaleStatus.Pending, pagination.PageNumber, pagination.PageSize, ct);
+        var result = await serviceManager
+            .Sales
+            .GetSalesByStatusAsync(companyId, SaleStatus.Pending, pagination.PageNumber, pagination.PageSize, ct);
+        
         return Ok(result);
     }
     
@@ -46,7 +55,9 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     public async Task<ActionResult<SaleDto>> GetSale(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var sale = await serviceManager.Sales.GetSaleByIdAsync(id, companyId, ct);
+        var sale = await serviceManager
+            .Sales
+            .GetSaleByIdAsync(id, companyId, ct);
         
         if (sale is null)
             return NotFound(new { message = "Venta no encontrada" });
@@ -57,8 +68,19 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     [HttpPost]
     public async Task<ActionResult<SaleDto>> CreateSale([FromBody] CreateSaleRequest request, CancellationToken ct = default)
     {
-        var sale = await serviceManager.Sales.CreateSaleAsync(request, ct);
-        return CreatedAtAction(nameof(GetSale), new { id = sale.Id }, sale);
+        try
+        {
+            var sale = await serviceManager
+                .Sales
+                .CreateSaleAsync(request, ct);
+        
+            return CreatedAtAction(nameof(GetSale), new { id = sale.Id }, sale);
+        }
+        catch (Exception e)
+        {
+            return BadRequest(new ErrorResponse("Could not create sale", e.Message));
+        }
+     
     }
     
     [HttpPut("{id}")]

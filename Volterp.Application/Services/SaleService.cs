@@ -16,7 +16,8 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes, 
             s.CreatedAt, s.UpdatedAt,
             s.Items.Select(i => 
-                new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal))
+                new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory,
+                    i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal))
                 .ToList()
         ));
     }
@@ -28,7 +29,10 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return sales.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes, 
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, 
+                i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity,
+                i.UnitPrice, i.Subtotal))
+                .ToList()
         ));
     }
 
@@ -41,7 +45,11 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return sale.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes,
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, 
+                i.ProductId, i.ProductName, i.ProductCategory, 
+                i.ProductCode, i.ProductImageUrl, 
+                i.Quantity, i.UnitPrice, i.Subtotal))
+                .ToList()
         ));
     }
 
@@ -75,7 +83,10 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return sale.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes,
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, 
+                i.ProductCategory, i.ProductCode, i.ProductImageUrl, 
+                i.Quantity, i.UnitPrice, i.Subtotal))
+                .ToList()
         ));
     }
 
@@ -115,7 +126,10 @@ public async Task<SaleDto> UpdateSaleAsync(int id, int companyId, UpdateSaleRequ
         return sale.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes,
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName,
+                i.ProductCategory, i.ProductCode, i.ProductImageUrl, 
+                i.Quantity, i.UnitPrice, i.Subtotal))
+                .ToList()
         ));
     }
 
@@ -138,7 +152,10 @@ sale.Apply(s =>
         return sale.Map(s => new SaleDto(
             s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes,
             s.CreatedAt, s.UpdatedAt,
-            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName, i.ProductCategory, i.ProductCode, i.ProductImageUrl, i.Quantity, i.UnitPrice, i.Subtotal)).ToList()
+            s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName,
+                i.ProductCategory, i.ProductCode, i.ProductImageUrl, 
+                i.Quantity, i.UnitPrice, i.Subtotal))
+                .ToList()
         ));
     }
 
