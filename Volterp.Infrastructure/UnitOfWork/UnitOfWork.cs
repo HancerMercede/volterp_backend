@@ -12,6 +12,7 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     private readonly Lazy<ICategoryRepository> _categories = new(() => new CategoryRepository(context));
     private readonly Lazy<ISaleRepository> _sales = new(() => new SaleRepository(context));
     private readonly Lazy<ISupplierRepository> _suppliers = new(() => new SupplierRepository(context));
+    private readonly Lazy<IPurchaseRepository> _purchases = new(() => new PurchaseRepository(context));
 
     public IUserRepository Users => _users.Value;
     public ICompanyRepository Companies => _companies.Value;
@@ -19,6 +20,7 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     public ICategoryRepository Categories => _categories.Value;
     public ISaleRepository Sales => _sales.Value;
     public ISupplierRepository Suppliers => _suppliers.Value;
+    public IPurchaseRepository Purchases => _purchases.Value;
 
     public async Task<int> CommitAsync(CancellationToken ct = default) => await context.SaveChangesAsync(ct);
 

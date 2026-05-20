@@ -21,4 +21,7 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
 
     private ISupplierService? _suppliers;
     public ISupplierService Suppliers => _suppliers ??= new SupplierService(unitOfWork);
+
+    private IPurchaseService? _purchases;
+    public IPurchaseService Purchases => _purchases ??= new PurchaseService(unitOfWork);
 }
