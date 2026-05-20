@@ -1,6 +1,6 @@
 namespace Volterp.Domain.Entities;
 
-public class Product:IAuditEntity
+public class Product:AuditEntity
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;

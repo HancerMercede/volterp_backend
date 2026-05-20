@@ -3,7 +3,7 @@ using Volterp.Domain.Entities;
 
 namespace Volterp.Application.Interfaces;
 
-public interface IPurchaseRepository
+public interface  IPurchaseRepository
 {
     Task<PagedResult<Purchase>> GetAllPurchasesByCompanyAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default);
     Task<Purchase?> GetPurchaseByIdAsync(int id, int companyId, CancellationToken ct = default);

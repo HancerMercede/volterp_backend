@@ -2,7 +2,7 @@ using Volterp.Domain.Enums;
 
 namespace Volterp.Domain.Entities;
 
-public class Sale : IAuditEntity
+public class Sale : AuditEntity
 {
     public int Id { get; set; }
     public int CompanyId { get; set; }

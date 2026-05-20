@@ -9,6 +9,7 @@ public interface IUnitOfWork
     ISaleRepository Sales { get; }
     ISupplierRepository Suppliers { get; }
     IPurchaseRepository Purchases { get; }
+    IEmployeeRepository Employees { get; }
     Task<int> CommitAsync(CancellationToken ct = default);
     void Dispose();
 }

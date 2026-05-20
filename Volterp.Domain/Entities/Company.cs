@@ -1,6 +1,6 @@
 namespace Volterp.Domain.Entities;
 
-public class Company:IAuditEntity
+public class Company:AuditEntity
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -18,4 +18,5 @@ public class Company:IAuditEntity
     public ICollection<Sale> Sales { get; set; } = new List<Sale>();
     public ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
     public ICollection<Purchase> Purchases { get; set; } = new List<Purchase>();
+    public ICollection<Employee> Employees { get; set; } = new List<Employee>();
 }

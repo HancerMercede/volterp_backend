@@ -1,6 +1,6 @@
 namespace Volterp.Domain.Entities;
 
-public class Supplier : IAuditEntity
+public class Supplier : AuditEntity
 {
     public int Id { get; set; }
     public int CompanyId { get; set; }

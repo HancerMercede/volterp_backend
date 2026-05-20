@@ -1,6 +1,6 @@
 namespace Volterp.Domain.Entities;
 
-public class Purchase : IAuditEntity
+public class Purchase : AuditEntity
 {
     public int Id { get; set; }
     public int CompanyId { get; set; }

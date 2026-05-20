@@ -9,4 +9,5 @@ public interface IServiceManager
     ISaleService Sales { get; }
     ISupplierService Suppliers { get; }
     IPurchaseService Purchases { get; }
+    IEmployeeService Employees { get; }
 }

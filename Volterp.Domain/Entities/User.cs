@@ -3,7 +3,7 @@ using Volterp.Domain.Enums;
 
 namespace Volterp.Domain.Entities;
 
-public class User : IAuditEntity
+public class User : AuditEntity
 {
     public int Id { get; set; }
     public string Username { get; set; } = string.Empty;
