@@ -9,5 +9,8 @@ public record SupplierDto(
     string Category,
     string ContactPerson,
     bool IsActive,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    DateTime? UpdatedAt,
+    int? CreatedBy,
+    int? UpdatedBy
 );

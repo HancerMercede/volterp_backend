@@ -41,7 +41,7 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
     
     [HttpPost]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<SupplierDto>> CreateSupplier([FromBody] CreateSupplierRequest request, CancellationToken ct = default)
+    public async Task<ActionResult<SupplierDto>> CreateSupplier([FromBody] SupplierDto request, CancellationToken ct = default)
     {
         try
         {
@@ -60,7 +60,7 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
     
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<SupplierDto>> UpdateSupplier(int id, [FromBody] UpdateSupplierRequest request, CancellationToken ct = default)
+    public async Task<ActionResult<SupplierDto>> UpdateSupplier(int id, [FromBody] SupplierDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         

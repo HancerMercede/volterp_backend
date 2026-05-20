@@ -10,53 +10,53 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
     public async Task<PagedResult<SupplierDto>> GetAllSuppliersAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var suppliers = await unitOfWork.Suppliers.GetAllSuppliersByCompanyAsync(companyId, pageNumber, pageSize, ct);
-        
+
         return suppliers.Map(s => new SupplierDto(
             s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.IsActive, s.CreatedAt
+            s.ContactPerson, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
         ));
     }
 
     public async Task<SupplierDto?> GetSupplierByIdAsync(int id, int companyId, CancellationToken ct = default)
     {
         var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct);
-        
+
         if (supplier is null) return null;
-        
+
         return supplier.Map(s => new SupplierDto(
             s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.IsActive, s.CreatedAt
+            s.ContactPerson, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
         ));
     }
 
-    public async Task<SupplierDto> CreateSupplierAsync(CreateSupplierRequest request, int companyId, CancellationToken ct = default)
+    public async Task<SupplierDto> CreateSupplierAsync(SupplierDto request, int companyId, CancellationToken ct = default)
     {
-        var supplier = request.Map(r => new Supplier
+        var supplier = new Supplier
         {
             CompanyId = companyId,
-            Name = r.Name,
-            Email = r.Email,
-            Phone = r.Phone,
-            Address = r.Address,
-            Category = r.Category,
-            ContactPerson = r.ContactPerson,
+            Name = request.Name,
+            Email = request.Email,
+            Phone = request.Phone,
+            Address = request.Address,
+            Category = request.Category,
+            ContactPerson = request.ContactPerson,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
-        });
+        };
 
         await unitOfWork.Suppliers.AddSupplierAsync(supplier, ct);
         await unitOfWork.CommitAsync(ct);
 
         return supplier.Map(s => new SupplierDto(
             s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.IsActive, s.CreatedAt
+            s.ContactPerson, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
         ));
     }
 
-    public async Task<SupplierDto> UpdateSupplierAsync(int id, int companyId, UpdateSupplierRequest request, CancellationToken ct = default)
+    public async Task<SupplierDto> UpdateSupplierAsync(int id, int companyId, SupplierDto request, CancellationToken ct = default)
     {
         var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct);
-        
+
         if (supplier is null)
             throw new ArgumentException("Supplier not found");
 
@@ -77,14 +77,14 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
 
         return supplier.Map(s => new SupplierDto(
             s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.IsActive, s.CreatedAt
+            s.ContactPerson, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
         ));
     }
 
     public async Task DeleteSupplierAsync(int id, int companyId, CancellationToken ct = default)
     {
         var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct);
-        
+
         if (supplier is null)
             throw new ArgumentException("Supplier not found");
 
