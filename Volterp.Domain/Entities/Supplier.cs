@@ -11,8 +11,8 @@ public class Supplier : IAuditEntity
     public string Category { get; set; } = string.Empty;
     public string ContactPerson { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
+    public DateTime? CreatedAt { get; set; } = DateTime.Now;
+    public DateTime? UpdatedAt { get; set; } 
 
     public Company Company { get; set; } = null!;
 }

@@ -14,7 +14,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         entity.HasIndex(e => e.Category);
         entity.HasIndex(e => e.IsActive);
 
-        entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+        entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
         entity.Property(e => e.Email).HasMaxLength(200);
         entity.Property(e => e.Phone).HasMaxLength(50);
         entity.Property(e => e.Address).HasMaxLength(500);

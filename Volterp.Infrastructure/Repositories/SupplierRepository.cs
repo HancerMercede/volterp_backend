@@ -7,13 +7,14 @@ namespace Volterp.Infrastructure.Repositories;
 
 public class SupplierRepository(VolterpDbContext context) : RepositoryBase<Supplier>(context), ISupplierRepository
 {
-    public async Task<Supplier?> GetSupplierByIdAsync(int id, int companyId, CancellationToken ct = default)
-        => await GetByCondictionsAsync(s => s.Id == id && s.CompanyId == companyId, ct);
-
+    
     public async Task<PagedResult<Supplier>> GetAllSuppliersByCompanyAsync(int companyId, int pageNumber, int pageSize,
         CancellationToken ct = default)
         => await GetAllAsync(s => s.CompanyId == companyId, pageNumber, pageSize, ct);
-
+    
+    public async Task<Supplier?> GetSupplierByIdAsync(int id, int companyId, CancellationToken ct = default)
+        => await GetByCondictionsAsync(s => s.Id == id && s.CompanyId == companyId, ct);
+    
     public async Task<Supplier> AddSupplierAsync(Supplier supplier, CancellationToken ct = default)
     {
         await AddAsync(supplier, ct);
