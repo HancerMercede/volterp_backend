@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Infrastructure.Data.Configurations;
 
@@ -22,7 +23,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         entity.Property(e => e.Department).HasMaxLength(100);
         entity.Property(e => e.HireDate).IsRequired();
         entity.Property(e => e.Salary).HasPrecision(18, 2);
-        entity.Property(e => e.Status).HasMaxLength(50).IsRequired();
+        entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
         entity.Property(e => e.DirectManagerId);
         entity.Property(e => e.WorkSchedule).HasMaxLength(100);
         entity.Property(e => e.AFP).HasMaxLength(100);

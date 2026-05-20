@@ -1,3 +1,5 @@
+using Volterp.Domain.Enums;
+
 namespace Volterp.Application.DTOs;
 
 public record EmployeeDto(
@@ -10,7 +12,7 @@ public record EmployeeDto(
     string Department,
     DateTime HireDate,
     decimal Salary,
-    string Status,
+    EntityStatus Status,
     string WorkSchedule,
     string? AFP,
     string? ARS,

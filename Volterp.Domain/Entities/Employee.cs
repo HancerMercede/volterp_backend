@@ -1,3 +1,5 @@
+using Volterp.Domain.Enums;
+
 namespace Volterp.Domain.Entities;
 
 public class Employee : IAuditEntity
@@ -12,7 +14,7 @@ public class Employee : IAuditEntity
     public string Department { get; set; } = string.Empty;
     public DateTime HireDate { get; set; }
     public decimal Salary { get; set; }
-    public string Status { get; set; } = string.Empty;  // "Active", "Inactive", "OnLeave"
+    public EntityStatus Status { get; set; } = EntityStatus.Active;
     public int? DirectManagerId { get; set; }
     public string WorkSchedule { get; set; } = string.Empty;
     public string? AFP { get; set; }
