@@ -7,6 +7,7 @@ public interface IUnitOfWork
     IProductRepository Products { get; }
     ICategoryRepository Categories { get; }
     ISaleRepository Sales { get; }
+    ISupplierRepository Suppliers { get; }
     Task<int> CommitAsync(CancellationToken ct = default);
     void Dispose();
 }

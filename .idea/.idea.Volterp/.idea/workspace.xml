@@ -15,6 +15,8 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Infrastructure.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Infrastructure.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Infrastructure.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.AssemblyInfo.cs" afterDir="false" />
@@ -28,25 +30,32 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/refint/Volterp.Api.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/refint/Volterp.Api.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmcshtml.dswa.cache.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmcshtml.dswa.cache.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmrazor.dswa.cache.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmrazor.dswa.cache.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/Services/SaleService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/Services/SaleService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Application/Helpers/PaginationExtensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/Helpers/PaginationExtensions.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.AssemblyInfoInputs.cache" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.csproj.AssemblyReference.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.csproj.AssemblyReference.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/ref/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/ref/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/refint/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/refint/Volterp.Application.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.model.nuget.info" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.model.nuget.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/Repositories/ProductRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/Repositories/ProductRepository.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/Repositories/SaleRepository.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/Repositories/SaleRepository.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.sourcelink.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/ref/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/ref/Volterp.Domain.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/refint/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/refint/Volterp.Domain.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.AssemblyInfo.cs" afterDir="false" />
@@ -57,7 +66,6 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/ref/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/ref/Volterp.Infrastructure.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/refint/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/refint/Volterp.Infrastructure.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.model.nuget.info" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -149,29 +157,29 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;.NET Launch Settings Profile.Volterp.Api: http.executor&quot;: &quot;Debug&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;XThreadsFramesViewSplitterKey&quot;: &quot;0.48548812&quot;,
-    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;development&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.AcpAgentsConfigurable&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    ".NET Launch Settings Profile.Volterp.Api: http.executor": "Debug",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "XThreadsFramesViewSplitterKey": "0.48548812",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "feature/refactor-ventas",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "ml.llm.AcpAgentsConfigurable",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected=".NET Launch Settings Profile.Volterp.Api: http">
     <configuration name="Volterp.Api: http" type="LaunchSettings" factoryName=".NET Launch Settings Profile">
       <option name="LAUNCH_PROFILE_PROJECT_FILE_PATH" value="$PROJECT_DIR$/Volterp.Api/Volterp.Api.csproj" />
@@ -224,7 +232,9 @@
       <workItem from="1778444001683" duration="4000" />
       <workItem from="1778454369423" duration="8211000" />
       <workItem from="1778503038333" duration="25144000" />
-      <workItem from="1778600184614" duration="383000" />
+      <workItem from="1778600184614" duration="3640000" />
+      <workItem from="1779242838488" duration="185000" />
+      <workItem from="1779305438424" duration="2021000" />
     </task>
     <servers />
   </component>
@@ -291,26 +301,26 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Volterp.Api/Controllers/SalesController.cs</url>
-          <line>46</line>
+          <line>55</line>
           <properties documentPath="C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\Controllers\SalesController.cs" containingFunctionPresentation="Method 'GetSale'">
             <startOffsets>
-              <option value="1770" />
+              <option value="1875" />
             </startOffsets>
             <endOffsets>
-              <option value="1771" />
+              <option value="1876" />
             </endOffsets>
           </properties>
           <option name="timeStamp" value="20" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Volterp.Api/Controllers/SalesController.cs</url>
-          <line>58</line>
+          <line>69</line>
           <properties documentPath="C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\Controllers\SalesController.cs" containingFunctionPresentation="Method 'CreateSale'">
             <startOffsets>
-              <option value="2205" />
+              <option value="2336" />
             </startOffsets>
             <endOffsets>
-              <option value="2206" />
+              <option value="2337" />
             </endOffsets>
           </properties>
           <option name="timeStamp" value="30" />

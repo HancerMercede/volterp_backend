@@ -6,9 +6,9 @@ public static class PaginationExtensions
     public static async Task<PagedResult<T>> ToPagedResultAsync<T>(this IQueryable<T> source, int pageNumber,
         int pageSize, CancellationToken token) where T : class
     {
-        var rowCount = await source.CountAsync();
+        var rowCount = await source.CountAsync(token);
         var pageCount  = (int)Math.Ceiling(rowCount / (double)pageSize);
-        var items = await source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+        var items = await source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(token);
 
         return new PagedResult<T>
         {

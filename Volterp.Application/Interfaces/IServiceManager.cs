@@ -7,4 +7,5 @@ public interface IServiceManager
     IUserService Users { get; }
     ICompanyService Companies { get; }
     ISaleService Sales { get; }
+    ISupplierService Suppliers { get; }
 }

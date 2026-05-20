@@ -11,6 +11,7 @@ public class VolterpDbContext(DbContextOptions<VolterpDbContext> options) : DbCo
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleItem> SaleItems => Set<SaleItem>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
