@@ -58,6 +58,13 @@ public static class MapperConfiguration
         mutator(source);
         return source;
     }
+    /// <summary>
+    /// Transforms an object via a function and returns the result.
+    /// Use when the transformation may produce a new instance or apply complex logic.
+    /// </summary>
+    /// <example>
+    /// var transformed = product.Apply(p => new Product(p.Id, request.Name, p.Price));
+    /// </example>
     public static TSource Apply<TSource>(this TSource source, Func<TSource, TSource> transform)
         => transform(source);
     
