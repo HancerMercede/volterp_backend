@@ -10,6 +10,7 @@ public interface IUnitOfWork
     ISupplierRepository Suppliers { get; }
     IPurchaseRepository Purchases { get; }
     IEmployeeRepository Employees { get; }
+    IAccountingTransactionRepository AccountingTransactions { get; }
     Task<int> CommitAsync(CancellationToken ct = default);
     void Dispose();
 }

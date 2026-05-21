@@ -19,4 +19,5 @@ public class Company:AuditEntity
     public ICollection<Supplier> Suppliers { get; set; } = new List<Supplier>();
     public ICollection<Purchase> Purchases { get; set; } = new List<Purchase>();
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
+    public ICollection<AccountingTransaction> AccountingTransactions { get; set; } = new List<AccountingTransaction>();
 }

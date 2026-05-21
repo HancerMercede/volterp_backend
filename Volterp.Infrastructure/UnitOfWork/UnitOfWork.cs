@@ -14,6 +14,7 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     private readonly Lazy<ISupplierRepository> _suppliers = new(() => new SupplierRepository(context));
     private readonly Lazy<IPurchaseRepository> _purchases = new(() => new PurchaseRepository(context));
     private readonly Lazy<IEmployeeRepository> _employees = new(() => new EmployeeRepository(context));
+    private readonly Lazy<IAccountingTransactionRepository> _accountingTransactions = new(() => new AccountingTransactionRepository(context));
 
     public IUserRepository Users => _users.Value;
     public ICompanyRepository Companies => _companies.Value;
@@ -23,6 +24,7 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     public ISupplierRepository Suppliers => _suppliers.Value;
     public IPurchaseRepository Purchases => _purchases.Value;
     public IEmployeeRepository Employees => _employees.Value;
+    public IAccountingTransactionRepository AccountingTransactions => _accountingTransactions.Value;
 
     public async Task<int> CommitAsync(CancellationToken ct = default) => await context.SaveChangesAsync(ct);
 

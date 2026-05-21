@@ -27,4 +27,7 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
 
     private IEmployeeService? _employees;
     public IEmployeeService Employees => _employees ??= new EmployeeService(unitOfWork);
+
+    private IAccountingTransactionService? _accountingTransactions;
+    public IAccountingTransactionService AccountingTransactions => _accountingTransactions ??= new AccountingTransactionService(unitOfWork);
 }
