@@ -11,7 +11,14 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
     {
         var purchases = await unitOfWork.Purchases.GetAllPurchasesByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
-        return purchases.Map(p => MapToDto(p));
+        return purchases.Map(p => new PurchaseDto(
+            p.Id, p.SupplierId, p.SupplierName, p.Status, p.Total, p.Notes,
+            p.CreatedAt, p.UpdatedAt, p.CreatedBy, p.UpdatedBy,
+            p.Items.Select(i => new PurchaseItemDto(
+                i.Id, i.ProductId, i.ProductName, i.ProductCode,
+                i.Quantity, i.UnitPrice, i.Subtotal
+            )).ToList()
+        ));
     }
 
     public async Task<PurchaseDto?> GetPurchaseByIdAsync(int id, int companyId, CancellationToken ct = default)
@@ -20,7 +27,14 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
 
         if (purchase is null) return null;
 
-        return MapToDto(purchase);
+        return new PurchaseDto(
+            purchase.Id, purchase.SupplierId, purchase.SupplierName, purchase.Status, purchase.Total, purchase.Notes,
+            purchase.CreatedAt, purchase.UpdatedAt, purchase.CreatedBy, purchase.UpdatedBy,
+            purchase.Items.Select(i => new PurchaseItemDto(
+                i.Id, i.ProductId, i.ProductName, i.ProductCode,
+                i.Quantity, i.UnitPrice, i.Subtotal
+            )).ToList()
+        );
     }
 
     public async Task<PurchaseDto> CreatePurchaseAsync(PurchaseDto request, int companyId, int? userId, CancellationToken ct = default)
@@ -53,7 +67,14 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         await unitOfWork.Purchases.AddPurchaseAsync(purchase, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return MapToDto(purchase);
+        return new PurchaseDto(
+            purchase.Id, purchase.SupplierId, purchase.SupplierName, purchase.Status, purchase.Total, purchase.Notes,
+            purchase.CreatedAt, purchase.UpdatedAt, purchase.CreatedBy, purchase.UpdatedBy,
+            purchase.Items.Select(i => new PurchaseItemDto(
+                i.Id, i.ProductId, i.ProductName, i.ProductCode,
+                i.Quantity, i.UnitPrice, i.Subtotal
+            )).ToList()
+        );
     }
 
     public async Task<PurchaseDto> UpdatePurchaseAsync(int id, int companyId, PurchaseDto request, int? userId, CancellationToken ct = default)
@@ -91,7 +112,14 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         await unitOfWork.Purchases.UpdatePurchaseAsync(purchase, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return MapToDto(purchase);
+        return new PurchaseDto(
+            purchase.Id, purchase.SupplierId, purchase.SupplierName, purchase.Status, purchase.Total, purchase.Notes,
+            purchase.CreatedAt, purchase.UpdatedAt, purchase.CreatedBy, purchase.UpdatedBy,
+            purchase.Items.Select(i => new PurchaseItemDto(
+                i.Id, i.ProductId, i.ProductName, i.ProductCode,
+                i.Quantity, i.UnitPrice, i.Subtotal
+            )).ToList()
+        );
     }
 
     public async Task DeletePurchaseAsync(int id, int companyId, CancellationToken ct = default)
@@ -105,25 +133,4 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         await unitOfWork.CommitAsync(ct);
     }
 
-    private static PurchaseDto MapToDto(Purchase p) => new(
-        p.Id,
-        p.SupplierId,
-        p.SupplierName,
-        p.Status,
-        p.Total,
-        p.Notes,
-        p.CreatedAt,
-        p.UpdatedAt,
-        p.CreatedBy,
-        p.UpdatedBy,
-        p.Items.Select(i => new PurchaseItemDto(
-            i.Id,
-            i.ProductId,
-            i.ProductName,
-            i.ProductCode,
-            i.Quantity,
-            i.UnitPrice,
-            i.Subtotal
-        )).ToList()
-    );
-}
+    }
