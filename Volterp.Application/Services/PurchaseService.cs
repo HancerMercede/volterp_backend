@@ -84,16 +84,13 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         if (purchase is null)
             throw new ArgumentException("Purchase not found");
 
-        purchase.Apply(p =>
-        {
-            p.SupplierId = request.SupplierId;
-            p.SupplierName = request.SupplierName;
-            p.Status = request.Status;
-            p.Total = request.Total;
-            p.Notes = request.Notes;
-            p.UpdatedAt = DateTime.UtcNow;
-            p.UpdatedBy = userId;
-        });
+        purchase.SupplierId = request.SupplierId;
+        purchase.SupplierName = request.SupplierName;
+        purchase.Status = request.Status;
+        purchase.Total = request.Total;
+        purchase.Notes = request.Notes;
+        purchase.UpdatedAt = DateTime.UtcNow;
+        purchase.UpdatedBy = userId;
 
         purchase.Items.Clear();
         foreach (var item in request.Items)
