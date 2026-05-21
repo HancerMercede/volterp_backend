@@ -18,9 +18,5 @@ public record EmployeeDto(
     string? ARS,
     string? NSS,
     string? Bank,
-    string? AccountNumber,
-    DateTime CreatedAt,
-    DateTime? UpdatedAt,
-    int? CreatedBy,
-    int? UpdatedBy
+    string? AccountNumber
 );

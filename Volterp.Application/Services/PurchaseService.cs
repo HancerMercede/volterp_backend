@@ -27,14 +27,14 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
 
         if (purchase is null) return null;
 
-        return new PurchaseDto(
-            purchase.Id, purchase.SupplierId, purchase.SupplierName, purchase.Status, purchase.Total, purchase.Notes,
-            purchase.CreatedAt, purchase.UpdatedAt, purchase.CreatedBy, purchase.UpdatedBy,
-            purchase.Items.Select(i => new PurchaseItemDto(
+        return purchase.Map(x=> new PurchaseDto(
+            x.Id, x.SupplierId, x.SupplierName, x.Status, x.Total, x.Notes,
+            x.CreatedAt, x.UpdatedAt, x.CreatedBy, x.UpdatedBy,
+            x.Items.Select(i => new PurchaseItemDto(
                 i.Id, i.ProductId, i.ProductName, i.ProductCode,
                 i.Quantity, i.UnitPrice, i.Subtotal
             )).ToList()
-        );
+        ));
     }
 
     public async Task<PurchaseDto> CreatePurchaseAsync(PurchaseDto request, int companyId, int? userId, CancellationToken ct = default)
@@ -67,14 +67,14 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         await unitOfWork.Purchases.AddPurchaseAsync(purchase, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return new PurchaseDto(
-            purchase.Id, purchase.SupplierId, purchase.SupplierName, purchase.Status, purchase.Total, purchase.Notes,
-            purchase.CreatedAt, purchase.UpdatedAt, purchase.CreatedBy, purchase.UpdatedBy,
-            purchase.Items.Select(i => new PurchaseItemDto(
+        return purchase.Map(x=> new PurchaseDto(
+            x.Id, x.SupplierId, x.SupplierName, x.Status, x.Total, x.Notes,
+            x.CreatedAt, x.UpdatedAt, x.CreatedBy, x.UpdatedBy,
+            x.Items.Select(i => new PurchaseItemDto(
                 i.Id, i.ProductId, i.ProductName, i.ProductCode,
                 i.Quantity, i.UnitPrice, i.Subtotal
             )).ToList()
-        );
+        ));
     }
 
     public async Task<PurchaseDto> UpdatePurchaseAsync(int id, int companyId, PurchaseDto request, int? userId, CancellationToken ct = default)
@@ -84,39 +84,40 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         if (purchase is null)
             throw new ArgumentException("Purchase not found");
 
-        purchase.SupplierId = request.SupplierId;
-        purchase.SupplierName = request.SupplierName;
-        purchase.Status = request.Status;
-        purchase.Total = request.Total;
-        purchase.Notes = request.Notes;
-        purchase.UpdatedAt = DateTime.UtcNow;
-        purchase.UpdatedBy = userId;
-
-        purchase.Items.Clear();
-        foreach (var item in request.Items)
+        var newItems = request.Items.Select(p => new PurchaseItem
         {
-            purchase.Items.Add(new PurchaseItem
-            {
-                ProductId = item.ProductId,
-                ProductName = item.ProductName,
-                ProductCode = item.ProductCode,
-                Quantity = item.Quantity,
-                UnitPrice = item.UnitPrice,
-                Subtotal = item.Subtotal
-            });
-        }
+            ProductId = p.ProductId,
+            ProductName = p.ProductName,
+            ProductCode = p.ProductCode,
+            Quantity = p.Quantity,
+            UnitPrice = p.UnitPrice,
+            Subtotal = p.Subtotal
+        }).ToList();
+        
+        purchase.Apply(p =>
+        {
+            p.SupplierId = request.SupplierId;
+            p.SupplierName = request.SupplierName;
+            p.Status = request.Status;
+            p.Total = request.Total;
+            p.Notes = request.Notes;
+            p.UpdatedAt = DateTime.UtcNow;
+            p.UpdatedBy = userId;
+            p.Items = newItems;
+        });
+        
 
         await unitOfWork.Purchases.UpdatePurchaseAsync(purchase, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return new PurchaseDto(
-            purchase.Id, purchase.SupplierId, purchase.SupplierName, purchase.Status, purchase.Total, purchase.Notes,
-            purchase.CreatedAt, purchase.UpdatedAt, purchase.CreatedBy, purchase.UpdatedBy,
-            purchase.Items.Select(i => new PurchaseItemDto(
+        return purchase.Map(x=> new PurchaseDto(
+            x.Id, x.SupplierId, x.SupplierName, x.Status, x.Total, x.Notes,
+            x.CreatedAt, x.UpdatedAt, x.CreatedBy, x.UpdatedBy,
+            x.Items.Select(i => new PurchaseItemDto(
                 i.Id, i.ProductId, i.ProductName, i.ProductCode,
                 i.Quantity, i.UnitPrice, i.Subtotal
             )).ToList()
-        );
+        ));
     }
 
     public async Task DeletePurchaseAsync(int id, int companyId, CancellationToken ct = default)
