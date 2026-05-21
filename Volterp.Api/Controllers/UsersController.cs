@@ -72,7 +72,8 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         var userWithNewRole = user.Apply(r => r with { Role = request.Role });
 
-        var userForUpdate = userWithNewRole.Map(u => new UserWithPasswordHashDto
+        var userForUpdate = userWithNewRole.Map(u 
+            => new UserWithPasswordHashDto
         {
             Id =  u.Id,
             Role =  u.Role,

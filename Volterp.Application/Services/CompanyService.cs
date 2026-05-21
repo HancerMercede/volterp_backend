@@ -57,7 +57,7 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
              c.Email = company.Email;
              c.UpdatedAt = DateTime.UtcNow;
         });
-       await unitOfWork.Companies.UpdateCompanyAsync(companyToUpdate, ct);
+       await unitOfWork.Companies.UpdateCompanyAsync(companyToUpdate!, ct);
        await  unitOfWork.CommitAsync(ct);
        return companyToUpdate.Map(c=> new CompanyDto(c.Id, c.Name, c.TaxId, c.LogoUrl, c.IsActive,c.Address, c.LegalName, c.Phone,c.Email));
     }

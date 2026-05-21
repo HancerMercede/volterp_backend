@@ -9,7 +9,9 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
 {
     public async Task<PagedResult<AccountingTransactionDto>> GetAllByCompanyAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
-        var transactions = await unitOfWork.AccountingTransactions.GetAllByCompanyAsync(companyId, pageNumber, pageSize, ct);
+        var transactions = await unitOfWork
+            .AccountingTransactions
+            .GetAllByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
         return transactions.Map(t => new AccountingTransactionDto(
             t.Id, t.TransactionType, t.Amount, t.Description, t.ReferenceNumber,
@@ -19,7 +21,9 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
 
     public async Task<AccountingTransactionDto?> GetByIdAsync(int id, int companyId, CancellationToken ct = default)
     {
-        var transaction = await unitOfWork.AccountingTransactions.GetByIdAsync(id, companyId, ct);
+        var transaction = await unitOfWork
+            .AccountingTransactions
+            .GetByIdAsync(id, companyId, ct);
 
         if (transaction is null) return null;
 
@@ -46,7 +50,7 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
             CreatedBy = userId
         };
 
-        await unitOfWork.AccountingTransactions.AddAsync(transaction, ct);
+        await unitOfWork.AccountingTransactions.AddTransactionAsync(transaction, ct);
         await unitOfWork.CommitAsync(ct);
 
         return transaction.Map(t => new AccountingTransactionDto(
@@ -76,7 +80,7 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
             t.UpdatedBy = userId;
         });
 
-        await unitOfWork.AccountingTransactions.UpdateAsync(transaction, ct);
+        await unitOfWork.AccountingTransactions.UpdateTransactionAsync(transaction, ct);
         await unitOfWork.CommitAsync(ct);
 
         return transaction.Map(t => new AccountingTransactionDto(
@@ -92,7 +96,7 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
         if (transaction is null)
             throw new ArgumentException("Accounting transaction not found");
 
-        await unitOfWork.AccountingTransactions.DeleteAsync(id, ct);
+        await unitOfWork.AccountingTransactions.DeleteTransactionAsync(id, ct);
         await unitOfWork.CommitAsync(ct);
     }
 }
