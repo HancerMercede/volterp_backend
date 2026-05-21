@@ -1,3 +1,5 @@
+using Volterp.Domain.Enums;
+
 namespace Volterp.Domain.Entities;
 
 public class Purchase : AuditEntity
@@ -6,7 +8,7 @@ public class Purchase : AuditEntity
     public int CompanyId { get; set; }
     public int? SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
-    public string Status { get; set; } = "Pending";
+    public EntityStatus Status { get; set; } = EntityStatus.Pending;
     public decimal Total { get; set; }
     public string Notes { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

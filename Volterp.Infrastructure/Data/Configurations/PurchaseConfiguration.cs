@@ -14,7 +14,7 @@ public class PurchaseConfiguration : IEntityTypeConfiguration<Purchase>
         entity.HasIndex(e => e.Status);
 
         entity.Property(e => e.SupplierName).HasMaxLength(200);
-        entity.Property(e => e.Status).HasMaxLength(50).IsRequired();
+        entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
         entity.Property(e => e.Total).HasPrecision(18, 2);
         entity.Property(e => e.Notes).HasMaxLength(1000);
 
