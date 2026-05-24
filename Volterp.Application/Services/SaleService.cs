@@ -87,6 +87,9 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
             .GroupBy(i => i.ProductId)
             .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
+        // Build product name lookup once (avoids O(n²) First() in loop)
+        var itemNameMap = sale.Items.ToDictionary(i => i.ProductId, i => i.ProductName);
+
         foreach (var (productId, quantity) in deductions)
         {
             if (!productMap.TryGetValue(productId, out var product))
@@ -94,7 +97,7 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
 
             if (product.Stock < quantity)
             {
-                var itemName = sale.Items.First(i => i.ProductId == productId).ProductName;
+                var itemName = itemNameMap.GetValueOrDefault(productId, productId.ToString());
                 throw new InvalidOperationException(
                     $"Insufficient stock for product '{itemName}'. Available: {product.Stock}, Requested: {quantity}");
             }
@@ -148,7 +151,7 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         }
 
         // Build product name lookup (O(n) once, avoids O(n²) First() in loop)
-        var productNameLookup = request.Items.ToDictionary(i => i.ProductId, i => i.ProductName);
+        var itemNameMap = request.Items.ToDictionary(i => i.ProductId, i => i.ProductName);
 
         // Validate and apply new deductions
         foreach (var (productId, quantity) in newDeductions)
@@ -158,7 +161,7 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
 
             if (product.Stock < quantity)
             {
-                var itemName = productNameLookup.GetValueOrDefault(productId, "Unknown");
+                var itemName = itemNameMap.GetValueOrDefault(productId, productId.ToString());
                 throw new InvalidOperationException(
                     $"Insufficient stock for product '{itemName}'. Available: {product.Stock}, Requested: {quantity}");
             }
