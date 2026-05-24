@@ -26,6 +26,9 @@ public class ProductRepository(VolterpDbContext context)
     public async Task UpdateProductAsync(Product product, CancellationToken ct = default)
         => await UpdateAsync(product, ct);
 
+    public async Task<List<Product>> GetProductsByIdsAsync(IEnumerable<int> ids, CancellationToken ct = default)
+        => await Set().Where(p => ids.Contains(p.Id)).ToListAsync(ct);
+
     public async Task DeleteProductAsync(int id, CancellationToken ct = default)
     {
         var product = await GetByIdAsync(id, ct);

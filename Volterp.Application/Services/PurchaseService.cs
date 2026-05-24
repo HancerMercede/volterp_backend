@@ -64,6 +64,23 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
             });
         }
 
+        // Batch query: single SELECT for all products (avoids N+1)
+        var productIds = purchase.Items
+            .Where(i => i.ProductId.HasValue)
+            .Select(i => i.ProductId!.Value)
+            .ToHashSet();
+        
+        var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
+        var productMap = products.ToDictionary(p => p.Id);
+
+       
+        foreach (var item in purchase.Items)
+        {
+            if (item.ProductId.HasValue && productMap.TryGetValue(item.ProductId.Value, out var product))
+                product.Stock += item.Quantity;
+        }
+
+        // EF change tracker persists changes automatically on CommitAsync
         await unitOfWork.Purchases.AddPurchaseAsync(purchase, ct);
         await unitOfWork.CommitAsync(ct);
 
@@ -84,6 +101,22 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         if (purchase is null)
             throw new ArgumentException("Purchase not found");
 
+        // Collect all product IDs (old items + new items)
+        var oldProductIds = purchase.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value);
+        var newProductIds = request.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value);
+        var allProductIds = oldProductIds.Concat(newProductIds).ToHashSet();
+
+        // Batch query: single SELECT for all products involved
+        var products = await unitOfWork.Products.GetProductsByIdsAsync(allProductIds, ct);
+        var productMap = products.ToDictionary(p => p.Id);
+
+        // Subtract old item quantities from stock (undo previous addition)
+        foreach (var oldItem in purchase.Items)
+        {
+            if (oldItem.ProductId.HasValue && productMap.TryGetValue(oldItem.ProductId.Value, out var product))
+                product.Stock -= oldItem.Quantity;
+        }
+
         var newItems = request.Items.Select(p => new PurchaseItem
         {
             ProductId = p.ProductId,
@@ -93,7 +126,15 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
             UnitPrice = p.UnitPrice,
             Subtotal = p.Subtotal
         }).ToList();
-        
+
+        // Add new item quantities to stock
+        foreach (var newItem in newItems)
+        {
+            if (newItem.ProductId.HasValue && productMap.TryGetValue(newItem.ProductId.Value, out var product))
+                product.Stock += newItem.Quantity;
+        }
+
+        // EF change tracker persists changes automatically on CommitAsync
         purchase.Apply(p =>
         {
             p.SupplierId = request.SupplierId;

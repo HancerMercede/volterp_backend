@@ -116,6 +116,8 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
     {
         var user = await unitOfWork.Users.GetByUsernameAsync(username, ct);
         
+        if (user is null)
+            return null;
         
         return user.Map(x=> new UserWithPasswordHashDto{
           Id =  x.Id,

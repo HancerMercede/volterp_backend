@@ -53,7 +53,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         ));
     }
 
-    public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, CancellationToken ct = default)
+public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, CancellationToken ct = default)
     {
         var sale = request.Map(r => new Sale
         {
@@ -77,6 +77,19 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             }).ToList()
         });
 
+        // Batch query: single SELECT for all products (avoids N+1)
+        var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
+        var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
+        var productMap = products.ToDictionary(p => p.Id);
+
+        // Apply stock changes in memory
+        foreach (var item in sale.Items)
+        {
+            if (productMap.TryGetValue(item.ProductId, out var product))
+                product.Stock -= item.Quantity;
+        }
+
+        // EF change tracker persists changes automatically on CommitAsync
         await unitOfWork.Sales.AddSaleAsync(sale, ct);
         await unitOfWork.CommitAsync(ct);
 
@@ -90,12 +103,28 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         ));
     }
 
-public async Task<SaleDto> UpdateSaleAsync(int id, int companyId, UpdateSaleRequest request, CancellationToken ct = default)
+    public async Task<SaleDto> UpdateSaleAsync(int id, int companyId, UpdateSaleRequest request, CancellationToken ct = default)
     {
         var sale = await unitOfWork.Sales.GetSaleByIdAsync(id, companyId, ct);
         
         if (sale is null)
             throw new ArgumentException("Sale not found");
+
+        // Collect all product IDs (old items + new items)
+        var allProductIds = sale.Items.Select(i => i.ProductId)
+            .Concat(request.Items.Select(i => i.ProductId))
+            .ToHashSet();
+
+        // Batch query: single SELECT for all products involved
+        var products = await unitOfWork.Products.GetProductsByIdsAsync(allProductIds, ct);
+        var productMap = products.ToDictionary(p => p.Id);
+
+        // Return old item quantities to stock
+        foreach (var oldItem in sale.Items)
+        {
+            if (productMap.TryGetValue(oldItem.ProductId, out var product))
+                product.Stock += oldItem.Quantity;
+        }
 
         var newItems = request.Items.Select(i => new SaleItem
         {
@@ -108,6 +137,15 @@ public async Task<SaleDto> UpdateSaleAsync(int id, int companyId, UpdateSaleRequ
             UnitPrice = i.UnitPrice,
             Subtotal = i.Subtotal
         }).ToList();
+
+        // Deduct new item quantities from stock
+        foreach (var newItem in newItems)
+        {
+            if (productMap.TryGetValue(newItem.ProductId, out var product))
+                product.Stock -= newItem.Quantity;
+        }
+
+        // EF change tracker persists changes automatically on CommitAsync
 
         sale.Apply(s =>
         {
@@ -140,7 +178,7 @@ public async Task<SaleDto> UpdateSaleAsync(int id, int companyId, UpdateSaleRequ
         if (sale is null)
             throw new ArgumentException("Sale not found");
 
-sale.Apply(s =>
+        sale.Apply(s =>
         {
             s.Status = SaleStatus.Completed;
             s.UpdatedAt = DateTime.UtcNow;
