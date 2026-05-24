@@ -416,7 +416,7 @@ public class SaleServiceTests
     }
 
     [Fact]
-    public async Task CreateSaleAsync_WithInsufficientStock_StockGoesNegative()
+    public async Task CreateSaleAsync_WithInsufficientStock_ThrowsInvalidOperationException()
     {
         // ARRANGE - product has only 5 in stock but we try to sell 10
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -427,11 +427,8 @@ public class SaleServiceTests
 
         mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
-        mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Sale s, CancellationToken ct) => s);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
-        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object);
         var request = new CreateSaleRequest(
@@ -443,11 +440,13 @@ public class SaleServiceTests
             }
         );
 
-        // ACT - current implementation allows negative stock
-        await service.CreateSaleAsync(request);
+        // ACT
+        var act = () => service.CreateSaleAsync(request);
 
-        // ASSERT - stock goes negative (current behavior, no validation)
-        product.Stock.Should().Be(-5);
+        // ASSERT
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Insufficient stock*");
+        product.Stock.Should().Be(5); // Stock unchanged
     }
 
     [Fact]

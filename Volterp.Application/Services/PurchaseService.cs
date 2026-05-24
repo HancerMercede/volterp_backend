@@ -69,15 +69,20 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
             .Where(i => i.ProductId.HasValue)
             .Select(i => i.ProductId!.Value)
             .ToHashSet();
-        
+
         var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
         var productMap = products.ToDictionary(p => p.Id);
 
-       
-        foreach (var item in purchase.Items)
+        // Apply stock increments in one pass grouped by product
+        var increments = purchase.Items
+            .Where(i => i.ProductId.HasValue)
+            .GroupBy(i => i.ProductId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        foreach (var (productId, quantity) in increments)
         {
-            if (item.ProductId.HasValue && productMap.TryGetValue(item.ProductId.Value, out var product))
-                product.Stock += item.Quantity;
+            if (productMap.TryGetValue(productId, out var product))
+                product.Stock += quantity;
         }
 
         // EF change tracker persists changes automatically on CommitAsync
@@ -111,10 +116,25 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         var productMap = products.ToDictionary(p => p.Id);
 
         // Subtract old item quantities from stock (undo previous addition)
-        foreach (var oldItem in purchase.Items)
+        var oldDeductions = purchase.Items
+            .Where(i => i.ProductId.HasValue)
+            .GroupBy(i => i.ProductId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        var newIncrements = request.Items
+            .Where(i => i.ProductId.HasValue)
+            .GroupBy(i => i.ProductId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        // Compute net stock changes in one pass
+        foreach (var productId in oldDeductions.Keys.Concat(newIncrements.Keys).Distinct())
         {
-            if (oldItem.ProductId.HasValue && productMap.TryGetValue(oldItem.ProductId.Value, out var product))
-                product.Stock -= oldItem.Quantity;
+            var oldQty = oldDeductions.GetValueOrDefault(productId, 0);
+            var newQty = newIncrements.GetValueOrDefault(productId, 0);
+            var netChange = newQty - oldQty;
+
+            if (productMap.TryGetValue(productId, out var product))
+                product.Stock += netChange;
         }
 
         var newItems = request.Items.Select(p => new PurchaseItem
@@ -126,13 +146,6 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
             UnitPrice = p.UnitPrice,
             Subtotal = p.Subtotal
         }).ToList();
-
-        // Add new item quantities to stock
-        foreach (var newItem in newItems)
-        {
-            if (newItem.ProductId.HasValue && productMap.TryGetValue(newItem.ProductId.Value, out var product))
-                product.Stock += newItem.Quantity;
-        }
 
         // EF change tracker persists changes automatically on CommitAsync
         purchase.Apply(p =>

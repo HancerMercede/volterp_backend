@@ -82,11 +82,23 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
         var productMap = products.ToDictionary(p => p.Id);
 
-        // Apply stock changes in memory
-        foreach (var item in sale.Items)
+        // Compute net deductions per product in one pass
+        var deductions = sale.Items
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        foreach (var (productId, quantity) in deductions)
         {
-            if (productMap.TryGetValue(item.ProductId, out var product))
-                product.Stock -= item.Quantity;
+            if (!productMap.TryGetValue(productId, out var product))
+                continue;
+
+            if (product.Stock < quantity)
+            {
+                var itemName = sale.Items.First(i => i.ProductId == productId).ProductName;
+                throw new InvalidOperationException(
+                    $"Insufficient stock for product '{itemName}'. Available: {product.Stock}, Requested: {quantity}");
+            }
+            product.Stock -= quantity;
         }
 
         // EF change tracker persists changes automatically on CommitAsync
@@ -119,11 +131,35 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         var products = await unitOfWork.Products.GetProductsByIdsAsync(allProductIds, ct);
         var productMap = products.ToDictionary(p => p.Id);
 
-        // Return old item quantities to stock
-        foreach (var oldItem in sale.Items)
+        // Compute net stock changes: old items returned (+), new items deducted (-)
+        var oldReturns = sale.Items
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        var newDeductions = request.Items
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+        // Apply old returns
+        foreach (var (productId, quantity) in oldReturns)
         {
-            if (productMap.TryGetValue(oldItem.ProductId, out var product))
-                product.Stock += oldItem.Quantity;
+            if (productMap.TryGetValue(productId, out var product))
+                product.Stock += quantity;
+        }
+
+        // Validate and apply new deductions
+        foreach (var (productId, quantity) in newDeductions)
+        {
+            if (!productMap.TryGetValue(productId, out var product))
+                continue;
+
+            if (product.Stock < quantity)
+            {
+                var itemName = request.Items.First(i => i.ProductId == productId).ProductName;
+                throw new InvalidOperationException(
+                    $"Insufficient stock for product '{itemName}'. Available: {product.Stock}, Requested: {quantity}");
+            }
+            product.Stock -= quantity;
         }
 
         var newItems = request.Items.Select(i => new SaleItem
@@ -137,13 +173,6 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
             UnitPrice = i.UnitPrice,
             Subtotal = i.Subtotal
         }).ToList();
-
-        // Deduct new item quantities from stock
-        foreach (var newItem in newItems)
-        {
-            if (productMap.TryGetValue(newItem.ProductId, out var product))
-                product.Stock -= newItem.Quantity;
-        }
 
         // EF change tracker persists changes automatically on CommitAsync
 
