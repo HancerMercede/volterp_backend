@@ -181,6 +181,26 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         if (purchase is null)
             throw new ArgumentException("Purchase not found");
 
+        // Only decrement stock if there are items with product IDs
+        var productIds = purchase.Items
+            .Where(i => i.ProductId.HasValue)
+            .Select(i => i.ProductId!.Value)
+            .ToHashSet();
+
+        if (productIds.Count > 0)
+        {
+            // Batch query: decrement stock for all items before deleting
+            var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
+            var productMap = products.ToDictionary(p => p.Id);
+
+            // Decrement stock for each item
+            foreach (var item in purchase.Items.Where(i => i.ProductId.HasValue))
+            {
+                if (productMap.TryGetValue(item.ProductId!.Value, out var product))
+                    product.Stock -= item.Quantity;
+            }
+        }
+
         await unitOfWork.Purchases.DeletePurchaseAsync(id, ct);
         await unitOfWork.CommitAsync(ct);
     }

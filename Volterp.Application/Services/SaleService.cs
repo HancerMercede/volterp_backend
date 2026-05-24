@@ -87,8 +87,10 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
             .GroupBy(i => i.ProductId)
             .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
-        // Build product name lookup once (avoids O(n²) First() in loop)
-        var itemNameMap = sale.Items.ToDictionary(i => i.ProductId, i => i.ProductName);
+        // Build product name lookup (use FirstOrDefault to handle duplicate ProductIds gracefully)
+        var itemNameMap = sale.Items
+            .GroupBy(i => i.ProductId)
+            .ToDictionary(g => g.Key, g => g.First().ProductName);
 
         foreach (var (productId, quantity) in deductions)
         {
@@ -151,7 +153,8 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         }
 
         // Build product name lookup (O(n) once, avoids O(n²) First() in loop)
-        var itemNameMap = request.Items.ToDictionary(i => i.ProductId, i => i.ProductName);
+        var itemNameMap = request.Items
+            .ToDictionary(i => i.ProductId, i => i.ProductName);
 
         // Validate and apply new deductions
         foreach (var (productId, quantity) in newDeductions)
@@ -213,6 +216,40 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         if (sale is null)
             throw new ArgumentException("Sale not found");
 
+        // Only validate stock if there are items with product IDs and Products is available
+        var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
+        if (productIds.Count > 0 && unitOfWork.Products != null)
+        {
+            // Batch query: re-validate stock before completing
+            var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
+            if (products != null)
+            {
+                var productMap = products.ToDictionary(p => p.Id);
+
+                // Compute required quantities per product
+                var requiredQuantities = sale.Items
+                    .GroupBy(i => i.ProductId)
+                    .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
+                // Validate stock for each product
+                foreach (var (productId, quantity) in requiredQuantities)
+                {
+                    if (!productMap.TryGetValue(productId, out var product))
+                        continue;
+
+                    if (product.Stock < quantity)
+                    {
+                        // Find item name for error message
+                        var itemName = sale.Items
+                            .FirstOrDefault(i => i.ProductId == productId)?.ProductName 
+                            ?? productId.ToString();
+                        throw new InvalidOperationException(
+                            $"Cannot complete sale. Insufficient stock for product '{itemName}'. Available: {product.Stock}, Requested: {quantity}");
+                    }
+                }
+            }
+        }
+
         sale.Apply(s =>
         {
             s.Status = SaleStatus.Completed;
@@ -238,6 +275,22 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         
         if (sale is null)
             throw new ArgumentException("Sale not found");
+
+        // Only restore stock if there are items with product IDs
+        var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
+        if (productIds.Count > 0)
+        {
+            // Batch query: restore stock for all items before deleting
+            var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
+            var productMap = products.ToDictionary(p => p.Id);
+
+            // Restore stock for each item
+            foreach (var item in sale.Items)
+            {
+                if (productMap.TryGetValue(item.ProductId, out var product))
+                    product.Stock += item.Quantity;
+            }
+        }
 
         await unitOfWork.Sales.DeleteSaleAsync(id, ct);
         await unitOfWork.CommitAsync(ct);
