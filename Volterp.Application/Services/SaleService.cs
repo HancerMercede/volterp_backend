@@ -226,6 +226,9 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
             {
                 var productMap = products.ToDictionary(p => p.Id);
 
+// Build product name lookup once (avoids O(n²) FirstOrDefault in loop)
+                var itemNameMap = sale.Items.ToDictionary(i => i.ProductId, i => i.ProductName);
+
                 // Compute required quantities per product
                 var requiredQuantities = sale.Items
                     .GroupBy(i => i.ProductId)
@@ -239,10 +242,7 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
 
                     if (product.Stock < quantity)
                     {
-                        // Find item name for error message
-                        var itemName = sale.Items
-                            .FirstOrDefault(i => i.ProductId == productId)?.ProductName 
-                            ?? productId.ToString();
+                        var itemName = itemNameMap.GetValueOrDefault(productId, productId.ToString());
                         throw new InvalidOperationException(
                             $"Cannot complete sale. Insufficient stock for product '{itemName}'. Available: {product.Stock}, Requested: {quantity}");
                     }
