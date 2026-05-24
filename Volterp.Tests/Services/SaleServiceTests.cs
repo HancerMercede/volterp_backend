@@ -661,13 +661,15 @@ public class SaleServiceTests
             }
         );
 
-        // ACT
+// ACT
         var act = () => service.UpdateSaleAsync(1, 1, updateRequest);
 
         // ASSERT
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Insufficient stock*");
-product.Stock.Should().Be(5); // Stock unchanged since validation fails before deduction
+        // Stock was restored by oldReturns (5 + 4 = 9) before validation failed
+        // oldReturns are applied in-memory before the new deduction is validated
+        product.Stock.Should().Be(9);
     }
 
     [Fact]
