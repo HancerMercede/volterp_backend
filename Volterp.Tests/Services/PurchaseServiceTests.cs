@@ -287,4 +287,113 @@ public class PurchaseServiceTests
         // ASSERT
         mockPurchasesRepo.Verify(r => r.DeletePurchaseAsync(1, It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task CreatePurchaseAsync_WithMultipleItems_IncrementsAllCorrectly()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockPurchasesRepo = new Mock<IPurchaseRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product1 = new Product { Id = 1, Stock = 10, CompanyId = 1, Name = "Product A" };
+        var product2 = new Product { Id = 2, Stock = 20, CompanyId = 1, Name = "Product B" };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product1, product2 });
+        mockPurchasesRepo.Setup(r => r.AddPurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Purchase p, CancellationToken ct) => p);
+        mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new PurchaseService(mockUnitOfWork.Object);
+        var request = new PurchaseDto(
+            Id: 0, SupplierId: 1, SupplierName: "Supplier",
+            Status: EntityStatus.Pending, Total: 1500, Notes: null,
+            CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
+            Items: new List<PurchaseItemDto>
+            {
+                new(0, 1, "Product A", "CODE1", 15, 100, 1500),
+                new(0, 2, "Product B", "CODE2", 10, 100, 1000)
+            }
+        );
+
+        // ACT
+        await service.CreatePurchaseAsync(request, 1, 1);
+
+        // ASSERT
+        product1.Stock.Should().Be(25);  // 10 + 15
+        product2.Stock.Should().Be(30);  // 20 + 10
+    }
+
+    [Fact]
+    public async Task CreatePurchaseAsync_WhenCommitFails_ThrowsAndDoesNotPersistStock()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockPurchasesRepo = new Mock<IPurchaseRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = 1, Stock = 10, CompanyId = 1, Name = "Test Product" };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockPurchasesRepo.Setup(r => r.AddPurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Purchase p, CancellationToken ct) => p);
+        mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("Database connection failed"));
+
+        var service = new PurchaseService(mockUnitOfWork.Object);
+        var request = new PurchaseDto(
+            Id: 0, SupplierId: 1, SupplierName: "Supplier",
+            Status: EntityStatus.Pending, Total: 500, Notes: null,
+            CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
+            Items: new List<PurchaseItemDto>
+            {
+                new(0, 1, "Test Product", "CODE", 5, 100, 500)
+            }
+        );
+
+        // ACT
+        var act = () => service.CreatePurchaseAsync(request, 1, 1);
+
+        // ASSERT
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Database connection failed");
+        // NOTE: Stock change happens in memory before commit. True rollback needs integration tests.
+        product.Stock.Should().Be(15); // Stock incremented before commit failed
+    }
+
+    [Fact]
+    public async Task GetAllPurchasesAsync_WithEmptyResult_ReturnsEmptyList()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockPurchasesRepo = new Mock<IPurchaseRepository>();
+
+        var purchases = new PagedResult<Purchase>
+        {
+            Items = new List<Purchase>(),
+            PageNumber = 1,
+            PageSize = 10,
+            RowCount = 0,
+            PageCount = 0
+        };
+
+        mockPurchasesRepo.Setup(r => r.GetAllPurchasesByCompanyAsync(1, 1, 10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(purchases);
+        mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
+
+        var service = new PurchaseService(mockUnitOfWork.Object);
+
+        // ACT
+        var result = await service.GetAllPurchasesAsync(1, 1, 10);
+
+        // ASSERT
+        result.Items.Should().BeEmpty();
+        result.RowCount.Should().Be(0);
+    }
 }

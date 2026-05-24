@@ -18,6 +18,8 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
     public async Task<CompanyDto?> GetCompanyByIdAsync(int id, CancellationToken ct = default)
     {
         var companyDto = await unitOfWork.Companies.GetCompanyByIdAsync(id, ct);
+        if (companyDto is null)
+            return null;
         return companyDto.Map(x => new CompanyDto(x.Id, x.Name, x.TaxId, x.LogoUrl, x.IsActive,x.Address, x.LegalName, x.Phone,x.Email));
     }
 
