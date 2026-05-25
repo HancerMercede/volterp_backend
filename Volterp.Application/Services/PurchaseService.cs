@@ -73,16 +73,11 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
         var productMap = products.ToDictionary(p => p.Id);
 
-        // Apply stock increments in one pass grouped by product
-        var increments = purchase.Items
-            .Where(i => i.ProductId.HasValue)
-            .GroupBy(i => i.ProductId!.Value)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
-
-        foreach (var (productId, quantity) in increments)
+        // Apply stock increments for each item (one item per product expected)
+        foreach (var item in purchase.Items.Where(i => i.ProductId.HasValue))
         {
-            if (productMap.TryGetValue(productId, out var product))
-                product.Stock += quantity;
+            if (productMap.TryGetValue(item.ProductId!.Value, out var product))
+                product.Stock += item.Quantity;
         }
 
         // EF change tracker persists changes automatically on CommitAsync
@@ -115,26 +110,18 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         var products = await unitOfWork.Products.GetProductsByIdsAsync(allProductIds, ct);
         var productMap = products.ToDictionary(p => p.Id);
 
-        // Subtract old item quantities from stock (undo previous addition)
-        var oldDeductions = purchase.Items
-            .Where(i => i.ProductId.HasValue)
-            .GroupBy(i => i.ProductId!.Value)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
-
-        var newIncrements = request.Items
-            .Where(i => i.ProductId.HasValue)
-            .GroupBy(i => i.ProductId!.Value)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
-
-        // Compute net stock changes in one pass
-        foreach (var productId in oldDeductions.Keys.Concat(newIncrements.Keys).Distinct())
+        // First: restore stock from old items being removed
+        foreach (var item in purchase.Items.Where(i => i.ProductId.HasValue))
         {
-            var oldQty = oldDeductions.GetValueOrDefault(productId, 0);
-            var newQty = newIncrements.GetValueOrDefault(productId, 0);
-            var netChange = newQty - oldQty;
+            if (productMap.TryGetValue(item.ProductId!.Value, out var product))
+                product.Stock -= item.Quantity;
+        }
 
-            if (productMap.TryGetValue(productId, out var product))
-                product.Stock += netChange;
+        // Then: add stock from new items
+        foreach (var item in request.Items.Where(i => i.ProductId.HasValue))
+        {
+            if (productMap.TryGetValue(item.ProductId!.Value, out var product))
+                product.Stock += item.Quantity;
         }
 
         var newItems = request.Items.Select(p => new PurchaseItem

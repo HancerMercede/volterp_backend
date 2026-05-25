@@ -93,8 +93,6 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         if (user is null)
             throw new ArgumentException("User not found");
         
-        // Authorization is handled in the controller (SuperAdmin check)
-        
         await unitOfWork.Users.DeleteUserAsync(user.Id, ct);
         await unitOfWork.CommitAsync(ct);
     }
