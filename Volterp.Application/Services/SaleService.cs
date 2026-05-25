@@ -216,37 +216,32 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         if (sale is null)
             throw new ArgumentException("Sale not found");
 
-        // Only validate stock if there are items with product IDs and Products is available
+        // Guard against double execution
+        if (sale.Status == SaleStatus.Completed)
+            throw new InvalidOperationException("Sale is already completed");
+
+        // Validate and deduct stock for each item
         var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
-        if (productIds.Count > 0 && unitOfWork.Products != null)
+        if (productIds.Count > 0)
         {
             // Batch query: re-validate stock before completing
             var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
-            if (products != null)
+            var productMap = products.ToDictionary(p => p.Id);
+
+            // Validate stock and deduct for each item (one item per product expected)
+            foreach (var item in sale.Items)
             {
-                var productMap = products.ToDictionary(p => p.Id);
+                if (!productMap.TryGetValue(item.ProductId, out var product))
+                    continue;
 
-// Build product name lookup once (avoids O(n²) FirstOrDefault in loop)
-                var itemNameMap = sale.Items.ToDictionary(i => i.ProductId, i => i.ProductName);
-
-                // Compute required quantities per product
-                var requiredQuantities = sale.Items
-                    .GroupBy(i => i.ProductId)
-                    .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
-
-                // Validate stock for each product
-                foreach (var (productId, quantity) in requiredQuantities)
+                if (product.Stock < item.Quantity)
                 {
-                    if (!productMap.TryGetValue(productId, out var product))
-                        continue;
-
-                    if (product.Stock < quantity)
-                    {
-                        var itemName = itemNameMap.GetValueOrDefault(productId, productId.ToString());
-                        throw new InvalidOperationException(
-                            $"Cannot complete sale. Insufficient stock for product '{itemName}'. Available: {product.Stock}, Requested: {quantity}");
-                    }
+                    throw new InvalidOperationException(
+                        $"Cannot complete sale. Insufficient stock for product '{item.ProductName}'. Available: {product.Stock}, Requested: {item.Quantity}");
                 }
+
+                // Deduct stock
+                product.Stock -= item.Quantity;
             }
         }
 
@@ -275,7 +270,7 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         
         if (sale is null)
             throw new ArgumentException("Sale not found");
-
+        
         // Only restore stock if there are items with product IDs
         var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
         if (productIds.Count > 0)
