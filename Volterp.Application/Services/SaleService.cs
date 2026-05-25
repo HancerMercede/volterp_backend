@@ -82,28 +82,18 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
         var productMap = products.ToDictionary(p => p.Id);
 
-        // Compute net deductions per product in one pass
-        var deductions = sale.Items
-            .GroupBy(i => i.ProductId)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
-
-        // Build product name lookup (use FirstOrDefault to handle duplicate ProductIds gracefully)
-        var itemNameMap = sale.Items
-            .GroupBy(i => i.ProductId)
-            .ToDictionary(g => g.Key, g => g.First().ProductName);
-
-        foreach (var (productId, quantity) in deductions)
+        // Validate stock and deduct for each item (one item per product expected)
+        foreach (var item in sale.Items)
         {
-            if (!productMap.TryGetValue(productId, out var product))
+            if (!productMap.TryGetValue(item.ProductId, out var product))
                 continue;
 
-            if (product.Stock < quantity)
+            if (product.Stock < item.Quantity)
             {
-                var itemName = itemNameMap.GetValueOrDefault(productId, productId.ToString());
                 throw new InvalidOperationException(
-                    $"Insufficient stock for product '{itemName}'. Available: {product.Stock}, Requested: {quantity}");
+                    $"Insufficient stock for product '{item.ProductName}'. Available: {product.Stock}, Requested: {item.Quantity}");
             }
-            product.Stock -= quantity;
+            product.Stock -= item.Quantity;
         }
 
         // EF change tracker persists changes automatically on CommitAsync
@@ -136,27 +126,21 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         var products = await unitOfWork.Products.GetProductsByIdsAsync(allProductIds, ct);
         var productMap = products.ToDictionary(p => p.Id);
 
-        // Compute net stock changes: old items returned (+), new items deducted (-)
-        var oldReturns = sale.Items
-            .GroupBy(i => i.ProductId)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+        // Build product name lookup for error messages
+        var newItemNames = request.Items.ToDictionary(i => i.ProductId, i => i.ProductName);
 
+        // Apply old returns: restore stock from items being removed
+        foreach (var item in sale.Items)
+        {
+            if (productMap.TryGetValue(item.ProductId, out var product))
+                product.Stock += item.Quantity;
+        }
+
+        // Validate and apply new deductions (group by productId to handle duplicates)
         var newDeductions = request.Items
             .GroupBy(i => i.ProductId)
             .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
 
-        // Apply old returns
-        foreach (var (productId, quantity) in oldReturns)
-        {
-            if (productMap.TryGetValue(productId, out var product))
-                product.Stock += quantity;
-        }
-
-        // Build product name lookup (O(n) once, avoids O(n²) First() in loop)
-        var itemNameMap = request.Items
-            .ToDictionary(i => i.ProductId, i => i.ProductName);
-
-        // Validate and apply new deductions
         foreach (var (productId, quantity) in newDeductions)
         {
             if (!productMap.TryGetValue(productId, out var product))
@@ -164,7 +148,7 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
 
             if (product.Stock < quantity)
             {
-                var itemName = itemNameMap.GetValueOrDefault(productId, productId.ToString());
+                var itemName = newItemNames.GetValueOrDefault(productId, "Unknown");
                 throw new InvalidOperationException(
                     $"Insufficient stock for product '{itemName}'. Available: {product.Stock}, Requested: {quantity}");
             }
