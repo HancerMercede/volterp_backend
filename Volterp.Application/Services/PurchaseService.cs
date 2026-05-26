@@ -1,4 +1,5 @@
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.Purchase;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
@@ -99,7 +100,7 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         var purchase = await unitOfWork.Purchases.GetPurchaseByIdAsync(id, companyId, ct);
 
         if (purchase is null)
-            throw new ArgumentException("Purchase not found");
+            throw new PurchaseNotFoundException("Purchase not found");
 
         // Collect all product IDs (old items + new items)
         var oldProductIds = purchase.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value);
@@ -166,7 +167,7 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         var purchase = await unitOfWork.Purchases.GetPurchaseByIdAsync(id, companyId, ct);
 
         if (purchase is null)
-            throw new ArgumentException("Purchase not found");
+            throw new PurchaseNotFoundException("Purchase not found");
 
         // Only decrement stock if there are items with product IDs
         var productIds = purchase.Items

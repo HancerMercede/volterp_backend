@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.Category;
+using Volterp.Application.Exceptions.Product;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
@@ -49,7 +51,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         {
             var categoryExists = await unitOfWork.Categories.ExistsCategoryAsync(request.CategoryId.Value, ct);
             if (!categoryExists)
-                throw new ArgumentException("Category not found");
+                throw new CategoryNotFoundException("Category not found");
         }
 
         var product = new Product
@@ -82,13 +84,13 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         var product = await unitOfWork.Products.GetProductByIdAsync(id, ct);
         
         if (product is null || product.CompanyId != companyId)
-            throw new ArgumentException("Product not found");
+            throw new ProductNotFoundException("Product not found");
         
         if (request.CategoryId.HasValue)
         {
             var categoryExists = await unitOfWork.Categories.ExistsCategoryAsync(request.CategoryId.Value, ct);
             if (!categoryExists)
-                throw new ArgumentException("Category not found");
+                throw new CategoryNotFoundException("Category not found");
         }
 
         product.Apply(r =>
@@ -122,7 +124,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         var product = await unitOfWork.Products.GetProductByIdAsync(id, ct);
         
         if (product is null || product.CompanyId != companyId)
-            throw new ArgumentException("Product not found");
+            throw new ProductNotFoundException("Product not found");
         
         await unitOfWork.Products.DeleteProductAsync(id, ct);
         await unitOfWork.CommitAsync(ct);

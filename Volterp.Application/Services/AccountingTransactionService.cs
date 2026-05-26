@@ -1,4 +1,5 @@
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.AccountingTransaction;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
@@ -64,7 +65,7 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
         var transaction = await unitOfWork.AccountingTransactions.GetByIdAsync(id, companyId, ct);
 
         if (transaction is null)
-            throw new ArgumentException("Accounting transaction not found");
+            throw new AccountingTransactionNotFoundException("Accounting transaction not found");
 
         transaction.Apply(t =>
         {
@@ -94,7 +95,7 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
         var transaction = await unitOfWork.AccountingTransactions.GetByIdAsync(id, companyId, ct);
 
         if (transaction is null)
-            throw new ArgumentException("Accounting transaction not found");
+            throw new AccountingTransactionNotFoundException("Accounting transaction not found");
 
         await unitOfWork.AccountingTransactions.DeleteTransactionAsync(id, ct);
         await unitOfWork.CommitAsync(ct);

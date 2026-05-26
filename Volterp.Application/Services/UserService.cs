@@ -1,9 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.User;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
-using Volterp.Domain.Enums;
 
 namespace Volterp.Application.Services;
 
@@ -22,7 +21,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         var user = await unitOfWork.Users.GetUserByIdAsync(id, ct);
         
         if (user is null)
-            return null;
+            throw new UserNotFoundException("User not found");
 
         return user.Map(u => new UserDto(
             u.Id, u.Username, u.Email, u.FullName,
@@ -35,21 +34,20 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
     {
         var existingUser = await unitOfWork.Users.GetByUsernameAsync(request.Username, ct);
         if (existingUser is not null)
-            throw new ArgumentException("Username already exists");
+            throw new UserAlreadyExistException("Username already exists");
         
         var hashedPassword = passwordHasher.Hash(request.Password);
         
-         var user = request.Map(x=> 
-             new User
+        var user = request.Map(x=> new User 
         {
-            Username = x.Username,
-            PasswordHash = hashedPassword,
-            Email = x.Email,
-            FullName = x.FullName,
-            Role = x.Role,
-            CompanyId = x.CompanyId,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
+                Username = x.Username,
+                PasswordHash = hashedPassword,
+                Email = x.Email,
+                FullName = x.FullName,
+                Role = x.Role,
+                CompanyId = x.CompanyId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
         });
 
         await unitOfWork.Users.AddUserAsync(user, ct);
@@ -65,7 +63,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         var user = await unitOfWork.Users.GetUserByIdAsync(id, ct);
         
         if (user is null)
-            throw new ArgumentException("User not found");
+            throw new UserNotFoundException("User not found");
 
         user.Apply(x =>
         {
@@ -91,7 +89,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         var user = await unitOfWork.Users.GetUserByIdAsync(id, ct);
         
         if (user is null)
-            throw new ArgumentException("User not found");
+            throw new UserNotFoundException("User not found");
         
         await unitOfWork.Users.DeleteUserAsync(user.Id, ct);
         await unitOfWork.CommitAsync(ct);
@@ -102,7 +100,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         var user = await unitOfWork.Users.GetByUserByEmailAsync(email, ct);
  
         if (user is null)
-            return null;
+            throw new UserNotFoundException("User not found");
         
         return user.Map(x=> new UserDto(
             x.Id, x.Username, x.Email, x.FullName,

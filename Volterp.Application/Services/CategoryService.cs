@@ -1,4 +1,5 @@
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.Category;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
@@ -52,7 +53,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         var category = await unitOfWork.Categories.GetCategoryByIdAsync(id, ct);
         
         if (category is null || category.CompanyId != companyId)
-            throw new ArgumentException("Category not found");
+            throw new CategoryNotFoundException("Category not found");
 
         category.Apply(x =>
         {
@@ -76,7 +77,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         var category = await unitOfWork.Categories.GetCategoryByIdAsync(id, ct);
         
         if (category is null || category.CompanyId != companyId)
-            throw new ArgumentException("Category not found");
+            throw new CategoryNotFoundException("Category not found");
         
         await unitOfWork.Categories.DeleteCategoryAsync(id, ct);
         await unitOfWork.CommitAsync(ct);

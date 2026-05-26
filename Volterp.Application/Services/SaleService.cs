@@ -1,4 +1,6 @@
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.Product;
+using Volterp.Application.Exceptions.Sale;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
@@ -115,7 +117,7 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         var sale = await unitOfWork.Sales.GetSaleByIdAsync(id, companyId, ct);
         
         if (sale is null)
-            throw new ArgumentException("Sale not found");
+            throw new SaleNotFoundException("Sale not found");
 
         // Collect all product IDs (old items + new items)
         var allProductIds = sale.Items.Select(i => i.ProductId)
@@ -198,7 +200,7 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         var sale = await unitOfWork.Sales.GetSaleByIdAsync(id, companyId, ct);
         
         if (sale is null)
-            throw new ArgumentException("Sale not found");
+            throw new SaleNotFoundException("Sale not found");
 
         // Guard against double execution
         if (sale.Status == SaleStatus.Completed)
@@ -253,7 +255,7 @@ public async Task<SaleDto> CreateSaleAsync(CreateSaleRequest request, Cancellati
         var sale = await unitOfWork.Sales.GetSaleByIdAsync(id, companyId, ct);
         
         if (sale is null)
-            throw new ArgumentException("Sale not found");
+            throw new SaleNotFoundException("Sale not found");
         
         // Only restore stock if there are items with product IDs
         var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();

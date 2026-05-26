@@ -1,4 +1,5 @@
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.Supplier;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
@@ -58,7 +59,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
         var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct);
 
         if (supplier is null)
-            throw new ArgumentException("Supplier not found");
+            throw new SupplierNotFoundException("Supplier not found");
 
         supplier.Apply(s =>
         {
@@ -86,7 +87,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
         var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct);
 
         if (supplier is null)
-            throw new ArgumentException("Supplier not found");
+            throw new SupplierNotFoundException("Supplier not found");
 
         await unitOfWork.Suppliers.DeleteSupplierAsync(id, ct);
         await unitOfWork.CommitAsync(ct);

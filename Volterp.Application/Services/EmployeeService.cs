@@ -1,4 +1,5 @@
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.Employee;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
@@ -71,7 +72,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         var employee = await unitOfWork.Employees.GetEmployeeByIdAsync(id, companyId, ct);
 
         if (employee is null)
-            throw new ArgumentException("Employee not found");
+            throw new EmployeeNotFoundException("Employee not found");
 
         employee.Apply(x =>
         {
@@ -109,7 +110,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         var employee = await unitOfWork.Employees.GetEmployeeByIdAsync(id, companyId, ct);
 
         if (employee is null)
-            throw new ArgumentException("Employee not found");
+            throw new EmployeeNotFoundException("Employee not found");
 
         await unitOfWork.Employees.DeleteEmployeeAsync(id, ct);
         await unitOfWork.CommitAsync(ct);
