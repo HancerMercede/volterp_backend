@@ -11,4 +11,5 @@ public interface IServiceManager
     IPurchaseService Purchases { get; }
     IEmployeeService Employees { get; }
     IAccountingTransactionService AccountingTransactions { get; }
+    IClientService Clients { get; }
 }

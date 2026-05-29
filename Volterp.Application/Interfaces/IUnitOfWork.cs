@@ -11,6 +11,7 @@ public interface IUnitOfWork
     IPurchaseRepository Purchases { get; }
     IEmployeeRepository Employees { get; }
     IAccountingTransactionRepository AccountingTransactions { get; }
+    IClientRepository Clients { get; }
     Task<int> CommitAsync(CancellationToken ct = default);
     void Dispose();
 }
