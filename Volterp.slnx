@@ -3,4 +3,5 @@
   <Project Path="Volterp.Application/Volterp.Application.csproj" />
   <Project Path="Volterp.Domain/Volterp.Domain.csproj" />
   <Project Path="Volterp.Infrastructure/Volterp.Infrastructure.csproj" />
+  <Project Path="Volterp.Tests/Volterp.Tests.csproj" />
 </Solution>

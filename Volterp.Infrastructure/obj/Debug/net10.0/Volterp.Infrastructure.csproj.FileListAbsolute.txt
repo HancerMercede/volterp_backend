@@ -10,9 +10,9 @@ C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\ne
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp.Infrastructure.AssemblyInfoInputs.cache
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp.Infrastructure.AssemblyInfo.cs
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp.Infrastructure.sourcelink.json
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp..F928F32A.Up2Date
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp.Infrastructure.dll
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\refint\Volterp.Infrastructure.dll
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp.Infrastructure.pdb
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\ref\Volterp.Infrastructure.dll
-C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Infrastructure\obj\Debug\net10.0\Volterp.Infrastructure.sourcelink.json

@@ -19,7 +19,8 @@ public class UserRepository(VolterpDbContext context)
     public new async Task<User?> GetUserByIdAsync(int id, CancellationToken ct = default)
         => await GetByIdAsync(id, ct);
 
-    public async Task<PagedResult<User>> GetAllByCompanyAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<User>> GetAllByCompanyAsync(int companyId, int pageNumber, 
+        int pageSize, CancellationToken ct = default)
         => await GetAllAsync(c=>c.CompanyId == companyId,pageNumber, pageSize, ct);
         
 

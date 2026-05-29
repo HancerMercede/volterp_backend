@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.Sale;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -325,7 +326,7 @@ public class SaleServiceTests
     }
 
     [Fact]
-    public async Task UpdateSaleAsync_WhenSaleNotFound_ThrowsArgumentException()
+    public async Task UpdateSaleAsync_WhenSaleNotFound_ThrowsSaleNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -349,11 +350,11 @@ public class SaleServiceTests
         var act = () => service.UpdateSaleAsync(999, 1, updateRequest);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Sale not found");
+        await act.Should().ThrowAsync<SaleNotFoundException>().WithMessage("Sale not found");
     }
 
     [Fact]
-    public async Task CompleteSaleAsync_WhenSaleNotFound_ThrowsArgumentException()
+    public async Task CompleteSaleAsync_WhenSaleNotFound_ThrowsSaleNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -369,11 +370,11 @@ public class SaleServiceTests
         var act = () => service.CompleteSaleAsync(999, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Sale not found");
+        await act.Should().ThrowAsync<SaleNotFoundException>().WithMessage("Sale not found");
     }
 
     [Fact]
-    public async Task DeleteSaleAsync_WhenSaleNotFound_ThrowsArgumentException()
+    public async Task DeleteSaleAsync_WhenSaleNotFound_ThrowsSaleNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -389,7 +390,7 @@ public class SaleServiceTests
         var act = () => service.DeleteSaleAsync(999, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Sale not found");
+        await act.Should().ThrowAsync<SaleNotFoundException>().WithMessage("Sale not found");
     }
 
     [Fact]
@@ -867,7 +868,7 @@ public class SaleServiceTests
     }
 
     [Fact]
-    public async Task CompleteSaleAsync_WhenAlreadyCompleted_SetsStatusToCompletedAgain()
+    public async Task CompleteSaleAsync_WhenAlreadyCompleted_ThrowsInvalidOperationException()
     {
         // ARRANGE: sale already has status Completed
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -897,12 +898,11 @@ public class SaleServiceTests
 
         var service = new SaleService(mockUnitOfWork.Object);
 
-        // ACT - should not throw, just set status to Completed again
-        var result = await service.CompleteSaleAsync(1, 1);
+        // ACT
+        var act = () => service.CompleteSaleAsync(1, 1);
 
         // ASSERT
-        sale.Status.Should().Be(SaleStatus.Completed);
-        mockSalesRepo.Verify(r => r.UpdateSaleAsync(sale, It.IsAny<CancellationToken>()), Times.Once);
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Sale is already completed");
     }
 
     [Fact]

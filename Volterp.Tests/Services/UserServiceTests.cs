@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.User;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -13,7 +14,7 @@ namespace Volterp.Tests.Services;
 public class UserServiceTests
 {
     [Fact]
-    public async Task CreateAsync_WithDuplicateUsername_ThrowsArgumentException()
+    public async Task CreateAsync_WithDuplicateUsername_ThrowsUserAlreadyExistException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -31,7 +32,7 @@ public class UserServiceTests
         var act = () => service.CreateAsync(request);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>()
+        await act.Should().ThrowAsync<UserAlreadyExistException>()
             .WithMessage("Username already exists");
     }
 
@@ -127,7 +128,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task GetByIdAsync_WhenNotFound_ReturnsNull()
+    public async Task GetByIdAsync_WhenNotFound_ThrowsUserNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -140,14 +141,14 @@ public class UserServiceTests
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>());
 
         // ACT
-        var result = await service.GetByIdAsync(999);
+        var act = () => service.GetByIdAsync(999);
 
         // ASSERT
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<UserNotFoundException>().WithMessage("User not found");
     }
 
     [Fact]
-    public async Task UpdateAsync_WhenUserNotFound_ThrowsArgumentException()
+    public async Task UpdateAsync_WhenUserNotFound_ThrowsUserNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -169,7 +170,7 @@ public class UserServiceTests
         var act = () => service.UpdateAsync(999, request);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("User not found");
+        await act.Should().ThrowAsync<UserNotFoundException>().WithMessage("User not found");
     }
 
     [Fact]
@@ -211,7 +212,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_WhenUserNotFound_ThrowsArgumentException()
+    public async Task DeleteAsync_WhenUserNotFound_ThrowsUserNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -227,7 +228,7 @@ public class UserServiceTests
         var act = () => service.DeleteAsync(999);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("User not found");
+        await act.Should().ThrowAsync<UserNotFoundException>().WithMessage("User not found");
     }
 
     [Fact]
@@ -289,7 +290,7 @@ public class UserServiceTests
     }
 
     [Fact]
-    public async Task GetByEmailAsync_WhenNotFound_ReturnsNull()
+    public async Task GetByEmailAsync_WhenNotFound_ThrowsUserNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -302,10 +303,10 @@ public class UserServiceTests
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>());
 
         // ACT
-        var result = await service.GetByEmailAsync("notfound@test.com");
+        var act = () => service.GetByEmailAsync("notfound@test.com");
 
         // ASSERT
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<UserNotFoundException>().WithMessage("User not found");
     }
 
     [Fact]
@@ -348,7 +349,7 @@ public class UserServiceTests
             .ReturnsAsync((User?)null);
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
-        var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>());
+        var service = new UserService(mockUnitOfWork.Object, Mock.Of<IPasswordHasher>());
 
         // ACT
         var result = await service.GetByUsernameAsync("notfound");

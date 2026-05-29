@@ -30,4 +30,7 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
 
     private IAccountingTransactionService? _accountingTransactions;
     public IAccountingTransactionService AccountingTransactions => _accountingTransactions ??= new AccountingTransactionService(unitOfWork);
+
+    private IClientService? _clients;
+    public IClientService Clients => _clients ??= new ClientService(unitOfWork);
 }

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.Purchase;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -209,7 +210,7 @@ public class PurchaseServiceTests
     }
 
     [Fact]
-    public async Task UpdatePurchaseAsync_WhenPurchaseNotFound_ThrowsArgumentException()
+    public async Task UpdatePurchaseAsync_WhenPurchaseNotFound_ThrowsPurchaseNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -235,11 +236,11 @@ public class PurchaseServiceTests
         var act = () => service.UpdatePurchaseAsync(999, 1, updateRequest, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Purchase not found");
+        await act.Should().ThrowAsync<PurchaseNotFoundException>().WithMessage("Purchase not found");
     }
 
     [Fact]
-    public async Task DeletePurchaseAsync_WhenPurchaseNotFound_ThrowsArgumentException()
+    public async Task DeletePurchaseAsync_WhenPurchaseNotFound_ThrowsPurchaseNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -255,7 +256,7 @@ public class PurchaseServiceTests
         var act = () => service.DeletePurchaseAsync(999, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Purchase not found");
+        await act.Should().ThrowAsync<PurchaseNotFoundException>().WithMessage("Purchase not found");
     }
 
     [Fact]

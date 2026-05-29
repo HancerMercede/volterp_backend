@@ -1,0 +1,51 @@
+schema: spec-driven
+
+context: |
+  Volterp ERP — .NET 10 Clean Architecture backend.
+  Layers: Domain (entities/value objects), Application (services/use cases),
+  Infrastructure (EF Core + PostgreSQL, JWT, repositories), Api (controllers, middleware).
+  Auth: JWT Bearer via Microsoft.AspNetCore.Authentication.JwtBearer.
+  Migrations: EF Core 10 with PostgreSQL. No test project exists yet — greenfield.
+
+strict_tdd: false   # No test project/runner detected in repo — must be bootstrapped first
+
+testing:
+  backend:
+    runner: null
+    unit: false
+    integration: false
+    e2e: false
+    coverage: false
+    note: "Greenfield — Volterp.Tests project must be created before TDD can begin"
+  frontend:
+    runner: vitest
+    command: "yarn test"
+    framework: vitest 4.1.5
+    unit: true
+    integration: true      # @testing-library/react available
+    e2e: false
+    coverage: true
+    coverage_command: "yarn test:coverage"
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with ADR in /docs/adr/
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns (clean architecture layering)
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: "dotnet build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas

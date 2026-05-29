@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.Category;
+using Volterp.Application.Exceptions.Product;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -124,7 +126,7 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_WithInvalidCategoryId_ThrowsArgumentException()
+    public async Task CreateAsync_WithInvalidCategoryId_ThrowsCategoryNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -146,7 +148,7 @@ public class ProductServiceTests
         var act = () => service.CreateAsync(request, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Category not found");
+        await act.Should().ThrowAsync<CategoryNotFoundException>().WithMessage("Category not found");
     }
 
     [Fact]
@@ -182,7 +184,7 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_WhenProductNotFound_ThrowsArgumentException()
+    public async Task UpdateAsync_WhenProductNotFound_ThrowsProductNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -202,11 +204,11 @@ public class ProductServiceTests
         var act = () => service.UpdateAsync(999, request, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Product not found");
+        await act.Should().ThrowAsync<ProductNotFoundException>().WithMessage("Product not found");
     }
 
     [Fact]
-    public async Task UpdateAsync_WhenCategoryNotFound_ThrowsArgumentException()
+    public async Task UpdateAsync_WhenCategoryNotFound_ThrowsCategoryNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -232,7 +234,7 @@ public class ProductServiceTests
         var act = () => service.UpdateAsync(1, request, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Category not found");
+        await act.Should().ThrowAsync<CategoryNotFoundException>().WithMessage("Category not found");
     }
 
     [Fact]
@@ -272,7 +274,7 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_WhenProductNotFound_ThrowsArgumentException()
+    public async Task DeleteAsync_WhenProductNotFound_ThrowsProductNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -288,7 +290,7 @@ public class ProductServiceTests
         var act = () => service.DeleteAsync(999, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ArgumentException>().WithMessage("Product not found");
+        await act.Should().ThrowAsync<ProductNotFoundException>().WithMessage("Product not found");
     }
 
     [Fact]

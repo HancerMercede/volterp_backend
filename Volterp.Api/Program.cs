@@ -15,7 +15,7 @@ var jwtSettings = new JwtSettings
 
 var dbSettings = new DatabaseSettings
 {
-    DefaultConnection = builder.Configuration["ConnectionStrings:DefaultConnection"]!
+    DefaultConnection = builder.Configuration.GetConnectionString("DefaultConnection")!
 };
 
 ServiceExtensions.ConfigureDbContext(builder.Services, dbSettings);
