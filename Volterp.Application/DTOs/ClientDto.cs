@@ -6,6 +6,7 @@ public record ClientDto(
     string Email,
     string Phone,
     string Address,
+    string? ImageUrl,
     bool IsActive,
     DateTime? CreatedAt,
     DateTime? UpdatedAt,

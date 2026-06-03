@@ -12,7 +12,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         var clients = await unitOfWork.Clients.GetAllClientsByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
         return clients.Map(c => new ClientDto(
-            c.Id, c.Name, c.Email, c.Phone, c.Address,
+            c.Id, c.Name, c.Email, c.Phone, c.Address, c.ImageUrl,
             c.IsActive, c.CreatedAt, c.UpdatedAt, null, null
         ));
     }
@@ -24,7 +24,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         if (client is null) return null;
 
         return client.Map(c => new ClientDto(
-            c.Id, c.Name, c.Email, c.Phone, c.Address,
+            c.Id, c.Name, c.Email, c.Phone, c.Address, c.ImageUrl,
             c.IsActive, c.CreatedAt, c.UpdatedAt, null, null
         ));
     }
@@ -38,6 +38,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             Email = request.Email,
             Phone = request.Phone,
             Address = request.Address,
+            ImageUrl = request.ImageUrl,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -46,7 +47,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         await unitOfWork.CommitAsync(ct);
 
         return client.Map(c => new ClientDto(
-            c.Id, c.Name, c.Email, c.Phone, c.Address,
+            c.Id, c.Name, c.Email, c.Phone, c.Address, c.ImageUrl,
             c.IsActive, c.CreatedAt, c.UpdatedAt, null, null
         ));
     }
@@ -66,13 +67,14 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             c.Address = request.Address;
             c.IsActive = request.IsActive;
             c.UpdatedAt = DateTime.UtcNow;
+            
         });
 
         await unitOfWork.Clients.UpdateClientAsync(client, ct);
         await unitOfWork.CommitAsync(ct);
 
         return client.Map(c => new ClientDto(
-            c.Id, c.Name, c.Email, c.Phone, c.Address,
+            c.Id, c.Name, c.Email, c.Phone, c.Address, c.ImageUrl,
             c.IsActive, c.CreatedAt, c.UpdatedAt, null, null
         ));
     }

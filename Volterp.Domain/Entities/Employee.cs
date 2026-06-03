@@ -20,6 +20,7 @@ public class Employee : AuditEntity
     public string? AFP { get; set; }
     public string? ARS { get; set; }
     public string? NSS { get; set; }
+    public string? ImageUrl { get; set; }
     public string? Bank { get; set; }
     public string? AccountNumber { get; set; }
     public int? CreatedBy { get; set; }

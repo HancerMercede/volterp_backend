@@ -14,6 +14,7 @@ public record EmployeeDto(
     decimal Salary,
     EntityStatus Status,
     string WorkSchedule,
+    string? ImageUrl,
     string? AFP,
     string? ARS,
     string? NSS,
