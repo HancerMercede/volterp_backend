@@ -26,6 +26,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
         entity.Property(e => e.DirectManagerId);
         entity.Property(e => e.WorkSchedule).HasMaxLength(100);
+        entity.Property(e => e.ImageUrl).HasMaxLength(500);
         entity.Property(e => e.AFP).HasMaxLength(100);
         entity.Property(e => e.ARS).HasMaxLength(100);
         entity.Property(e => e.NSS).HasMaxLength(50);

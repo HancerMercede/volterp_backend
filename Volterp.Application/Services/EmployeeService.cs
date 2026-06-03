@@ -15,7 +15,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return employees.Map(e => new EmployeeDto(
             e.Id, e.FirstName, e.LastName, e.Email, e.Phone, e.Position, e.Department,
             e.HireDate, e.Salary, e.Status, e.WorkSchedule,
-            e.AFP, e.ARS, e.NSS, e.Bank, e.AccountNumber
+            e.ImageUrl, e.AFP, e.ARS, e.NSS, e.Bank, e.AccountNumber
         ));
     }
 
@@ -28,7 +28,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return employee.Map(e => new EmployeeDto(
             e.Id, e.FirstName, e.LastName, e.Email, e.Phone, e.Position, e.Department,
             e.HireDate, e.Salary, e.Status, e.WorkSchedule,
-            e.AFP, e.ARS, e.NSS, e.Bank, e.AccountNumber
+            e.ImageUrl, e.AFP, e.ARS, e.NSS, e.Bank, e.AccountNumber
         ));
     }
 
@@ -48,6 +48,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             Status = request.Status,
             DirectManagerId = null,
             WorkSchedule = request.WorkSchedule,
+            ImageUrl = request.ImageUrl,
             AFP = request.AFP,
             ARS = request.ARS,
             NSS = request.NSS,
@@ -63,7 +64,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return employee.Map(e => new EmployeeDto(
             e.Id, e.FirstName, e.LastName, e.Email, e.Phone, e.Position, e.Department,
             e.HireDate, e.Salary, e.Status, e.WorkSchedule,
-            e.AFP, e.ARS, e.NSS, e.Bank, e.AccountNumber
+            e.ImageUrl, e.AFP, e.ARS, e.NSS, e.Bank, e.AccountNumber
         ));
     }
 
@@ -86,6 +87,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             x.Salary = request.Salary;
             x.Status = request.Status;
             x.WorkSchedule = request.WorkSchedule;
+            x.ImageUrl = request.ImageUrl;
             x.AFP = request.AFP;
             x.ARS = request.ARS;
             x.NSS = request.NSS;
@@ -101,7 +103,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return employee.Map(e => new EmployeeDto(
             e.Id, e.FirstName, e.LastName, e.Email, e.Phone, e.Position, e.Department,
             e.HireDate, e.Salary, e.Status, e.WorkSchedule,
-            e.AFP, e.ARS, e.NSS, e.Bank, e.AccountNumber
+            e.ImageUrl, e.AFP, e.ARS, e.NSS, e.Bank, e.AccountNumber
         ));
     }
 
