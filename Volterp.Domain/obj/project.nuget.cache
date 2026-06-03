@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "9DJPyk5UwH4=",
+  "dgSpecHash": "RnQrFc1aE5w=",
   "success": true,
   "projectFilePath": "C:\\Users\\HANCER MERCEDE\\source\\repos\\Volterp\\Volterp.Domain\\Volterp.Domain.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\mapflow\\1.0.3\\mapflow.1.0.3.nupkg.sha512"
+  ],
   "logs": []
 }

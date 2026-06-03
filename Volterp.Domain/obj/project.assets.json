@@ -1,11 +1,43 @@
 {
   "version": 3,
   "targets": {
-    "net10.0": {}
+    "net10.0": {
+      "MapFlow/1.0.3": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/MapFlow.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/MapFlow.dll": {
+            "related": ".xml"
+          }
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "MapFlow/1.0.3": {
+      "sha512": "SNt0vPd0Rt/TzowurDr33Bl+wcCIS41HEPGm+oK+O4I/L7irD3OTAFm9nKSmQAZ2rzwrtEmMbsN27Jnfu6hw5w==",
+      "type": "package",
+      "path": "mapflow/1.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "MapFlow.png",
+        "lib/net8.0/MapFlow.dll",
+        "lib/net8.0/MapFlow.xml",
+        "mapflow.1.0.3.nupkg.sha512",
+        "mapflow.nuspec",
+        "readme.nuget.md"
+      ]
+    }
+  },
   "projectFileDependencyGroups": {
-    "net10.0": []
+    "net10.0": [
+      "MapFlow >= 1.0.3"
+    ]
   },
   "packageFolders": {
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\": {},
@@ -56,6 +88,12 @@
     "frameworks": {
       "net10.0": {
         "targetAlias": "net10.0",
+        "dependencies": {
+          "MapFlow": {
+            "target": "Package",
+            "version": "[1.0.3, )"
+          }
+        },
         "imports": [
           "net461",
           "net462",

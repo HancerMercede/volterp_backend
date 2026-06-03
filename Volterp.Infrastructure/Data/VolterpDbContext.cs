@@ -16,6 +16,7 @@ public class VolterpDbContext(DbContextOptions<VolterpDbContext> options) : DbCo
     public DbSet<PurchaseItem> PurchaseItems => Set<PurchaseItem>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<AccountingTransaction> AccountingTransactions => Set<AccountingTransaction>();
+    public DbSet<Client> Clients => Set<Client>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -28,6 +28,19 @@
           }
         }
       },
+      "MapFlow/1.0.3": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/MapFlow.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/MapFlow.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Microsoft.AspNetCore.Authentication.JwtBearer/10.0.0": {
         "type": "package",
         "dependencies": {
@@ -1272,6 +1285,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
+          "MapFlow": "1.0.3",
           "Microsoft.EntityFrameworkCore": "10.0.7",
           "Volterp.Domain": "1.0.0"
         },
@@ -1285,6 +1299,9 @@
       "Volterp.Domain/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "MapFlow": "1.0.3"
+        },
         "compile": {
           "bin/placeholder/Volterp.Domain.dll": {}
         },
@@ -1297,6 +1314,7 @@
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
           "BCrypt.Net-Next": "4.0.3",
+          "MapFlow": "1.0.3",
           "Microsoft.EntityFrameworkCore": "10.0.7",
           "Microsoft.IdentityModel.Tokens": "8.0.2",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.0",
@@ -1361,6 +1379,21 @@
         "lib/netstandard2.0/Humanizer.dll",
         "lib/netstandard2.0/Humanizer.xml",
         "logo.png"
+      ]
+    },
+    "MapFlow/1.0.3": {
+      "sha512": "SNt0vPd0Rt/TzowurDr33Bl+wcCIS41HEPGm+oK+O4I/L7irD3OTAFm9nKSmQAZ2rzwrtEmMbsN27Jnfu6hw5w==",
+      "type": "package",
+      "path": "mapflow/1.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "MapFlow.png",
+        "lib/net8.0/MapFlow.dll",
+        "lib/net8.0/MapFlow.xml",
+        "mapflow.1.0.3.nupkg.sha512",
+        "mapflow.nuspec",
+        "readme.nuget.md"
       ]
     },
     "Microsoft.AspNetCore.Authentication.JwtBearer/10.0.0": {
@@ -3346,6 +3379,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "MapFlow >= 1.0.3",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 10.0.0",
       "Microsoft.EntityFrameworkCore.Design >= 10.0.0",
       "Volterp.Application >= 1.0.0",
@@ -3413,6 +3447,10 @@
       "net10.0": {
         "targetAlias": "net10.0",
         "dependencies": {
+          "MapFlow": {
+            "target": "Package",
+            "version": "[1.0.3, )"
+          },
           "Microsoft.AspNetCore.Authentication.JwtBearer": {
             "target": "Package",
             "version": "[10.0.0, )"
