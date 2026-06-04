@@ -1,6 +1,6 @@
 using Volterp.Application.DTOs;
 using Volterp.Application.Exceptions.Supplier;
-using Volterp.Application.Helpers;
+
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 
@@ -12,9 +12,8 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
     {
         var suppliers = await unitOfWork.Suppliers.GetAllSuppliersByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
-        return suppliers.Map(s => new SupplierDto(
-            s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
+        return suppliers.Map(s => new SupplierDto( s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category, s.ContactPerson,
+            s.ImageUrl, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
         ));
     }
 
@@ -26,7 +25,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
 
         return supplier.Map(s => new SupplierDto(
             s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
+            s.ContactPerson, s.ImageUrl, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
         ));
     }
 
@@ -41,6 +40,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             Address = request.Address,
             Category = request.Category,
             ContactPerson = request.ContactPerson,
+            ImageUrl = request.ImageUrl,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -50,7 +50,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
 
         return supplier.Map(s => new SupplierDto(
             s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
+            s.ContactPerson, s.ImageUrl, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
         ));
     }
 
@@ -69,6 +69,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             s.Address = request.Address;
             s.Category = request.Category;
             s.ContactPerson = request.ContactPerson;
+            s.ImageUrl = request.ImageUrl;
             s.IsActive = request.IsActive;
             s.UpdatedAt = DateTime.UtcNow;
         });
@@ -78,7 +79,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
 
         return supplier.Map(s => new SupplierDto(
             s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
+            s.ContactPerson, s.ImageUrl, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
         ));
     }
 

@@ -8,6 +8,7 @@ public record SupplierDto(
     string Address,
     string Category,
     string ContactPerson,
+    string? ImageUrl,
     bool IsActive,
     DateTime? CreatedAt,
     DateTime? UpdatedAt,

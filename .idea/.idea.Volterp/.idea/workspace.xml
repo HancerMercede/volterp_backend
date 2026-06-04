@@ -16,8 +16,6 @@
   <component name="ChangeListManager">
     <list default="true" id="eef3f06d-18aa-4193-940b-b666d0b3ef33" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Volterp/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Volterp/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/Controllers/UsersController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/Controllers/UsersController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.deps.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.deps.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.exe" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.exe" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Api.pdb" afterDir="false" />
@@ -29,11 +27,7 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Infrastructure.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/bin/Debug/net10.0/Volterp.Infrastructure.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.GlobalUsings.g.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.GlobalUsings.g.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.assets.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.assets.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.csproj.AssemblyReference.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.csproj.AssemblyReference.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.csproj.CoreCompileInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.csproj.CoreCompileInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.csproj.FileListAbsolute.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.csproj.FileListAbsolute.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/Volterp.Api.sourcelink.json" afterDir="false" />
@@ -42,69 +36,44 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/refint/Volterp.Api.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/refint/Volterp.Api.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmcshtml.dswa.cache.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmcshtml.dswa.cache.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmrazor.dswa.cache.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmrazor.dswa.cache.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Volterp.Api.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Volterp.Api.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/project.nuget.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/project.nuget.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/project.packagespec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/project.packagespec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/Helpers/MapperConfiguration.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/Helpers/PagedResult.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.deps.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.deps.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Application/DTOs/SupplierDto.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/DTOs/SupplierDto.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Application/Services/SupplierService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/Services/SupplierService.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.GlobalUsings.g.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.GlobalUsings.g.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.assets.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.assets.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.csproj.AssemblyReference.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.csproj.AssemblyReference.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.csproj.CoreCompileInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.csproj.CoreCompileInputs.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/ref/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/ref/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/refint/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/refint/Volterp.Application.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Volterp.Application.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Volterp.Application.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/project.nuget.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/project.nuget.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/project.packagespec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/project.packagespec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/Volterp.Domain.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/Volterp.Domain.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.deps.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.deps.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Domain/Entities/Supplier.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/Entities/Supplier.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.assets.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.assets.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.csproj.CoreCompileInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.csproj.CoreCompileInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.csproj.FileListAbsolute.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.csproj.FileListAbsolute.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/ref/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/ref/Volterp.Domain.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/refint/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/refint/Volterp.Domain.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Volterp.Domain.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Volterp.Domain.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/project.nuget.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/project.nuget.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/project.packagespec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/project.packagespec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/Data/VolterpDbContext.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/Data/VolterpDbContext.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/Data/Configurations/EmployeeConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/Data/Configurations/EmployeeConfiguration.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/Data/Configurations/SupplierConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/Data/Configurations/SupplierConfiguration.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/Migrations/VolterpDbContextModelSnapshot.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/Migrations/VolterpDbContextModelSnapshot.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.deps.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.deps.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Infrastructure.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.GlobalUsings.g.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.GlobalUsings.g.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.assets.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.assets.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.csproj.AssemblyReference.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.csproj.AssemblyReference.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.csproj.CoreCompileInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.csproj.CoreCompileInputs.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.dll" afterDir="false" />
@@ -112,11 +81,6 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/ref/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/ref/Volterp.Infrastructure.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/refint/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/refint/Volterp.Infrastructure.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Volterp.Infrastructure.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Volterp.Infrastructure.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/project.nuget.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/project.nuget.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/project.packagespec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/project.packagespec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.restore.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
@@ -124,28 +88,17 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Infrastructure.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Infrastructure.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Infrastructure.pdb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Tests.deps.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Tests.deps.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Tests.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Tests.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Tests.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Tests.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.AssemblyInfo.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.AssemblyInfoInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.AssemblyInfoInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.GlobalUsings.g.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.GlobalUsings.g.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.assets.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.assets.cache" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.csproj.AssemblyReference.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.csproj.AssemblyReference.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.csproj.CoreCompileInputs.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.csproj.CoreCompileInputs.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.csproj.FileListAbsolute.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.csproj.FileListAbsolute.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/ref/Volterp.Tests.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/ref/Volterp.Tests.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/refint/Volterp.Tests.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/refint/Volterp.Tests.dll" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Volterp.Tests.csproj.nuget.dgspec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Volterp.Tests.csproj.nuget.dgspec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/project.assets.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/project.assets.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/project.nuget.cache" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/project.nuget.cache" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/project.packagespec.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/project.packagespec.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.sln.DotSettings.user" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -217,61 +170,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.8843359148297305" />
-      <entry key="MS500" value="2.666908193432537" />
-      <entry key="S2" value="2.90917558053155" />
-      <entry key="S5" value="2.988653225101237" />
-      <entry key="S10" value="3.934755504431242" />
-      <entry key="S30" value="20.521370769741186" />
-      <entry key="S60" value="47.23868541761503" />
-      <entry key="M2" value="76.38815840708291" />
-      <entry key="M5" value="105.22012999750127" />
-      <entry key="M10" value="120.82299737785985" />
-      <entry key="M15" value="130.05819318613894" />
-      <entry key="M30" value="163.16402747018813" />
-      <entry key="H1" value="245.6856213390464" />
-      <entry key="H2" value="365.19097564456933" />
-      <entry key="H4" value="477.8229442071593" />
-      <entry key="D1" value="630.462377270592" />
-      <entry key="W1" value="665.761066527811" />
+      <entry key="MS100" value="1.7584444434315754" />
+      <entry key="MS500" value="2.6372477809558523" />
+      <entry key="S2" value="2.902270436386998" />
+      <entry key="S5" value="3.104839142293232" />
+      <entry key="S10" value="3.985791592724925" />
+      <entry key="S30" value="6.659139956534746" />
+      <entry key="S60" value="8.062207107183866" />
+      <entry key="M2" value="8.953033682632" />
+      <entry key="M5" value="9.570124559665203" />
+      <entry key="M10" value="10.6549895105274" />
+      <entry key="M15" value="14.998306156653403" />
+      <entry key="M30" value="47.69083707935328" />
+      <entry key="H1" value="140.04396289438836" />
+      <entry key="H2" value="296.83616240099246" />
+      <entry key="H4" value="468.40709949335485" />
+      <entry key="D1" value="727.0124090613094" />
+      <entry key="W1" value="789.8090362543004" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="3.5014162208146876E-279" />
-      <entry key="S2" value="2.471827063667539E-70" />
-      <entry key="S5" value="1.7621235857672655E-28" />
-      <entry key="S10" value="2.068721395777839E-14" />
-      <entry key="S30" value="6.433823598135176E-5" />
-      <entry key="S60" value="0.01589270363988807" />
-      <entry key="M2" value="0.2515491383016043" />
-      <entry key="M5" value="1.3220440083541938" />
-      <entry key="M10" value="2.2993971826293778" />
-      <entry key="M15" value="2.7656084995292427" />
-      <entry key="M30" value="3.341257854847861" />
-      <entry key="H1" value="3.7715111489346445" />
-      <entry key="H2" value="4.171950336952752" />
-      <entry key="H4" value="4.502344411713221" />
-      <entry key="D1" value="4.90138794470971" />
-      <entry key="W1" value="4.985461257752162" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="5.056618147266839E-240" />
+      <entry key="S10" value="3.196837832672065E-120" />
+      <entry key="S30" value="2.8319986391892196E-40" />
+      <entry key="S60" value="3.140781773007796E-20" />
+      <entry key="M2" value="3.4714161394697934E-10" />
+      <entry key="M5" value="3.7882239761611973E-4" />
+      <entry key="M10" value="0.042147564850202754" />
+      <entry key="M15" value="0.2176484166854796" />
+      <entry key="M30" value="1.2333427632981007" />
+      <entry key="H1" value="3.1198997185979267" />
+      <entry key="H2" value="5.141869533148527" />
+      <entry key="H4" value="6.72910840766866" />
+      <entry key="D1" value="8.557798047495725" />
+      <entry key="W1" value="8.934980610444049" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.8312085473294184" />
-      <entry key="MS500" value="2.6511266427098157" />
-      <entry key="S2" value="2.9048233223681392" />
-      <entry key="S5" value="2.9868587491513785" />
-      <entry key="S10" value="3.9335381832913248" />
-      <entry key="S30" value="20.51910584500248" />
-      <entry key="S60" value="47.25147773829685" />
-      <entry key="M2" value="76.6346900748728" />
-      <entry key="M5" value="106.53503971961615" />
-      <entry key="M10" value="123.11653072299849" />
-      <entry key="M15" value="132.81914263933314" />
-      <entry key="M30" value="166.5023923504221" />
-      <entry key="H1" value="249.45532708743409" />
-      <entry key="H2" value="369.36179250437687" />
-      <entry key="H4" value="482.3246135370768" />
-      <entry key="D1" value="635.3636280892072" />
-      <entry key="W1" value="670.7465073815362" />
+      <entry key="MS100" value="1.687341171704917" />
+      <entry key="MS500" value="2.60614578809465" />
+      <entry key="S2" value="2.8930940056096497" />
+      <entry key="S5" value="3.100697884140776" />
+      <entry key="S10" value="3.98265806831925" />
+      <entry key="S30" value="6.6570112926658815" />
+      <entry key="S60" value="8.060857383713078" />
+      <entry key="M2" value="8.952268130697622" />
+      <entry key="M5" value="9.57016846236107" />
+      <entry key="M10" value="10.696755524117409" />
+      <entry key="M15" value="15.215141544772612" />
+      <entry key="M30" value="48.92228155703563" />
+      <entry key="H1" value="143.16157700460857" />
+      <entry key="H2" value="301.97614195513256" />
+      <entry key="H4" value="475.13494632835665" />
+      <entry key="D1" value="735.5699297357793" />
+      <entry key="W1" value="798.7439751030221" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -297,7 +250,7 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "XThreadsFramesViewSplitterKey": "0.49019608",
+    "XThreadsFramesViewSplitterKey": "0.5133333",
     "cidr.known.project.marker": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
@@ -486,30 +439,17 @@
           <option name="timeStamp" value="32" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Volterp.Application/Services/ProductService.cs</url>
-          <line>13</line>
-          <properties documentPath="C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\Services\ProductService.cs" containingFunctionPresentation="Method 'GetAllAsync'">
+          <url>file://$PROJECT_DIR$/Volterp.Application/Services/SupplierService.cs</url>
+          <line>57</line>
+          <properties documentPath="C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\Services\SupplierService.cs" containingFunctionPresentation="Method 'UpdateSupplierAsync'">
             <startOffsets>
-              <option value="520" />
+              <option value="2269" />
             </startOffsets>
             <endOffsets>
-              <option value="521" />
+              <option value="2270" />
             </endOffsets>
           </properties>
-          <option name="timeStamp" value="34" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Volterp.Api/Controllers/ClientsController.cs</url>
-          <line>18</line>
-          <properties documentPath="C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\Controllers\ClientsController.cs" containingFunctionPresentation="Method 'GetAllClients'">
-            <startOffsets>
-              <option value="567" />
-            </startOffsets>
-            <endOffsets>
-              <option value="568" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="35" />
+          <option name="timeStamp" value="37" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

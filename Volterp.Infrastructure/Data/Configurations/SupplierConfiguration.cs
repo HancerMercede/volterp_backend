@@ -20,6 +20,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         entity.Property(e => e.Address).HasMaxLength(500);
         entity.Property(e => e.Category).HasMaxLength(100);
         entity.Property(e => e.ContactPerson).HasMaxLength(200);
+        entity.Property(e => e.ImageUrl).HasColumnType("text");
 
         entity.HasOne(e => e.Company)
             .WithMany(c => c.Suppliers)
