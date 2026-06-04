@@ -310,12 +310,7 @@ namespace Volterp.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("ImageUrl")
-<<<<<<< HEAD
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-=======
                         .HasColumnType("text");
->>>>>>> feature/mapflow
 
                     b.Property<string>("LastName")
                         .IsRequired()

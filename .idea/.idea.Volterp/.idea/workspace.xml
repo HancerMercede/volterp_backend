@@ -36,9 +36,8 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/refint/Volterp.Api.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/refint/Volterp.Api.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmcshtml.dswa.cache.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmcshtml.dswa.cache.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmrazor.dswa.cache.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/Debug/net10.0/rjsmrazor.dswa.cache.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Api/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/DTOs/SupplierDto.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/DTOs/SupplierDto.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Application/Services/SupplierService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/Services/SupplierService.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/bin/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
@@ -51,8 +50,8 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/Volterp.Application.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/ref/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/ref/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/refint/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/Debug/net10.0/refint/Volterp.Application.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Application/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Domain/Entities/Supplier.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/Entities/Supplier.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/bin/Debug/net10.0/Volterp.Domain.pdb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfo.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.AssemblyInfo.cs" afterDir="false" />
@@ -62,9 +61,8 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/Volterp.Domain.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/ref/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/ref/Volterp.Domain.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/refint/Volterp.Domain.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/Debug/net10.0/refint/Volterp.Domain.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Domain/obj/rider.project.restore.info" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/Data/Configurations/EmployeeConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/Data/Configurations/EmployeeConfiguration.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/Data/Configurations/SupplierConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/Data/Configurations/SupplierConfiguration.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/Migrations/VolterpDbContextModelSnapshot.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/Migrations/VolterpDbContextModelSnapshot.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/bin/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
@@ -81,6 +79,7 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/Volterp.Infrastructure.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/ref/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/ref/Volterp.Infrastructure.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/refint/Volterp.Infrastructure.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/Debug/net10.0/refint/Volterp.Infrastructure.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Infrastructure/obj/rider.project.restore.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Application.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Application.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Application.pdb" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/bin/Debug/net10.0/Volterp.Application.pdb" afterDir="false" />
@@ -98,6 +97,7 @@
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.sourcelink.json" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/Volterp.Tests.sourcelink.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/ref/Volterp.Tests.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/ref/Volterp.Tests.dll" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/refint/Volterp.Tests.dll" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/Debug/net10.0/refint/Volterp.Tests.dll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/rider.project.model.nuget.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/rider.project.model.nuget.info" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Volterp.Tests/obj/rider.project.restore.info" beforeDir="false" afterPath="$PROJECT_DIR$/Volterp.Tests/obj/rider.project.restore.info" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -170,61 +170,61 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.7584444434315754" />
-      <entry key="MS500" value="2.6372477809558523" />
-      <entry key="S2" value="2.902270436386998" />
-      <entry key="S5" value="3.104839142293232" />
-      <entry key="S10" value="3.985791592724925" />
-      <entry key="S30" value="6.659139956534746" />
-      <entry key="S60" value="8.062207107183866" />
-      <entry key="M2" value="8.953033682632" />
-      <entry key="M5" value="9.570124559665203" />
-      <entry key="M10" value="10.6549895105274" />
-      <entry key="M15" value="14.998306156653403" />
-      <entry key="M30" value="47.69083707935328" />
-      <entry key="H1" value="140.04396289438836" />
-      <entry key="H2" value="296.83616240099246" />
-      <entry key="H4" value="468.40709949335485" />
-      <entry key="D1" value="727.0124090613094" />
-      <entry key="W1" value="789.8090362543004" />
+      <entry key="MS100" value="1.0475749591825534" />
+      <entry key="MS500" value="1.9332972012421366" />
+      <entry key="S2" value="2.7146863143301827" />
+      <entry key="S5" value="4.637978513302258" />
+      <entry key="S10" value="9.824799191473486" />
+      <entry key="S30" value="24.074685105555258" />
+      <entry key="S60" value="32.94061707932002" />
+      <entry key="M2" value="40.72814417601899" />
+      <entry key="M5" value="48.38579987402729" />
+      <entry key="M10" value="52.54184193494276" />
+      <entry key="M15" value="57.52941267595467" />
+      <entry key="M30" value="89.35527304683843" />
+      <entry key="H1" value="180.1646878080596" />
+      <entry key="H2" value="336.7192432647997" />
+      <entry key="H4" value="509.6020021426159" />
+      <entry key="D1" value="771.7714183828452" />
+      <entry key="W1" value="835.6164612053706" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
       <entry key="MS500" value="0.0" />
       <entry key="S2" value="0.0" />
-      <entry key="S5" value="5.056618147266839E-240" />
-      <entry key="S10" value="3.196837832672065E-120" />
-      <entry key="S30" value="2.8319986391892196E-40" />
-      <entry key="S60" value="3.140781773007796E-20" />
-      <entry key="M2" value="3.4714161394697934E-10" />
-      <entry key="M5" value="3.7882239761611973E-4" />
-      <entry key="M10" value="0.042147564850202754" />
-      <entry key="M15" value="0.2176484166854796" />
-      <entry key="M30" value="1.2333427632981007" />
-      <entry key="H1" value="3.1198997185979267" />
-      <entry key="H2" value="5.141869533148527" />
-      <entry key="H4" value="6.72910840766866" />
-      <entry key="D1" value="8.557798047495725" />
-      <entry key="W1" value="8.934980610444049" />
+      <entry key="S5" value="1.0415340287097977E-252" />
+      <entry key="S10" value="1.4508658500442916E-126" />
+      <entry key="S30" value="2.176349255141244E-42" />
+      <entry key="S60" value="2.7533126955280585E-21" />
+      <entry key="M2" value="1.0278164541904985E-10" />
+      <entry key="M5" value="2.3280869881134818E-4" />
+      <entry key="M10" value="0.03304108232906802" />
+      <entry key="M15" value="0.18504471982519216" />
+      <entry key="M30" value="1.1372197211639856" />
+      <entry key="H1" value="2.9958559767306427" />
+      <entry key="H2" value="5.038615299375136" />
+      <entry key="H4" value="6.661201927057109" />
+      <entry key="D1" value="8.543343714456674" />
+      <entry key="W1" value="8.93282313339342" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="1.687341171704917" />
-      <entry key="MS500" value="2.60614578809465" />
-      <entry key="S2" value="2.8930940056096497" />
-      <entry key="S5" value="3.100697884140776" />
-      <entry key="S10" value="3.98265806831925" />
-      <entry key="S30" value="6.6570112926658815" />
-      <entry key="S60" value="8.060857383713078" />
-      <entry key="M2" value="8.952268130697622" />
-      <entry key="M5" value="9.57016846236107" />
-      <entry key="M10" value="10.696755524117409" />
-      <entry key="M15" value="15.215141544772612" />
-      <entry key="M30" value="48.92228155703563" />
-      <entry key="H1" value="143.16157700460857" />
-      <entry key="H2" value="301.97614195513256" />
-      <entry key="H4" value="475.13494632835665" />
-      <entry key="D1" value="735.5699297357793" />
-      <entry key="W1" value="798.7439751030221" />
+      <entry key="MS100" value="1.0192508280925479" />
+      <entry key="MS500" value="1.9238939560711867" />
+      <entry key="S2" value="2.7114332645572063" />
+      <entry key="S5" value="4.63448518399014" />
+      <entry key="S10" value="9.819523807531583" />
+      <entry key="S30" value="24.06957447390199" />
+      <entry key="S60" value="32.937012542136856" />
+      <entry key="M2" value="40.72585576440068" />
+      <entry key="M5" value="48.384910076418606" />
+      <entry key="M10" value="52.57410853599902" />
+      <entry key="M15" value="57.71344533642283" />
+      <entry key="M30" value="90.4905800270643" />
+      <entry key="H1" value="183.15826734402677" />
+      <entry key="H2" value="341.75596555811296" />
+      <entry key="H4" value="516.2619347063122" />
+      <entry key="D1" value="780.3144817680311" />
+      <entry key="W1" value="844.5492420977686" />
     </decayedShown>
   </component>
   <component name="ProblemsViewState">
@@ -254,7 +254,7 @@
     "cidr.known.project.marker": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
     "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "feature/mapflow",
+    "git-widget-placeholder": "development",
     "junie.onboarding.icon.badge.shown": "true",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
