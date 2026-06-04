@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v10.0": {
       "Volterp.Api/1.0.0": {
         "dependencies": {
+          "MapFlow": "1.0.3",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "10.0.0",
           "Microsoft.EntityFrameworkCore.Design": "10.0.0",
           "Volterp.Application": "1.0.0",
@@ -31,6 +32,14 @@
           "lib/net6.0/Humanizer.dll": {
             "assemblyVersion": "2.14.0.0",
             "fileVersion": "2.14.1.48190"
+          }
+        }
+      },
+      "MapFlow/1.0.3": {
+        "runtime": {
+          "lib/net8.0/MapFlow.dll": {
+            "assemblyVersion": "1.0.3.0",
+            "fileVersion": "1.0.3.0"
           }
         }
       },
@@ -706,6 +715,7 @@
       },
       "Volterp.Application/1.0.0": {
         "dependencies": {
+          "MapFlow": "1.0.3",
           "Microsoft.EntityFrameworkCore": "10.0.7",
           "Volterp.Domain": "1.0.0"
         },
@@ -717,6 +727,9 @@
         }
       },
       "Volterp.Domain/1.0.0": {
+        "dependencies": {
+          "MapFlow": "1.0.3"
+        },
         "runtime": {
           "Volterp.Domain.dll": {
             "assemblyVersion": "1.0.0.0",
@@ -727,6 +740,7 @@
       "Volterp.Infrastructure/1.0.0": {
         "dependencies": {
           "BCrypt.Net-Next": "4.0.3",
+          "MapFlow": "1.0.3",
           "Microsoft.EntityFrameworkCore": "10.0.7",
           "Microsoft.IdentityModel.Tokens": "8.0.2",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.0",
@@ -762,6 +776,13 @@
       "sha512": "sha512-lQKvtaTDOXnoVJ20ibTuSIOf2i0uO0MPbDhd1jm238I+U/2ZnRENj0cktKZhtchBMtCUSRQ5v4xBCUbKNmyVMw==",
       "path": "humanizer.core/2.14.1",
       "hashPath": "humanizer.core.2.14.1.nupkg.sha512"
+    },
+    "MapFlow/1.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-SNt0vPd0Rt/TzowurDr33Bl+wcCIS41HEPGm+oK+O4I/L7irD3OTAFm9nKSmQAZ2rzwrtEmMbsN27Jnfu6hw5w==",
+      "path": "mapflow/1.0.3",
+      "hashPath": "mapflow.1.0.3.nupkg.sha512"
     },
     "Microsoft.AspNetCore.Authentication.JwtBearer/10.0.0": {
       "type": "package",

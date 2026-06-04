@@ -10,3 +10,4 @@ C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Domain\obj\Debug\net10.0\Vo
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Domain\obj\Debug\net10.0\refint\Volterp.Domain.dll
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Domain\obj\Debug\net10.0\Volterp.Domain.pdb
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Domain\obj\Debug\net10.0\ref\Volterp.Domain.dll
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Domain\obj\Debug\net10.0\Volterp.Domain.csproj.AssemblyReference.cache

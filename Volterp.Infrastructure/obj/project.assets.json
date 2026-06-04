@@ -15,6 +15,19 @@
           }
         }
       },
+      "MapFlow/1.0.3": {
+        "type": "package",
+        "compile": {
+          "lib/net8.0/MapFlow.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net8.0/MapFlow.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "Microsoft.EntityFrameworkCore/10.0.7": {
         "type": "package",
         "dependencies": {
@@ -360,6 +373,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
+          "MapFlow": "1.0.3",
           "Microsoft.EntityFrameworkCore": "10.0.7",
           "Volterp.Domain": "1.0.0"
         },
@@ -373,6 +387,9 @@
       "Volterp.Domain/1.0.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "MapFlow": "1.0.3"
+        },
         "compile": {
           "bin/placeholder/Volterp.Domain.dll": {}
         },
@@ -412,6 +429,21 @@
         "lib/netstandard2.1/BCrypt.Net-Next.dll",
         "lib/netstandard2.1/BCrypt.Net-Next.xml",
         "readme.md"
+      ]
+    },
+    "MapFlow/1.0.3": {
+      "sha512": "SNt0vPd0Rt/TzowurDr33Bl+wcCIS41HEPGm+oK+O4I/L7irD3OTAFm9nKSmQAZ2rzwrtEmMbsN27Jnfu6hw5w==",
+      "type": "package",
+      "path": "mapflow/1.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "MapFlow.png",
+        "lib/net8.0/MapFlow.dll",
+        "lib/net8.0/MapFlow.xml",
+        "mapflow.1.0.3.nupkg.sha512",
+        "mapflow.nuspec",
+        "readme.nuget.md"
       ]
     },
     "Microsoft.EntityFrameworkCore/10.0.7": {
@@ -959,6 +991,7 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "BCrypt.Net-Next >= 4.0.3",
+      "MapFlow >= 1.0.3",
       "Microsoft.EntityFrameworkCore >= 10.0.7",
       "Microsoft.IdentityModel.Tokens >= 8.0.2",
       "Npgsql.EntityFrameworkCore.PostgreSQL >= 10.0.0",
@@ -1027,6 +1060,10 @@
           "BCrypt.Net-Next": {
             "target": "Package",
             "version": "[4.0.3, )"
+          },
+          "MapFlow": {
+            "target": "Package",
+            "version": "[1.0.3, )"
           },
           "Microsoft.EntityFrameworkCore": {
             "target": "Package",

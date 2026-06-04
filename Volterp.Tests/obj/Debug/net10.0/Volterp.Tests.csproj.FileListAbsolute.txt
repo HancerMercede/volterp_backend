@@ -134,3 +134,4 @@ C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Tests\obj\Debug\net10.0\ref
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Tests\obj\Debug\net10.0\Volterp.Tests.pdb
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Tests\obj\Debug\net10.0\Volterp.Tests.genruntimeconfig.cache
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Tests\obj\Debug\net10.0\ref\Volterp.Tests.dll
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Tests\bin\Debug\net10.0\MapFlow.dll
