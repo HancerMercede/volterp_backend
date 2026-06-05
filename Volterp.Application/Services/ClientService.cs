@@ -1,5 +1,4 @@
 using Volterp.Application.DTOs;
-using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 
@@ -11,10 +10,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
     {
         var clients = await unitOfWork.Clients.GetAllClientsByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
-        return clients.Map(c => new ClientDto(
-            c.Id, c.Name, c.Email, c.Phone, c.Address, c.ImageUrl,
-            c.IsActive, c.CreatedAt, c.UpdatedAt, null, null
-        ));
+        return Mapper.Map<Client, ClientDto>(clients);
     }
 
     public async Task<ClientDto?> GetClientByIdAsync(int id, int companyId, CancellationToken ct = default)
@@ -22,37 +18,23 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         var client = await unitOfWork.Clients.GetClientByIdAsync(id, companyId, ct);
 
         if (client is null) return null;
-
-        return client.Map(c => new ClientDto(
-            c.Id, c.Name, c.Email, c.Phone, c.Address, c.ImageUrl,
-            c.IsActive, c.CreatedAt, c.UpdatedAt, null, null
-        ));
+      
+        return Mapper.Map<Client, ClientDto>(client);
     }
 
-    public async Task<ClientDto> CreateClientAsync(ClientDto request, int companyId, CancellationToken ct = default)
+    public async Task<ClientDto> CreateClientAsync(CreateClientDto request, int companyId, CancellationToken ct = default)
     {
-        var client = new Client
-        {
-            CompanyId = companyId,
-            Name = request.Name,
-            Email = request.Email,
-            Phone = request.Phone,
-            Address = request.Address,
-            ImageUrl = request.ImageUrl,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
+        var client = request.Project();
+        client.CompanyId = companyId;
+        
         await unitOfWork.Clients.AddClientAsync(client, ct);
         await unitOfWork.CommitAsync(ct);
-
-        return client.Map(c => new ClientDto(
-            c.Id, c.Name, c.Email, c.Phone, c.Address, c.ImageUrl,
-            c.IsActive, c.CreatedAt, c.UpdatedAt, null, null
-        ));
+        
+        
+        return Mapper.Map<Client, ClientDto>(client);
     }
 
-    public async Task<ClientDto> UpdateClientAsync(int id, int companyId, ClientDto request, CancellationToken ct = default)
+    public async Task<ClientDto> UpdateClientAsync(int id, int companyId, UpdateClientDto request, CancellationToken ct = default)
     {
         var client = await unitOfWork.Clients.GetClientByIdAsync(id, companyId, ct);
 
@@ -73,10 +55,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         await unitOfWork.Clients.UpdateClientAsync(client, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return client.Map(c => new ClientDto(
-            c.Id, c.Name, c.Email, c.Phone, c.Address, c.ImageUrl,
-            c.IsActive, c.CreatedAt, c.UpdatedAt, null, null
-        ));
+        return Mapper.Map<Client, ClientDto>(client);
     }
 
     public async Task DeleteClientAsync(int id, int companyId, CancellationToken ct = default)

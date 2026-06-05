@@ -1,6 +1,5 @@
 using Volterp.Application.DTOs;
 using Volterp.Application.Exceptions.Employee;
-using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 
@@ -24,39 +23,42 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         var employee = await unitOfWork.Employees.GetEmployeeByIdAsync(id, companyId, ct);
 
         if (employee is null) return null;
-
+        
         return employee.Map(e => new EmployeeDto(
             e.Id, e.FirstName, e.LastName, e.Email, e.Phone, e.Position, e.Department,
             e.HireDate, e.Salary, e.Status, e.WorkSchedule,
             e.ImageUrl, e.AFP, e.ARS, e.NSS, e.Bank, e.AccountNumber
         ));
+
+        
     }
 
     public async Task<EmployeeDto> CreateEmployeeAsync(EmployeeDto request, int companyId, int userId, CancellationToken ct = default)
     {
-        var employee = new Employee
+
+        var employee = request.Map(e => new Employee
         {
             CompanyId = companyId,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Email = request.Email,
-            Phone = request.Phone,
-            Position = request.Position,
-            Department = request.Department,
-            HireDate = request.HireDate,
-            Salary = request.Salary,
-            Status = request.Status,
+            FirstName = e.FirstName,
+            LastName = e.LastName,
+            Email = e.Email,
+            Phone = e.Phone,
+            Position = e.Position,
+            Department = e.Department,
+            HireDate = e.HireDate,
+            Salary = e.Salary,
+            Status = e.Status,
             DirectManagerId = null,
-            WorkSchedule = request.WorkSchedule,
-            ImageUrl = request.ImageUrl,
-            AFP = request.AFP,
-            ARS = request.ARS,
-            NSS = request.NSS,
-            Bank = request.Bank,
-            AccountNumber = request.AccountNumber,
+            WorkSchedule = e.WorkSchedule,
+            ImageUrl = e.ImageUrl,
+            AFP = e.AFP,
+            ARS = e.ARS,
+            NSS = e.NSS,
+            Bank = e.Bank,
+            AccountNumber = e.AccountNumber,
             CreatedAt = DateTime.Now,
             CreatedBy = userId
-        };
+        });
 
         await unitOfWork.Employees.AddEmployeeAsync(employee, ct);
         await unitOfWork.CommitAsync(ct);
@@ -99,7 +101,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
 
         await unitOfWork.Employees.UpdateEmployeeAsync(employee, ct);
         await unitOfWork.CommitAsync(ct);
-
+        
         return employee.Map(e => new EmployeeDto(
             e.Id, e.FirstName, e.LastName, e.Email, e.Phone, e.Position, e.Department,
             e.HireDate, e.Salary, e.Status, e.WorkSchedule,
