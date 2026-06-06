@@ -1,6 +1,6 @@
 using Volterp.Domain.Entities;
 
-namespace Volterp.Application.DTOs;
+namespace Volterp.Application.DTOs.ClientDtos;
 
 public class CreateClientDto
 (

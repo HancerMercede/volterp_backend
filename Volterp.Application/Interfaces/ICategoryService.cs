@@ -1,5 +1,4 @@
-using Volterp.Application.DTOs;
-using Volterp.Application.Helpers;
+using Volterp.Application.DTOs.CategoryDtos;
 
 namespace Volterp.Application.Interfaces;
 

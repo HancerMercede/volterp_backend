@@ -1,4 +1,5 @@
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.ClientDtos;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 

@@ -1,4 +1,5 @@
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.CategoryDtos;
 using Volterp.Application.Exceptions.Category;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
@@ -12,7 +13,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
     {
         var categories = await unitOfWork.Categories.GetAllCategoriesByCompanyAsync(companyId, pageNumber, pageSize,ct);
 
-        return categories.Map(c => new CategoryDto(c.Id, c.Name, c.Description, c.CompanyId, c.IsActive, c.CreatedAt));
+        return Mapper.Map<Category, CategoryDto>(categories);
     }
 
     public async Task<CategoryDto?> GetByIdAsync(int id, int companyId, CancellationToken ct = default)
@@ -21,31 +22,19 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         
         if (category is null || category.CompanyId != companyId)
             return null;
-        
-        return category.Map(x=>new CategoryDto(
-            x.Id, x.Name, x.Description,
-            x.CompanyId, x.IsActive, x.CreatedAt
-        ));
+
+        return Mapper.Map<Category, CategoryDto>(category);
     }
 
     public async Task<CategoryDto> CreateAsync(CreateCategoryRequest request, int companyId, CancellationToken ct = default)
     {
-        var category = new Category
-        {
-            Name = request.Name,
-            Description = request.Description,
-            CompanyId = companyId,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
+        var category = request.Project();
+        category.CompanyId = companyId;
+        
         await unitOfWork.Categories.AddCategoryAsync(category, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return category.Map(x=>new CategoryDto(
-            x.Id, x.Name, x.Description,
-            x.CompanyId, x.IsActive, x.CreatedAt
-        ));
+        return Mapper.Map<Category, CategoryDto>(category);
     }
 
     public async Task<CategoryDto> UpdateAsync(int id, UpdateCategoryRequest request, int companyId, CancellationToken ct = default)
@@ -66,10 +55,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         await unitOfWork.Categories.UpdateCategoryAsync(category, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return category.Map(x=> new CategoryDto(
-            x.Id, x.Name, x.Description,
-            x.CompanyId, x.IsActive, x.CreatedAt
-        ));
+        return Mapper.Map<Category, CategoryDto>(category);
     }
 
     public async Task DeleteAsync(int id, int companyId, CancellationToken ct = default)

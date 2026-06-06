@@ -1,5 +1,5 @@
 using Volterp.Application.DTOs;
-
+using Volterp.Application.DTOs.ClientDtos;
 
 namespace Volterp.Application.Interfaces;
 

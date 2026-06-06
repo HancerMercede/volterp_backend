@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
-using Volterp.Application.Helpers;
+using Volterp.Application.DTOs.ClientDtos;
 using Volterp.Application.Interfaces;
 
 namespace Volterp.Api.Controllers;
@@ -41,7 +41,7 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
     
     [HttpPost]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<ClientDto>> CreateClient([FromBody] ClientDto request, CancellationToken ct = default)
+    public async Task<ActionResult<ClientDto>> CreateClient([FromBody] CreateClientDto request, CancellationToken ct = default)
     {
         try
         {
@@ -60,7 +60,7 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
     
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<ClientDto>> UpdateClient(int id, [FromBody] ClientDto request, CancellationToken ct = default)
+    public async Task<ActionResult<ClientDto>> UpdateClient(int id, [FromBody] UpdateClientDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         
