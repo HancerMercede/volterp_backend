@@ -1,0 +1,5 @@
+# JetBrains Rider / IntelliJ IDEA
+.idea/
+
+# SDD / OpenSpec artifacts
+openspec/
