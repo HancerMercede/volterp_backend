@@ -3,3 +3,6 @@
 
 # SDD / OpenSpec artifacts
 openspec/
+
+# Gentle AI / ATL skills
+.atl/
