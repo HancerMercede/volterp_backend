@@ -1,9 +1,11 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Volterp.Api.Configuration;
 using Volterp.Application.Interfaces;
+using Volterp.Application.Services;
 using Volterp.Infrastructure.Data;
 using Volterp.Infrastructure.Services;
 using Volterp.Infrastructure.UnitOfWork;
@@ -19,6 +21,9 @@ public static class ServiceExtensions
     public static void ConfigureUnitOfWork(IServiceCollection services)
         => services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+    public static void ConfigureServiceManager(IServiceCollection services)
+        => services.AddScoped<IServiceManager, ServiceManager>();
+    
     public static void ConfigureJwt(IServiceCollection services, JwtSettings jwtSettings)
     {
         services.AddScoped<IJwtService, JwtService>();
@@ -43,7 +48,9 @@ public static class ServiceExtensions
     }
 
     public static void ConfigureControllers(IServiceCollection services)
-        => services.AddControllers();
+        => services.AddControllers()
+            .AddJsonOptions(options =>
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
     public static void ConfigureCors(IServiceCollection services)
         => services.AddCors(options =>

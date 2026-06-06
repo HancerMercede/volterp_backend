@@ -8,6 +8,7 @@ C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.AssemblyInfoInputs.cache
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.AssemblyInfo.cs
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.csproj.CoreCompileInputs.cache
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.sourcelink.json
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp..F8F06D13.Up2Date
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\Volterp.Application.dll
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Application\obj\Debug\net10.0\refint\Volterp.Application.dll

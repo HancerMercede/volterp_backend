@@ -10,11 +10,23 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     private readonly Lazy<ICompanyRepository> _companies = new(() => new CompanyRepository(context));
     private readonly Lazy<IProductRepository> _products = new(() => new ProductRepository(context));
     private readonly Lazy<ICategoryRepository> _categories = new(() => new CategoryRepository(context));
+    private readonly Lazy<ISaleRepository> _sales = new(() => new SaleRepository(context));
+    private readonly Lazy<ISupplierRepository> _suppliers = new(() => new SupplierRepository(context));
+    private readonly Lazy<IPurchaseRepository> _purchases = new(() => new PurchaseRepository(context));
+    private readonly Lazy<IEmployeeRepository> _employees = new(() => new EmployeeRepository(context));
+    private readonly Lazy<IAccountingTransactionRepository> _accountingTransactions = new(() => new AccountingTransactionRepository(context));
+    private readonly Lazy<IClientRepository> _clients = new(() => new ClientRepository(context));
 
     public IUserRepository Users => _users.Value;
     public ICompanyRepository Companies => _companies.Value;
     public IProductRepository Products => _products.Value;
     public ICategoryRepository Categories => _categories.Value;
+    public ISaleRepository Sales => _sales.Value;
+    public ISupplierRepository Suppliers => _suppliers.Value;
+    public IPurchaseRepository Purchases => _purchases.Value;
+    public IEmployeeRepository Employees => _employees.Value;
+    public IAccountingTransactionRepository AccountingTransactions => _accountingTransactions.Value;
+    public IClientRepository Clients => _clients.Value;
 
     public async Task<int> CommitAsync(CancellationToken ct = default) => await context.SaveChangesAsync(ct);
 

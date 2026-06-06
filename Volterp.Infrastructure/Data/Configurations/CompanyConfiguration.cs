@@ -12,6 +12,11 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         entity.HasIndex(e => e.TaxId).IsUnique();
         entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
         entity.Property(e => e.TaxId).IsRequired().HasMaxLength(20);
+        entity.Property(e => e.Address).IsRequired().HasMaxLength(100);
+        entity.Property(e => e.LegalName).IsRequired().HasMaxLength(50);
+        entity.Property(e=>e.Email).IsRequired().HasMaxLength(50);
+        entity.Property(e => e.Phone).IsRequired().HasMaxLength(30);
+        entity.Property(e => e.IsActive).HasDefaultValue(true);
 
         entity.HasData(new Company
         {
