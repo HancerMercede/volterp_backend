@@ -8,17 +8,17 @@
     ".NETCoreApp,Version=v10.0": {
       "Volterp.Domain/1.0.0": {
         "dependencies": {
-          "MapFlow": "1.1.1"
+          "MapFlow": "1.2.0"
         },
         "runtime": {
           "Volterp.Domain.dll": {}
         }
       },
-      "MapFlow/1.1.1": {
+      "MapFlow/1.2.0": {
         "runtime": {
           "lib/net8.0/MapFlow.dll": {
-            "assemblyVersion": "1.1.1.0",
-            "fileVersion": "1.1.1.0"
+            "assemblyVersion": "1.2.0.0",
+            "fileVersion": "1.2.0.0"
           }
         }
       }
@@ -30,12 +30,12 @@
       "serviceable": false,
       "sha512": ""
     },
-    "MapFlow/1.1.1": {
+    "MapFlow/1.2.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-UEhQCeXO0weBsokUnCyHW6qYG1D7124Pk/MfeVDWaX9Do8sbhEigYcUbl6HRtDApA3J5xZ4hwkgftQucgSsQUA==",
-      "path": "mapflow/1.1.1",
-      "hashPath": "mapflow.1.1.1.nupkg.sha512"
+      "sha512": "sha512-8FKxYs9pTukKz/dkKsfYFkvUdt3/K36zEC1ZtwAFLhDLozEzF9SAWwNZ9RDnGrwP/W/ONo6DPpv/Qy6KvZg45Q==",
+      "path": "mapflow/1.2.0",
+      "hashPath": "mapflow.1.2.0.nupkg.sha512"
     }
   }
 }
