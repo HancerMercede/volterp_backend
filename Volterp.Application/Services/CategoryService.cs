@@ -13,7 +13,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
     {
         var categories = await unitOfWork.Categories.GetAllCategoriesByCompanyAsync(companyId, pageNumber, pageSize,ct);
 
-        return Mapper.Map<Category, CategoryDto>(categories);
+        return categories.MapTo<Category, CategoryDto>();
     }
 
     public async Task<CategoryDto?> GetByIdAsync(int id, int companyId, CancellationToken ct = default)
@@ -23,7 +23,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         if (category is null || category.CompanyId != companyId)
             return null;
 
-        return Mapper.Map<Category, CategoryDto>(category);
+        return category.MapTo<Category, CategoryDto>();
     }
 
     public async Task<CategoryDto> CreateAsync(CreateCategoryRequest request, int companyId, CancellationToken ct = default)
@@ -34,7 +34,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         await unitOfWork.Categories.AddCategoryAsync(category, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return Mapper.Map<Category, CategoryDto>(category);
+        return category.MapTo<Category, CategoryDto>();
     }
 
     public async Task<CategoryDto> UpdateAsync(int id, UpdateCategoryRequest request, int companyId, CancellationToken ct = default)
@@ -55,7 +55,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         await unitOfWork.Categories.UpdateCategoryAsync(category, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return Mapper.Map<Category, CategoryDto>(category);
+        return category.MapTo<Category, CategoryDto>();
     }
 
     public async Task DeleteAsync(int id, int companyId, CancellationToken ct = default)

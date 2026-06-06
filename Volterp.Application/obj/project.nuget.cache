@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "Kr0ZxKFCDns=",
+  "dgSpecHash": "dj38qJj18jI=",
   "success": true,
   "projectFilePath": "C:\\Users\\HANCER MERCEDE\\source\\repos\\Volterp\\Volterp.Application\\Volterp.Application.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\mapflow\\1.1.1\\mapflow.1.1.1.nupkg.sha512",
+    "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\mapflow\\1.2.0\\mapflow.1.2.0.nupkg.sha512",
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore\\10.0.7\\microsoft.entityframeworkcore.10.0.7.nupkg.sha512",
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore.abstractions\\10.0.7\\microsoft.entityframeworkcore.abstractions.10.0.7.nupkg.sha512",
     "C:\\Users\\HANCER MERCEDE\\.nuget\\packages\\microsoft.entityframeworkcore.analyzers\\10.0.7\\microsoft.entityframeworkcore.analyzers.10.0.7.nupkg.sha512",

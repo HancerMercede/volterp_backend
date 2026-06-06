@@ -14,6 +14,7 @@ public record ClientDto:IMapFrom<Client>
     public DateTime? UpdatedAt  { get; set; }
     public Guid? CreatedBy   { get; set; }
     public Guid? UpdatedBy    { get; set; }
+    
     public void MapFrom(Client source)
     {
         Id = source.Id;

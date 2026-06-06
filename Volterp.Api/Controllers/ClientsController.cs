@@ -79,6 +79,9 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
     [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult> DeleteClient(int id, CancellationToken ct = default)
     {
+        if(!IsAdmin())
+            return Forbid();
+        
         var companyId = GetCurrentUserCompanyId();
         
         try

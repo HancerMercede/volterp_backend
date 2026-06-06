@@ -11,7 +11,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
     {
         var clients = await unitOfWork.Clients.GetAllClientsByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
-        return Mapper.Map<Client, ClientDto>(clients);
+        return clients.MapTo<Client, ClientDto>();
     }
 
     public async Task<ClientDto?> GetClientByIdAsync(int id, int companyId, CancellationToken ct = default)
@@ -20,7 +20,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
 
         if (client is null) return null;
       
-        return Mapper.Map<Client, ClientDto>(client);
+        return  client.MapTo<Client, ClientDto>();
     }
 
     public async Task<ClientDto> CreateClientAsync(CreateClientDto request, int companyId, CancellationToken ct = default)
@@ -30,9 +30,8 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         
         await unitOfWork.Clients.AddClientAsync(client, ct);
         await unitOfWork.CommitAsync(ct);
-        
-        
-        return Mapper.Map<Client, ClientDto>(client);
+
+        return client.MapTo<Client, ClientDto>();
     }
 
     public async Task<ClientDto> UpdateClientAsync(int id, int companyId, UpdateClientDto request, CancellationToken ct = default)
@@ -56,7 +55,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         await unitOfWork.Clients.UpdateClientAsync(client, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return Mapper.Map<Client, ClientDto>(client);
+        return client.MapTo<Client, ClientDto>();
     }
 
     public async Task DeleteClientAsync(int id, int companyId, CancellationToken ct = default)
