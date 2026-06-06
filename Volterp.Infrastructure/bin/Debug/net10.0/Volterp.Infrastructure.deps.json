@@ -9,7 +9,7 @@
       "Volterp.Infrastructure/1.0.0": {
         "dependencies": {
           "BCrypt.Net-Next": "4.0.3",
-          "MapFlow": "1.0.3",
+          "MapFlow": "1.2.0",
           "Microsoft.EntityFrameworkCore": "10.0.7",
           "Microsoft.IdentityModel.Tokens": "8.0.2",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.0",
@@ -29,11 +29,11 @@
           }
         }
       },
-      "MapFlow/1.0.3": {
+      "MapFlow/1.2.0": {
         "runtime": {
           "lib/net8.0/MapFlow.dll": {
-            "assemblyVersion": "1.0.3.0",
-            "fileVersion": "1.0.3.0"
+            "assemblyVersion": "1.2.0.0",
+            "fileVersion": "1.2.0.0"
           }
         }
       },
@@ -251,7 +251,7 @@
       },
       "Volterp.Application/1.0.0": {
         "dependencies": {
-          "MapFlow": "1.0.3",
+          "MapFlow": "1.2.0",
           "Microsoft.EntityFrameworkCore": "10.0.7",
           "Volterp.Domain": "1.0.0"
         },
@@ -264,7 +264,7 @@
       },
       "Volterp.Domain/1.0.0": {
         "dependencies": {
-          "MapFlow": "1.0.3"
+          "MapFlow": "1.2.0"
         },
         "runtime": {
           "Volterp.Domain.dll": {
@@ -288,12 +288,12 @@
       "path": "bcrypt.net-next/4.0.3",
       "hashPath": "bcrypt.net-next.4.0.3.nupkg.sha512"
     },
-    "MapFlow/1.0.3": {
+    "MapFlow/1.2.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-SNt0vPd0Rt/TzowurDr33Bl+wcCIS41HEPGm+oK+O4I/L7irD3OTAFm9nKSmQAZ2rzwrtEmMbsN27Jnfu6hw5w==",
-      "path": "mapflow/1.0.3",
-      "hashPath": "mapflow.1.0.3.nupkg.sha512"
+      "sha512": "sha512-8FKxYs9pTukKz/dkKsfYFkvUdt3/K36zEC1ZtwAFLhDLozEzF9SAWwNZ9RDnGrwP/W/ONo6DPpv/Qy6KvZg45Q==",
+      "path": "mapflow/1.2.0",
+      "hashPath": "mapflow.1.2.0.nupkg.sha512"
     },
     "Microsoft.EntityFrameworkCore/10.0.7": {
       "type": "package",

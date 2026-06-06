@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.ProductDtos;
 using Volterp.Application.Exceptions.Category;
 using Volterp.Application.Exceptions.Product;
 using Volterp.Application.Helpers;
@@ -14,16 +15,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
     {
         var products = await unitOfWork.Products.GetAllProductsByCompanyAsync(companyId, pageNumber, pageSize, ct);
         
-         var dtos = products.Map(p => new ProductDto(p.Id,
-                p.Name, p.Category,
-                p.Description, p.Price,
-                p.Stock, p.CategoryId,
-                p.CompanyId,
-                p.IsActive,
-                p.ImageUrl, p.CreatedAt,
-                p.UpdatedAt));
-
-         return dtos;
+        return products.MapTo<Product,  ProductDto>();
     }
 
     public async Task<ProductDto?> GetByIdAsync(int id, int companyId, CancellationToken ct = default)
@@ -33,19 +25,10 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         if (product is null || product.CompanyId != companyId)
             return null;
         
-        var categoryName = product.CategoryId.HasValue
-            ? (await unitOfWork.Categories.GetCategoryByIdAsync(product.CategoryId.Value, ct))?.Name
-            : null;
-        
-        return product.Map(x=> new ProductDto(
-            x.Id, x.Name, x.Category, x.Description,
-            x.Price, x.Stock, x.CategoryId,
-            x.CompanyId, x.IsActive, x.ImageUrl,
-            x.CreatedAt, x.UpdatedAt
-        ));
+        return product.MapTo<Product,  ProductDto>();
     }
 
-    public async Task<ProductDto> CreateAsync(CreateProductRequest request, int companyId, CancellationToken ct = default)
+    public async Task<ProductDto> CreateAsync(CreateProductDto request, int companyId, CancellationToken ct = default)
     {
         if (request.CategoryId.HasValue)
         {
@@ -54,32 +37,16 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
                 throw new CategoryNotFoundException("Category not found");
         }
 
-        var product = new Product
-        {
-            Name = request.Name,
-            Category = request.Category,
-            Description = request.Description,
-            Price = request.Price,
-            Stock = request.Stock,
-            CategoryId = request.CategoryId,
-            ImageUrl = request.ImageUrl,
-            CompanyId = companyId,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
+        var product = request.Project();
+        product.CompanyId = companyId;
+        
         await unitOfWork.Products.AddProductAsync(product, ct);
         await unitOfWork.CommitAsync(ct);
         
-
-        return new ProductDto(
-            product.Id, product.Name, product.Category, product.Description,
-            product.Price, product.Stock, product.CategoryId, product.CompanyId, product.IsActive, product.ImageUrl,
-            product.CreatedAt, product.UpdatedAt
-        );
+        return product.MapTo<Product, ProductDto>();
     }
 
-    public async Task<ProductDto> UpdateAsync(int id, UpdateProductRequest request, int companyId, CancellationToken ct = default)
+    public async Task<ProductDto> UpdateAsync(int id, UpdateProductDto request, int companyId, CancellationToken ct = default)
     {
         var product = await unitOfWork.Products.GetProductByIdAsync(id, ct);
         
@@ -110,13 +77,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         await unitOfWork.Products.UpdateProductAsync(product, ct);
         await unitOfWork.CommitAsync(ct);
         
-
-        return product.Map(x=> new ProductDto(
-            product.Id, product.Name, product.Category, product.Description,
-            product.Price, product.Stock, product.CategoryId,
-            product.CompanyId, product.IsActive, product.ImageUrl,
-            product.CreatedAt, product.UpdatedAt
-        ));
+        return product.MapTo<Product, ProductDto>();
     }
 
     public async Task DeleteAsync(int id, int companyId, CancellationToken ct = default)

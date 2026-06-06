@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.ProductDtos;
 using Volterp.Application.Exceptions.Category;
 using Volterp.Application.Exceptions.Product;
 using Volterp.Application.Helpers;

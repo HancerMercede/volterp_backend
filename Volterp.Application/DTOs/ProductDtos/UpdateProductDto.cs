@@ -1,3 +1,28 @@
+using Volterp.Domain.Entities;
+
 namespace Volterp.Application.DTOs.ProductDtos;
 
-public record UpdateProductDto();
+public record UpdateProductDto(
+    string Name,
+    string Category,
+    string? Description,
+    decimal Price,
+    int Stock,
+    int? CategoryId,
+    bool IsActive,
+    string? ImageUrl = null
+):IMapTo<Product>
+{
+    public Product MapTo()
+    {
+        return new Product
+        {
+            Name = Name,
+            Category = Category,
+            Description = Description,
+            Price = Price,
+            Stock = Stock,
+            CategoryId = CategoryId
+        };
+    }
+}

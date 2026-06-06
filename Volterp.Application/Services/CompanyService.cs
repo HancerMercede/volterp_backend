@@ -53,6 +53,7 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
 
     public async Task DeleteCompanyAsync(int id, CancellationToken ct = default) 
         => await  unitOfWork.Companies.DeleteCompanyAsync(id, ct);
+    
     public async Task<bool> ExistsCompanyAsync(int id, CancellationToken ct = default) 
         => await unitOfWork.Companies.ExistsAsync(c=>c.Id == id, ct);
 }

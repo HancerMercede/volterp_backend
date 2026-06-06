@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.ProductDtos;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 
@@ -37,7 +38,7 @@ public class ProductsController(IServiceManager services) : BaseController
 
     [HttpPost]
     public async Task<ActionResult<ProductDto>> CreateProduct(
-        [FromBody] CreateProductRequest request, CancellationToken ct)
+        [FromBody] CreateProductDto request, CancellationToken ct)
     {
         if (!IsAdmin())
             return Forbid();
@@ -57,7 +58,7 @@ public class ProductsController(IServiceManager services) : BaseController
 
     [HttpPut("{id}")]
     public async Task<ActionResult<ProductDto>> UpdateProduct(
-        int id, [FromBody] UpdateProductRequest request, CancellationToken ct)
+        int id, [FromBody] UpdateProductDto request, CancellationToken ct)
     {
         if (!IsAdmin())
             return Forbid();

@@ -3,7 +3,7 @@ using Volterp.Domain.Enums;
 
 namespace Volterp.Application.DTOs.EmployeeDtos;
 
-public record EmployeeCreateDto(
+public record CreateEmployeeDto(
  string FirstName, 
  string LastName, 
  string? Email,

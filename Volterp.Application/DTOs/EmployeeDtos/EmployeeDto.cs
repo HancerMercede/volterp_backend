@@ -1,7 +1,7 @@
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 
-namespace Volterp.Application.DTOs;
+namespace Volterp.Application.DTOs.EmployeeDtos;
 
 public record EmployeeDto : IMapFrom<Employee>
 {
@@ -22,6 +22,7 @@ public record EmployeeDto : IMapFrom<Employee>
     public string? NSS { get; set; }
     public string? Bank { get; set; }
     public string? AccountNumber { get; set; }
+    
     public void MapFrom(Employee source)
     {
         Id = source.Id;

@@ -1,38 +1,32 @@
-namespace Volterp.Application.DTOs;
+using Volterp.Domain.Entities;
 
-public record ProductDto(
-    int Id,
-    string Name,
-    string Category,
-    string? Description,
-    decimal Price,
-    int Stock,
-    int? CategoryId,
-    int CompanyId,
-    bool IsActive,
-    string? ImageUrl,
-    DateTime CreatedAt,
-    DateTime? UpdatedAt
-);
+namespace Volterp.Application.DTOs.ProductDtos;
 
-public record CreateProductRequest(
-    string Name,
-    string Category,
-    string? Description,
-    decimal Price,
-    int Stock,
-    int? CategoryId,
-    int CompanyId,
-    string? ImageUrl = null
-);
+public record ProductDto : IMapFrom<Product>
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public decimal Price { get; set; }
+    public int Stock { get; set; }
+    public int? CategoryId { get; set; }
+    public int CompanyId { get; set; }
+    public bool IsActive { get; set; }
+    public string? ImageUrl { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public void MapFrom(Product source)
+    {
+        Id = source.Id;
+        Name = source.Name;
+        Category = source.Category;
+        Description = source.Description;
+        Price = source.Price;
+        Stock = source.Stock;
+        CreatedAt = source.CreatedAt;
+        UpdatedAt = source.UpdatedAt;
+    }
+}
 
-public record UpdateProductRequest(
-    string Name,
-    string Category,
-    string? Description,
-    decimal Price,
-    int Stock,
-    int? CategoryId,
-    bool IsActive,
-    string? ImageUrl = null
-);
+

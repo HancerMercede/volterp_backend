@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.EmployeeDtos;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 
@@ -41,7 +42,7 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
 
     [HttpPost]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<EmployeeDto>> CreateEmployee([FromBody] EmployeeDto request, CancellationToken ct = default)
+    public async Task<ActionResult<EmployeeDto>> CreateEmployee([FromBody] CreateEmployeeDto request, CancellationToken ct = default)
     {
         try
         {
@@ -61,7 +62,7 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<EmployeeDto>> UpdateEmployee(int id, [FromBody] EmployeeDto request, CancellationToken ct = default)
+    public async Task<ActionResult<EmployeeDto>> UpdateEmployee(int id, [FromBody] UpdateEmployeeDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
 
