@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.UserDtos;
 using Volterp.Application.Exceptions.User;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
@@ -26,7 +27,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object);
-        var request = new CreateUserRequest("existinguser", "password123", "test@example.com", "Test User", Domain.Enums.UserRole.Ventas, 1);
+        var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", Domain.Enums.UserRole.Ventas, 1);
 
         // ACT
         var act = () => service.CreateAsync(request);
@@ -54,7 +55,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object);
-        var request = new CreateUserRequest("newuser", "plainpassword", "test@example.com", "Test User", Domain.Enums.UserRole.Ventas, 1);
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", Domain.Enums.UserRole.Ventas, 1);
 
         // ACT
         var result = await service.CreateAsync(request);

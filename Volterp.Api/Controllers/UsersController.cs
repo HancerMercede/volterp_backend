@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.UserDtos;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Enums;
 
@@ -34,7 +35,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     }
 
     [HttpPost]
-    public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserRequest request, CancellationToken ct)
+    public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto request, CancellationToken ct)
     {
         if (!IsAdmin()) return Forbid();
 
@@ -47,10 +48,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         if (await serviceManager.Users.GetByUsernameAsync(request.Username, ct) is not null)
             return BadRequest(new ErrorResponse("Username already exists"));
 
-        var userForCreation = request with
-        {
-            CompanyId = companyId
-        };
+        var userForCreation = request with { CompanyId = companyId };
         
        var user = await serviceManager.Users.CreateAsync(userForCreation, ct);
        
@@ -58,7 +56,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     }
 
 [HttpPut("{id}/role")]
-    public async Task<ActionResult<UserDto>> UpdateUserRole(int id, [FromBody] UpdateUserRoleRequest request, CancellationToken ct)
+    public async Task<ActionResult<UserDto>> UpdateUserRole(int id, [FromBody] UpdateUserRoleDto request, CancellationToken ct)
     {
         if (!IsAdmin()) return Forbid();
 
@@ -87,7 +85,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     }
 
     [HttpPut("{id}/status")]
-    public async Task<ActionResult<UserDto>> UpdateUserStatus(int id, [FromBody] UpdateUserStatusRequest request, CancellationToken ct)
+    public async Task<ActionResult<UserDto>> UpdateUserStatus(int id, [FromBody] UpdateUserStatusDto request, CancellationToken ct)
     {
         if (!IsAdmin()) return Forbid();
 
@@ -100,8 +98,8 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         var userWithNewStatus = user.Apply(r => r with { IsActive = request.IsActive });
 
-        var userForUpdate = userWithNewStatus.Map(u => 
-            new UserWithPasswordHashDto
+        var userForUpdate = userWithNewStatus.Map(u 
+            => new UserWithPasswordHashDto
         {
             Id = u.Id,
             Role = u.Role,

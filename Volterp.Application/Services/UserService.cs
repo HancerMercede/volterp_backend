@@ -1,6 +1,5 @@
-using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.UserDtos;
 using Volterp.Application.Exceptions.User;
-using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 
@@ -12,8 +11,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
     {
         var users = await unitOfWork.Users.GetAllByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
-        return users.Map(u =>
-            new UserDto(u.Id, u.Username, u.Email, u.FullName, u.Role, u.IsActive, u.CompanyId));
+        return users.MapTo<User, UserDto>();
     }
 
     public async Task<UserDto?> GetByIdAsync(int id, CancellationToken ct = default)
@@ -23,39 +21,26 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         if (user is null)
             throw new UserNotFoundException("User not found");
 
-        return user.Map(u => new UserDto(
-            u.Id, u.Username, u.Email, u.FullName,
-            u.Role,  u.IsActive, u.CompanyId
-        ));
+        return user.MapTo<User, UserDto>();
 
     }
 
-    public async Task<UserDto> CreateAsync(CreateUserRequest request, CancellationToken ct = default)
+    public async Task<UserDto> CreateAsync(CreateUserDto request, CancellationToken ct = default)
     {
         var existingUser = await unitOfWork.Users.GetByUsernameAsync(request.Username, ct);
+        
         if (existingUser is not null)
             throw new UserAlreadyExistException("Username already exists");
         
         var hashedPassword = passwordHasher.Hash(request.Password);
-        
-        var user = request.Map(x=> new User 
-        {
-                Username = x.Username,
-                PasswordHash = hashedPassword,
-                Email = x.Email,
-                FullName = x.FullName,
-                Role = x.Role,
-                CompanyId = x.CompanyId,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-        });
+
+        var user = request.Project();
+        user.PasswordHash = hashedPassword;
 
         await unitOfWork.Users.AddUserAsync(user, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return user.Map(x=> new UserDto(
-            x.Id, x.Username, x.Email, x.FullName,
-            x.Role, x.IsActive, x.CompanyId));
+        return user.MapTo<User, UserDto>();
     }
 
     public async Task<UserDto> UpdateAsync(int id, UserWithPasswordHashDto request, CancellationToken ct = default)
@@ -78,10 +63,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         await unitOfWork.Users.UpdateUserAsync(user, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return new UserDto(
-            user.Id, user.Username, user.Email, user.FullName,
-            user.Role,user.IsActive, user.CompanyId
-        );
+        return user.MapTo<User, UserDto>();
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
@@ -102,10 +84,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         if (user is null)
             throw new UserNotFoundException("User not found");
         
-        return user.Map(x=> new UserDto(
-            x.Id, x.Username, x.Email, x.FullName,
-            x.Role, x.IsActive, x.CompanyId
-        ));
+        return user.MapTo<User, UserDto>();
     }
 
     public async Task<UserWithPasswordHashDto?> GetByUsernameAsync(string username, CancellationToken ct = default)
@@ -114,16 +93,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         
         if (user is null)
             return null;
-        
-        return user.Map(x=> new UserWithPasswordHashDto{
-          Id =  x.Id,
-          Username = x.Username,
-          Email = x.Email,
-          FullName = x.FullName,
-          Role = x.Role,
-          IsActive = x.IsActive,
-          CompanyId = x.CompanyId,
-          PasswordHash  = x.PasswordHash
-        });
+
+        return user.MapTo<User, UserWithPasswordHashDto>();
     }
 }

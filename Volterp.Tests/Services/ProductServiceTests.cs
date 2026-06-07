@@ -140,7 +140,7 @@ public class ProductServiceTests
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
 
         var service = new ProductService(mockUnitOfWork.Object);
-        var request = new CreateProductRequest(
+        var request = new CreateProductDto(
             Name: "Test", Category: "Category", Description: "Desc",
             Price: 100, Stock: 10, CategoryId: 999, CompanyId: 1, ImageUrl: null
         );
@@ -169,7 +169,7 @@ public class ProductServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new ProductService(mockUnitOfWork.Object);
-        var request = new CreateProductRequest(
+        var request = new CreateProductDto(
             Name: "New Product", Category: "Category", Description: "Description",
             Price: 150, Stock: 25, CategoryId: null, CompanyId: 1, ImageUrl: null
         );
@@ -196,7 +196,7 @@ public class ProductServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
         var service = new ProductService(mockUnitOfWork.Object);
-        var request = new UpdateProductRequest(
+        var request = new UpdateProductDto(
             Name: "Updated", Category: "Category", Description: "Desc",
             Price: 100, Stock: 10, CategoryId: null, IsActive: true, ImageUrl: null
         );
@@ -226,7 +226,7 @@ public class ProductServiceTests
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
 
         var service = new ProductService(mockUnitOfWork.Object);
-        var request = new UpdateProductRequest(
+        var request = new UpdateProductDto(
             Name: "Updated", Category: "Category", Description: "Desc",
             Price: 100, Stock: 10, CategoryId: 999, IsActive: true, ImageUrl: null
         );
@@ -259,7 +259,7 @@ public class ProductServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new ProductService(mockUnitOfWork.Object);
-        var request = new UpdateProductRequest(
+        var request = new UpdateProductDto(
             Name: "New Name", Category: "New Category", Description: "New Desc",
             Price: 200, Stock: 30, CategoryId: null, IsActive: true, ImageUrl: null
         );

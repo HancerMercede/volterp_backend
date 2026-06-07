@@ -23,7 +23,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         var product = await unitOfWork.Products.GetProductByIdAsync(id, ct);
         
         if (product is null || product.CompanyId != companyId)
-            return null;
+            throw new ProductNotFoundException("Product not found");
         
         return product.MapTo<Product,  ProductDto>();
     }

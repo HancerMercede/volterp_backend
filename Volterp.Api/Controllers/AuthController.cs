@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.UserDtos;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 
@@ -11,7 +12,7 @@ namespace Volterp.Api.Controllers;
 public class AuthController(IServiceManager serviceManager, IJwtService jwtService, IPasswordHasher passwordHasher) : ControllerBase
 {
     [HttpPost("register")]
-    public async Task<ActionResult<LoginResponse>> Register([FromBody] CreateUserRequest request, CancellationToken ct)
+    public async Task<ActionResult<LoginResponse>> Register([FromBody] CreateUserDto request, CancellationToken ct)
     {
         var existingUser = await serviceManager.Users.GetByUsernameAsync(request.Username, ct);
         if (existingUser is not null)
