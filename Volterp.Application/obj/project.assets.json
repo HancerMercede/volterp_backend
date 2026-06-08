@@ -2,6 +2,22 @@
   "version": 3,
   "targets": {
     "net10.0": {
+      "EitherWay/1.1.1": {
+        "type": "package",
+        "compile": {
+          "lib/net10.0/EitherWay.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/EitherWay.dll": {
+            "related": ".xml"
+          }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
+      },
       "MapFlow/1.2.0": {
         "type": "package",
         "compile": {
@@ -222,6 +238,21 @@
     }
   },
   "libraries": {
+    "EitherWay/1.1.1": {
+      "sha512": "o+/1pgkjl833/iA/AjdWwe35UDWaCJHI5Z7lcdGOItvy3gy6t7N9cz2ogGuQZkw/DJcn2aEkGt+0vHY0vBIr9Q==",
+      "type": "package",
+      "path": "eitherway/1.1.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "EitherWay.png",
+        "README.md",
+        "eitherway.1.1.1.nupkg.sha512",
+        "eitherway.nuspec",
+        "lib/net10.0/EitherWay.dll",
+        "lib/net10.0/EitherWay.xml"
+      ]
+    },
     "MapFlow/1.2.0": {
       "sha512": "8FKxYs9pTukKz/dkKsfYFkvUdt3/K36zEC1ZtwAFLhDLozEzF9SAWwNZ9RDnGrwP/W/ONo6DPpv/Qy6KvZg45Q==",
       "type": "package",
@@ -588,6 +619,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
+      "EitherWay >= 1.1.1",
       "MapFlow >= 1.2.0",
       "Microsoft.EntityFrameworkCore >= 10.0.7",
       "Volterp.Domain >= 1.0.0"
@@ -647,6 +679,10 @@
       "net10.0": {
         "targetAlias": "net10.0",
         "dependencies": {
+          "EitherWay": {
+            "target": "Package",
+            "version": "[1.1.1, )"
+          },
           "MapFlow": {
             "target": "Package",
             "version": "[1.2.0, )"

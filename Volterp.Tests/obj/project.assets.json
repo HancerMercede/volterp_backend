@@ -37,6 +37,22 @@
           "build/net10.0/coverlet.collector.targets": {}
         }
       },
+      "EitherWay/1.1.1": {
+        "type": "package",
+        "compile": {
+          "lib/net10.0/EitherWay.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/EitherWay.dll": {
+            "related": ".xml"
+          }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
+      },
       "FluentAssertions/6.12.0": {
         "type": "package",
         "dependencies": {
@@ -868,6 +884,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
+          "EitherWay": "1.1.1",
           "MapFlow": "1.2.0",
           "Microsoft.EntityFrameworkCore": "10.0.7",
           "Volterp.Domain": "1.0.0"
@@ -1134,6 +1151,21 @@
         "coverlet-icon.png",
         "coverlet.collector.10.0.0.nupkg.sha512",
         "coverlet.collector.nuspec"
+      ]
+    },
+    "EitherWay/1.1.1": {
+      "sha512": "o+/1pgkjl833/iA/AjdWwe35UDWaCJHI5Z7lcdGOItvy3gy6t7N9cz2ogGuQZkw/DJcn2aEkGt+0vHY0vBIr9Q==",
+      "type": "package",
+      "path": "eitherway/1.1.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "EitherWay.png",
+        "README.md",
+        "eitherway.1.1.1.nupkg.sha512",
+        "eitherway.nuspec",
+        "lib/net10.0/EitherWay.dll",
+        "lib/net10.0/EitherWay.xml"
       ]
     },
     "FluentAssertions/6.12.0": {

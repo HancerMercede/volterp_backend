@@ -1,4 +1,7 @@
+using System.Runtime.InteropServices.ComTypes;
+using EitherWay;
 using Volterp.Application.DTOs.UserDtos;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Exceptions.User;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
@@ -14,33 +17,31 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         return users.MapTo<User, UserDto>();
     }
 
-    public async Task<UserDto?> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<Either<AppError, UserDto?>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        var user = await unitOfWork.Users.GetUserByIdAsync(id, ct);
-        
-        if (user is null)
-            throw new UserNotFoundException("User not found");
-
-        return user.MapTo<User, UserDto>();
-
+        return await EitherAsync
+            .Try(() => unitOfWork.Users.GetUserByIdAsync(id, ct))
+            .MapLeft(ex => new AppError(ex.Message))
+            .Ensure(user=> user is not null, new AppError("user not found"))
+            .Map(user => user?.MapTo<User, UserDto>())
+            .Run();
     }
 
-    public async Task<UserDto> CreateAsync(CreateUserDto request, CancellationToken ct = default)
+    public async Task<Either<AppError,UserDto>> CreateAsync(CreateUserDto request, CancellationToken ct = default)
     {
-        var existingUser = await unitOfWork.Users.GetByUsernameAsync(request.Username, ct);
-        
-        if (existingUser is not null)
-            throw new UserAlreadyExistException("Username already exists");
-        
-        var hashedPassword = passwordHasher.Hash(request.Password);
-
-        var user = request.Project();
-        user.PasswordHash = hashedPassword;
-
-        await unitOfWork.Users.AddUserAsync(user, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        return user.MapTo<User, UserDto>();
+        return await EitherAsync.Try(() => unitOfWork.Users.GetByUsernameAsync(request.Username, ct))
+            .MapLeft(ex => new AppError(ex.Message))
+            .Ensure(user => user is not null, new AppError("username already exists"))
+            .Map(user => request.Project())
+            .Try(async user =>
+            {
+                user.PasswordHash = passwordHasher.Hash(request.Password);
+                await unitOfWork.Users.AddUserAsync(user, ct);
+                await unitOfWork.CommitAsync(ct);
+                return user;
+            }, exception => new AppError($"Failed to create user: {exception.Message}"))
+            .Map(user => user.MapTo<User, UserDto>())
+            .Run();
     }
 
     public async Task<UserDto> UpdateAsync(int id, UserWithPasswordHashDto request, CancellationToken ct = default)
