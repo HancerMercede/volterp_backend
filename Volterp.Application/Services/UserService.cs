@@ -17,84 +17,110 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         return users.MapTo<User, UserDto>();
     }
 
-    public async Task<Either<AppError, UserDto?>> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<Either<Error, UserDto>> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        return await EitherAsync
-            .Try(() => unitOfWork.Users.GetUserByIdAsync(id, ct))
-            .MapLeft(ex => new AppError(ex.Message))
-            .Ensure(user=> user is not null, new AppError("user not found"))
-            .Map(user => user?.MapTo<User, UserDto>())
-            .Run();
+        return await EitherAsync<Error, int>
+            .FromRight(id)
+            .Ensure(x => x > 0, new Error("id must be greater than zero."))
+            .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
+                ex => new Error(ex.Message))
+            .Ensure(user => user is not null, new Error("user not found"))
+            .Map(user => user.MapTo<User, UserDto>()).Run();
     }
 
-    public async Task<Either<AppError,UserDto>> CreateAsync(CreateUserDto request, CancellationToken ct = default)
+    public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, CancellationToken ct = default)
     {
-        return await EitherAsync.Try(() => unitOfWork.Users.GetByUsernameAsync(request.Username, ct))
-            .MapLeft(ex => new AppError(ex.Message))
-            .Ensure(user => user is not null, new AppError("username already exists"))
-            .Map(user => request.Project())
-            .Try(async user =>
+        return await EitherAsync
+            .Try(() => unitOfWork.Users.GetByUsernameAsync(request.Username, ct))
+            .MapLeft(ex => new Error(ex.Message))
+            .Ensure(user => user is null, new Error("username already exists"))
+            .Map(_ => request.Project())
+            .FlatMap(async user =>
             {
                 user.PasswordHash = passwordHasher.Hash(request.Password);
                 await unitOfWork.Users.AddUserAsync(user, ct);
                 await unitOfWork.CommitAsync(ct);
                 return user;
-            }, exception => new AppError($"Failed to create user: {exception.Message}"))
+            }, exception => new Error($"Failed to create user: {exception.Message}"))
             .Map(user => user.MapTo<User, UserDto>())
             .Run();
     }
 
-    public async Task<UserDto> UpdateAsync(int id, UserWithPasswordHashDto request, CancellationToken ct = default)
+    public async Task<Either<Error, UserDto>> UpdateAsync(int id, UserWithPasswordHashDto request, CancellationToken ct = default)
     {
-        var user = await unitOfWork.Users.GetUserByIdAsync(id, ct);
-        
-        if (user is null)
-            throw new UserNotFoundException("User not found");
-
-        user.Apply(x =>
-        {
-            x.Email = request.Email;
-            x.FullName = request.FullName;
-            x.Role = request.Role;
-            x.IsActive = request.IsActive;
-            x.UpdatedAt = DateTime.UtcNow;
-        });
-       
-
-        await unitOfWork.Users.UpdateUserAsync(user, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        return user.MapTo<User, UserDto>();
+        return await EitherAsync<Error, int>
+            .FromRight(id)
+            .Ensure(x=> x > 0 , new Error("id must be greater than zero."))
+            .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
+                ex => new Error(ex.Message))
+            .FlatMap(user => user is not null
+                ? Either<Error, User>.ToRight(user)
+                : Either<Error, User>.ToLeft(new Error("User not found")))
+            .Map(user =>
+            {
+                user.Apply(x =>
+                {
+                    x.Email = request.Email;
+                    x.FullName = request.FullName;
+                    x.Role = request.Role;
+                    x.IsActive = request.IsActive;
+                    x.UpdatedAt = DateTime.UtcNow;
+                });
+                return user;
+            })
+            .FlatMap(async user =>
+            {
+                await unitOfWork.Users.UpdateUserAsync(user, ct);
+                await unitOfWork.CommitAsync(ct);
+                return user;
+            }, ex => new Error($"Failed to update user: {ex.Message}"))
+            .Map(user => user.MapTo<User, UserDto>())
+            .Run();
     }
 
-    public async Task DeleteAsync(int id, CancellationToken ct = default)
+    public async Task<Either<Error, int>> DeleteAsync(int id, CancellationToken ct = default)
     {
-        var user = await unitOfWork.Users.GetUserByIdAsync(id, ct);
-        
-        if (user is null)
-            throw new UserNotFoundException("User not found");
-        
-        await unitOfWork.Users.DeleteUserAsync(user.Id, ct);
-        await unitOfWork.CommitAsync(ct);
+        return await EitherAsync<Error, int>
+            .FromRight(id)
+            .Ensure(x=> x > 0, new Error("id must be greater than zero."))
+            .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
+                ex => new Error(ex.Message))
+            .FlatMap(user => user is not null
+                ? Either<Error, User>.ToRight(user)
+                : Either<Error, User>.ToLeft(new Error("User not found")))
+            .FlatMap(async user =>
+            {
+                await unitOfWork.Users.DeleteUserAsync(user.Id, ct);
+                await unitOfWork.CommitAsync(ct);
+                return user.Id;
+            }, ex => new Error($"Failed to delete user: {ex.Message}"))
+            .Run();
     }
 
-    public async Task<UserDto?> GetByEmailAsync(string email, CancellationToken ct = default)
+    public async Task<Either<Error, UserDto>> GetByEmailAsync(string email, CancellationToken ct = default)
     {
-        var user = await unitOfWork.Users.GetByUserByEmailAsync(email, ct);
- 
-        if (user is null)
-            throw new UserNotFoundException("User not found");
-        
-        return user.MapTo<User, UserDto>();
+        return await EitherAsync<Error, string>
+            .FromRight(email)
+            .Ensure(e => !string.IsNullOrWhiteSpace(e), new Error("email cannot be empty"))
+            .FlatMap(async e => await unitOfWork.Users.GetByUserByEmailAsync(e, ct),
+                ex => new Error(ex.Message))
+            .FlatMap(user => user is not null
+                ? Either<Error, User>.ToRight(user)
+                : Either<Error, User>.ToLeft(new Error("User not found")))
+            .Map(user => user.MapTo<User, UserDto>())
+            .Run();
     }
 
-    public async Task<UserWithPasswordHashDto?> GetByUsernameAsync(string username, CancellationToken ct = default)
+    public async Task<Either<Error, UserWithPasswordHashDto>> GetByUsernameAsync(string username, CancellationToken ct = default)
     {
-        var user = await unitOfWork.Users.GetByUsernameAsync(username, ct);
-        
-        if (user is null)
-            return null;
-
-        return user.MapTo<User, UserWithPasswordHashDto>();
+        return await EitherAsync<Error, string>
+            .FromRight(username)
+            .Ensure(u => !string.IsNullOrWhiteSpace(u), new Error("username cannot be empty"))
+            .FlatMap(async u => await unitOfWork.Users.GetByUsernameAsync(u, ct),
+                ex => new Error(ex.Message))
+            .FlatMap(user => user is not null
+                ? Either<Error, UserWithPasswordHashDto>.ToRight(user.MapTo<User, UserWithPasswordHashDto>())
+                : Either<Error, UserWithPasswordHashDto>.ToLeft(new Error("User not found")))
+            .Run();
     }
 }

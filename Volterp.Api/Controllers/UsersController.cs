@@ -1,8 +1,10 @@
+using EitherWay;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
 using Volterp.Application.DTOs.UserDtos;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Enums;
 
@@ -45,14 +47,18 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         var companyId = GetCurrentUserCompanyId();
         
-        if (await serviceManager.Users.GetByUsernameAsync(request.Username, ct) is not null)
+        var existingUser = await serviceManager.Users.GetByUsernameAsync(request.Username, ct);
+        if (existingUser is Either<Error, UserWithPasswordHashDto>.Right)
             return BadRequest(new ErrorResponse("Username already exists"));
 
         var userForCreation = request with { CompanyId = companyId };
         
-       var user = await serviceManager.Users.CreateAsync(userForCreation, ct);
-       
-       return Created("", user);
+        var userResult = await serviceManager.Users.CreateAsync(userForCreation, ct);
+        if (userResult is Either<Error, UserDto>.Left err)
+            return BadRequest(new ErrorResponse(err.Value.Message));
+
+        var user = ((Either<Error, UserDto>.Right)userResult).Value;
+        return Created("", user);
     }
 
 [HttpPut("{id}/role")]
@@ -60,28 +66,29 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     {
         if (!IsAdmin()) return Forbid();
 
-        var user = await serviceManager.Users.GetByIdAsync(id, ct);
-        if (user is null) return NotFound(new ErrorResponse("User not found"));
+        var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
+        if (userResult is Either<Error, UserDto>.Left)
+            return NotFound(new ErrorResponse("User not found"));
 
-        // Check if current user can manage this target user
+        var user = ((Either<Error, UserDto>.Right)userResult).Value;
+
         if (!CanManageUser(user.Role, request.Role))
             return Forbid();
 
-        var userWithNewRole = user.Apply(r => r with { Role = request.Role });
-
-        var userForUpdate = userWithNewRole.Map(u 
-            => new UserWithPasswordHashDto
+        var userForUpdate = new UserWithPasswordHashDto
         {
-            Id =  u.Id,
-            Role =  u.Role,
-            Username = u.Username,
-            Email = u.Email,
-            FullName = u.FullName
-        });
-        
-        var userDto =  await serviceManager.Users.UpdateAsync(user.Id, userForUpdate, ct);
-        
-        return Ok(userDto);
+            Id = user.Id,
+            Role = request.Role,
+            Username = user.Username,
+            Email = user.Email,
+            FullName = user.FullName
+        };
+
+        var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, ct);
+        if (updateResult is Either<Error, UserDto>.Left err)
+            return BadRequest(new ErrorResponse(err.Value.Message));
+
+        return Ok(((Either<Error, UserDto>.Right)updateResult).Value);
     }
 
     [HttpPut("{id}/status")]
@@ -89,29 +96,30 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     {
         if (!IsAdmin()) return Forbid();
 
-        var user = await serviceManager.Users.GetByIdAsync(id, ct);
-        if (user is null) return NotFound(new ErrorResponse("User not found"));
+        var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
+        if (userResult is Either<Error, UserDto>.Left)
+            return NotFound(new ErrorResponse("User not found"));
 
-        // Only SuperAdmin can modify status of Admin or SuperAdmin users
+        var user = ((Either<Error, UserDto>.Right)userResult).Value;
+
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
 
-        var userWithNewStatus = user.Apply(r => r with { IsActive = request.IsActive });
-
-        var userForUpdate = userWithNewStatus.Map(u 
-            => new UserWithPasswordHashDto
+        var userForUpdate = new UserWithPasswordHashDto
         {
-            Id = u.Id,
-            Role = u.Role,
-            Username = u.Username,
-            Email = u.Email,
-            FullName = u.FullName,
-            IsActive = u.IsActive
-        });
-        
-        var userDto = await serviceManager.Users.UpdateAsync(user.Id, userForUpdate, ct);
-        
-        return Ok(userDto);
+            Id = user.Id,
+            Role = user.Role,
+            Username = user.Username,
+            Email = user.Email,
+            FullName = user.FullName,
+            IsActive = request.IsActive
+        };
+
+        var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, ct);
+        if (updateResult is Either<Error, UserDto>.Left err)
+            return BadRequest(new ErrorResponse(err.Value.Message));
+
+        return Ok(((Either<Error, UserDto>.Right)updateResult).Value);
     }
 
     [HttpDelete("{id}")]
@@ -119,14 +127,19 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     {
         if (!IsAdmin()) return Forbid();
 
-        var user = await serviceManager.Users.GetByIdAsync(id, ct);
-        if (user is null) return NotFound(new ErrorResponse("User not found"));
-        
-        // Only SuperAdmin can delete Admin or SuperAdmin users
+        var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
+        if (userResult is Either<Error, UserDto>.Left)
+            return NotFound(new ErrorResponse("User not found"));
+
+        var user = ((Either<Error, UserDto>.Right)userResult).Value;
+
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
 
-        await serviceManager.Users.DeleteAsync(id, ct);
+        var deleteResult = await serviceManager.Users.DeleteAsync(id, ct);
+        if (deleteResult is Either<Error, int>.Left err)
+            return BadRequest(new ErrorResponse(err.Value.Message));
+
         return NoContent();
     }
 }

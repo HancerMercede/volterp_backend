@@ -1,8 +1,9 @@
+using EitherWay;
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
 using Volterp.Application.DTOs.UserDtos;
-using Volterp.Application.Exceptions.User;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -15,7 +16,7 @@ namespace Volterp.Tests.Services;
 public class UserServiceTests
 {
     [Fact]
-    public async Task CreateAsync_WithDuplicateUsername_ThrowsUserAlreadyExistException()
+    public async Task CreateAsync_WithDuplicateUsername_ReturnsLeft()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -30,11 +31,12 @@ public class UserServiceTests
         var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", Domain.Enums.UserRole.Ventas, 1);
 
         // ACT
-        var act = () => service.CreateAsync(request);
+        var result = await service.CreateAsync(request);
 
         // ASSERT
-        await act.Should().ThrowAsync<UserAlreadyExistException>()
-            .WithMessage("Username already exists");
+        result.Should().BeOfType<Either<Error, UserDto>.Left>();
+        var error = ((Either<Error, UserDto>.Left)result).Value;
+        error.Message.Should().Be("username already exists");
     }
 
     [Fact]
@@ -124,12 +126,13 @@ public class UserServiceTests
         var result = await service.GetByIdAsync(1);
 
         // ASSERT
-        result.Should().NotBeNull();
-        result!.Username.Should().Be("testuser");
+        result.Should().BeOfType<Either<Error, UserDto>.Right>();
+        var dto = ((Either<Error, UserDto>.Right)result).Value;
+        dto.Username.Should().Be("testuser");
     }
 
     [Fact]
-    public async Task GetByIdAsync_WhenNotFound_ThrowsUserNotFoundException()
+    public async Task GetByIdAsync_WhenNotFound_ReturnsLeft()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -142,14 +145,16 @@ public class UserServiceTests
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>());
 
         // ACT
-        var act = () => service.GetByIdAsync(999);
+        var result = await service.GetByIdAsync(999);
 
         // ASSERT
-        await act.Should().ThrowAsync<UserNotFoundException>().WithMessage("User not found");
+        result.Should().BeOfType<Either<Error, UserDto>.Left>();
+        var error = ((Either<Error, UserDto>.Left)result).Value;
+        error.Message.Should().Be("user not found");
     }
 
     [Fact]
-    public async Task UpdateAsync_WhenUserNotFound_ThrowsUserNotFoundException()
+    public async Task UpdateAsync_WhenUserNotFound_ReturnsLeft()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -168,10 +173,12 @@ public class UserServiceTests
         };
 
         // ACT
-        var act = () => service.UpdateAsync(999, request);
+        var result = await service.UpdateAsync(999, request);
 
         // ASSERT
-        await act.Should().ThrowAsync<UserNotFoundException>().WithMessage("User not found");
+        result.Should().BeOfType<Either<Error, UserDto>.Left>();
+        var error = ((Either<Error, UserDto>.Left)result).Value;
+        error.Message.Should().Be("User not found");
     }
 
     [Fact]
@@ -207,13 +214,14 @@ public class UserServiceTests
         var result = await service.UpdateAsync(1, request);
 
         // ASSERT
+        result.Should().BeOfType<Either<Error, UserDto>.Right>();
         user.Email.Should().Be("new@test.com");
         user.FullName.Should().Be("New Name");
         mockUsersRepo.Verify(r => r.UpdateUserAsync(user, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task DeleteAsync_WhenUserNotFound_ThrowsUserNotFoundException()
+    public async Task DeleteAsync_WhenUserNotFound_ReturnsLeft()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -226,10 +234,12 @@ public class UserServiceTests
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>());
 
         // ACT
-        var act = () => service.DeleteAsync(999);
+        var result = await service.DeleteAsync(999);
 
         // ASSERT
-        await act.Should().ThrowAsync<UserNotFoundException>().WithMessage("User not found");
+        result.Should().BeOfType<Either<Error, int>.Left>();
+        var error = ((Either<Error, int>.Left)result).Value;
+        error.Message.Should().Be("User not found");
     }
 
     [Fact]
@@ -256,9 +266,10 @@ public class UserServiceTests
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>());
 
         // ACT
-        await service.DeleteAsync(1);
+        var result = await service.DeleteAsync(1);
 
         // ASSERT
+        result.Should().BeOfType<Either<Error, int>.Right>();
         mockUsersRepo.Verify(r => r.DeleteUserAsync(1, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -286,12 +297,13 @@ public class UserServiceTests
         var result = await service.GetByEmailAsync("test@test.com");
 
         // ASSERT
-        result.Should().NotBeNull();
-        result!.Email.Should().Be("test@test.com");
+        result.Should().BeOfType<Either<Error, UserDto>.Right>();
+        var dto = ((Either<Error, UserDto>.Right)result).Value;
+        dto.Email.Should().Be("test@test.com");
     }
 
     [Fact]
-    public async Task GetByEmailAsync_WhenNotFound_ThrowsUserNotFoundException()
+    public async Task GetByEmailAsync_WhenNotFound_ReturnsLeft()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -304,10 +316,12 @@ public class UserServiceTests
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>());
 
         // ACT
-        var act = () => service.GetByEmailAsync("notfound@test.com");
+        var result = await service.GetByEmailAsync("notfound@test.com");
 
         // ASSERT
-        await act.Should().ThrowAsync<UserNotFoundException>().WithMessage("User not found");
+        result.Should().BeOfType<Either<Error, UserDto>.Left>();
+        var error = ((Either<Error, UserDto>.Left)result).Value;
+        error.Message.Should().Be("User not found");
     }
 
     [Fact]
@@ -334,13 +348,14 @@ public class UserServiceTests
         var result = await service.GetByUsernameAsync("testuser");
 
         // ASSERT
-        result.Should().NotBeNull();
-        result!.Username.Should().Be("testuser");
-        result.PasswordHash.Should().Be("somehash");
+        result.Should().BeOfType<Either<Error, UserWithPasswordHashDto>.Right>();
+        var dto = ((Either<Error, UserWithPasswordHashDto>.Right)result).Value;
+        dto.Username.Should().Be("testuser");
+        dto.PasswordHash.Should().Be("somehash");
     }
 
     [Fact]
-    public async Task GetByUsernameAsync_WhenNotFound_ReturnsNull()
+    public async Task GetByUsernameAsync_WhenNotFound_ReturnsLeft()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -356,6 +371,8 @@ public class UserServiceTests
         var result = await service.GetByUsernameAsync("notfound");
 
         // ASSERT
-        result.Should().BeNull();
+        result.Should().BeOfType<Either<Error, UserWithPasswordHashDto>.Left>();
+        var error = ((Either<Error, UserWithPasswordHashDto>.Left)result).Value;
+        error.Message.Should().Be("User not found");
     }
 }

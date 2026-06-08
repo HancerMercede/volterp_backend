@@ -15,7 +15,7 @@
           }
         }
       },
-      "EitherWay/1.1.1": {
+      "EitherWay/1.2.2": {
         "type": "package",
         "compile": {
           "lib/net10.0/EitherWay.dll": {
@@ -1301,7 +1301,7 @@
         "type": "project",
         "framework": ".NETCoreApp,Version=v10.0",
         "dependencies": {
-          "EitherWay": "1.1.1",
+          "EitherWay": "1.2.2",
           "MapFlow": "1.2.0",
           "Microsoft.EntityFrameworkCore": "10.0.7",
           "Volterp.Domain": "1.0.0"
@@ -1380,16 +1380,16 @@
         "readme.md"
       ]
     },
-    "EitherWay/1.1.1": {
-      "sha512": "o+/1pgkjl833/iA/AjdWwe35UDWaCJHI5Z7lcdGOItvy3gy6t7N9cz2ogGuQZkw/DJcn2aEkGt+0vHY0vBIr9Q==",
+    "EitherWay/1.2.2": {
+      "sha512": "pygQTF+h+Lc0rR37XUAsdvBEQYh5tVj0ZjX0Hv9MaA30xv0eZr0Wc3yy/XB0+ComKxKfpf6eLo/PMSLhq6eOwg==",
       "type": "package",
-      "path": "eitherway/1.1.1",
+      "path": "eitherway/1.2.2",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "EitherWay.png",
         "README.md",
-        "eitherway.1.1.1.nupkg.sha512",
+        "eitherway.1.2.2.nupkg.sha512",
         "eitherway.nuspec",
         "lib/net10.0/EitherWay.dll",
         "lib/net10.0/EitherWay.xml"
@@ -3411,7 +3411,7 @@
   },
   "projectFileDependencyGroups": {
     "net10.0": [
-      "EitherWay >= 1.1.1",
+      "EitherWay >= 1.2.2",
       "MapFlow >= 1.2.0",
       "Microsoft.AspNetCore.Authentication.JwtBearer >= 10.0.0",
       "Microsoft.EntityFrameworkCore.Design >= 10.0.0",
@@ -3482,7 +3482,7 @@
         "dependencies": {
           "EitherWay": {
             "target": "Package",
-            "version": "[1.1.1, )"
+            "version": "[1.2.2, )"
           },
           "MapFlow": {
             "target": "Package",
