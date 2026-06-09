@@ -24,6 +24,10 @@ public record ProductDto : IMapFrom<Product>
         Description = source.Description;
         Price = source.Price;
         Stock = source.Stock;
+        CategoryId = source.CategoryId;
+        CompanyId = source.CompanyId;
+        IsActive = source.IsActive;
+        ImageUrl = source.ImageUrl;
         CreatedAt = source.CreatedAt;
         UpdatedAt = source.UpdatedAt;
     }

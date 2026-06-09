@@ -145,7 +145,8 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.Property<string>("Address")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("CompanyId")
                         .HasColumnType("integer");
@@ -155,7 +156,8 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
@@ -165,11 +167,13 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Phone")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(70)
+                        .HasColumnType("character varying(70)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -178,7 +182,10 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("Clients");
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Clients", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Company", b =>

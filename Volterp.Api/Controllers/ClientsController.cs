@@ -22,6 +22,7 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
             .Clients
             .GetAllClientsAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
         
+        
         return Ok(result);
     }
     
@@ -33,29 +34,26 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
             .Clients
             .GetClientByIdAsync(id, companyId, ct);
         
-        if (client is null)
-            return NotFound(new { message = "Cliente no encontrado" });
+       
             
-        return Ok(client);
+        return client.Match<ActionResult<ClientDto>>(
+            error => NotFound(error.Message),
+            result=> Ok(result));
     }
     
     [HttpPost]
     [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<ClientDto>> CreateClient([FromBody] CreateClientDto request, CancellationToken ct = default)
     {
-        try
-        {
-            var companyId = GetCurrentUserCompanyId();
-            var client = await serviceManager
-                .Clients
-                .CreateClientAsync(request, companyId, ct);
-        
-            return CreatedAtAction(nameof(GetClient), new { id = client.Id }, client);
-        }
-        catch (Exception e)
-        {
-            return BadRequest(new ErrorResponse("Could not create client", e.Message));
-        }
+        var companyId = GetCurrentUserCompanyId();
+        var client = await serviceManager
+            .Clients
+            .CreateClientAsync(request, companyId, ct);
+
+        return client.Match<ActionResult<ClientDto>>(
+            error => BadRequest(error.Message),
+            result => CreatedAtAction(nameof(GetClient), 
+                new { id = result.Id }, result));
     }
     
     [HttpPut("{id}")]

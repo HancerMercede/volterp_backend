@@ -2,7 +2,7 @@ using Volterp.Domain.Entities;
 
 namespace Volterp.Application.DTOs.ClientDtos;
 
-public class CreateClientDto
+public record CreateClientDto
 (
     string Name,
     string Email,

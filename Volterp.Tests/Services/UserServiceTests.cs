@@ -237,8 +237,8 @@ public class UserServiceTests
         var result = await service.DeleteAsync(999);
 
         // ASSERT
-        result.Should().BeOfType<Either<Error, int>.Left>();
-        var error = ((Either<Error, int>.Left)result).Value;
+        result.Should().BeOfType<Either<Error, Unit>.Left>();
+        var error = ((Either<Error, Unit>.Left)result).Value;
         error.Message.Should().Be("User not found");
     }
 

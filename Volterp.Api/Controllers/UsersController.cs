@@ -32,7 +32,9 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     {
         if (!IsAdmin()) return Forbid();
 
-        var users = await serviceManager.Users.GetAllAsync(GetCurrentUserCompanyId(),pagination.PageNumber, pagination.PageSize, ct);
+        var users = await serviceManager.Users
+            .GetAllAsync(GetCurrentUserCompanyId(),pagination.PageNumber, pagination.PageSize, ct);
+        
         return Ok(users);
     }
 
@@ -46,19 +48,20 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        
-        var existingUser = await serviceManager.Users.GetByUsernameAsync(request.Username, ct);
-        if (existingUser is Either<Error, UserWithPasswordHashDto>.Right)
-            return BadRequest(new ErrorResponse("Username already exists"));
 
         var userForCreation = request with { CompanyId = companyId };
-        
-        var userResult = await serviceManager.Users.CreateAsync(userForCreation, ct);
-        if (userResult is Either<Error, UserDto>.Left err)
-            return BadRequest(new ErrorResponse(err.Value.Message));
 
-        var user = ((Either<Error, UserDto>.Right)userResult).Value;
-        return Created("", user);
+        var userResult = await serviceManager.Users.CreateAsync(userForCreation, ct);
+        
+        return userResult.Match<ActionResult<UserDto>>(
+            error => BadRequest(error.Message),
+            value => Ok(value));
+        
+        // if (userResult is Either<Error, UserDto>.Left err)
+        //     return BadRequest(new ErrorResponse(err.Value.Message));
+        //
+        // var user = ((Either<Error, UserDto>.Right)userResult).Value;
+        // return Created("", user);
     }
 
 [HttpPut("{id}/role")]
@@ -67,8 +70,6 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         if (!IsAdmin()) return Forbid();
 
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
-        if (userResult is Either<Error, UserDto>.Left)
-            return NotFound(new ErrorResponse("User not found"));
 
         var user = ((Either<Error, UserDto>.Right)userResult).Value;
 
@@ -85,10 +86,15 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         };
 
         var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, ct);
-        if (updateResult is Either<Error, UserDto>.Left err)
-            return BadRequest(new ErrorResponse(err.Value.Message));
-
-        return Ok(((Either<Error, UserDto>.Right)updateResult).Value);
+        
+        return updateResult.Match<ActionResult<UserDto>>(
+            error => BadRequest(error.Message),
+            value =>  Ok(value));
+        
+        // if (updateResult is Either<Error, UserDto>.Left err)
+        //     return BadRequest(new ErrorResponse(err.Value.Message));
+        //
+        // return Ok(((Either<Error, UserDto>.Right)updateResult).Value);
     }
 
     [HttpPut("{id}/status")]
@@ -97,9 +103,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         if (!IsAdmin()) return Forbid();
 
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
-        if (userResult is Either<Error, UserDto>.Left)
-            return NotFound(new ErrorResponse("User not found"));
-
+        
         var user = ((Either<Error, UserDto>.Right)userResult).Value;
 
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
@@ -116,30 +120,39 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         };
 
         var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, ct);
-        if (updateResult is Either<Error, UserDto>.Left err)
-            return BadRequest(new ErrorResponse(err.Value.Message));
-
-        return Ok(((Either<Error, UserDto>.Right)updateResult).Value);
+        
+        return updateResult.Match<ActionResult<UserDto>>(
+            error => BadRequest(error.Message), 
+            value =>  Ok(value));
+        
+        
+        // if (updateResult is Either<Error, UserDto>.Left err)
+        //     return BadRequest(new ErrorResponse(err.Value.Message));
+        //
+        // return Ok(((Either<Error, UserDto>.Right)updateResult).Value);
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteUser(int id, CancellationToken ct)
+    public async Task<IActionResult> DeleteUser(int id, CancellationToken ct)
     {
         if (!IsAdmin()) return Forbid();
 
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
-        if (userResult is Either<Error, UserDto>.Left)
-            return NotFound(new ErrorResponse("User not found"));
-
+        
         var user = ((Either<Error, UserDto>.Right)userResult).Value;
 
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
 
         var deleteResult = await serviceManager.Users.DeleteAsync(id, ct);
-        if (deleteResult is Either<Error, int>.Left err)
-            return BadRequest(new ErrorResponse(err.Value.Message));
+        
+        return deleteResult.Match<IActionResult>(
+                error => BadRequest(error.Message), 
+                _=> NoContent() );
+        
+        // if (deleteResult is Either<Error, int>.Left err)
+        //     return BadRequest(new ErrorResponse(err.Value.Message));
 
-        return NoContent();
+        // return NoContent();
     }
 }
