@@ -32,9 +32,9 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
     {
         var userResult = await serviceManager.Users.GetByUsernameAsync(request.Username, ct);
 
-        return userResult.Match<IActionResult>(
-            _ => Unauthorized(new ErrorResponse("Invalid credentials", "Check your credentials.")),
-             user =>
+        return await userResult.Match<Task<IActionResult>>(
+            _ => Task.FromResult<IActionResult>(Unauthorized(new ErrorResponse("Invalid credentials", "Check your credentials."))),
+            async user =>
             {
                 if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
                     return Unauthorized(new ErrorResponse("Invalid credentials", "Check your credentials."));
