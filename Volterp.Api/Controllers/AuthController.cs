@@ -33,25 +33,31 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
         var userResult = await serviceManager.Users.GetByUsernameAsync(request.Username, ct);
 
         return await userResult.Match<Task<IActionResult>>(
-            _ => Task.FromResult<IActionResult>(Unauthorized(new ErrorResponse("Invalid credentials", "Check your credentials."))),
-            async user =>
-            {
-                if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
-                    return Unauthorized(new ErrorResponse("Invalid credentials", "Check your credentials."));
+            _ => 
+                Task.FromResult<IActionResult>(
+                Unauthorized(new ErrorResponse("Invalid credentials", "Check your credentials."))),
+            user => HandleValidLogin(user, request, ct));
+    }
 
-                if (!user.IsActive)
-                    return Unauthorized(new ErrorResponse("User is inactive", "Your account is inactive."));
+    private async Task<IActionResult> HandleValidLogin(
+        UserWithPasswordHashDto? user,
+        LoginRequest request, CancellationToken ct)
+    {
+        if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
+            return Unauthorized(new ErrorResponse("Invalid credentials", "Check your credentials."));
 
-                if (!user.PasswordHash.StartsWith("$2"))
-                {
-                    user.PasswordHash = passwordHasher.Hash(request.Password);
-                    var updateResult = await serviceManager.Users.UpdateAsync(user.Id, user, ct);
-                    if (updateResult is Either<Error, UserDto>.Left)
-                        return BadRequest(new ErrorResponse("Update failed"));
-                }
+        if (!user.IsActive)
+            return Unauthorized(new ErrorResponse("User is inactive", "Your account is inactive."));
 
-                var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId);
-                return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(), user.CompanyId));
-            });
+        if (!user.PasswordHash.StartsWith("$2"))
+        {
+            user.PasswordHash = passwordHasher.Hash(request.Password);
+            var updateResult = await serviceManager.Users.UpdateAsync(user.Id, user, ct);
+            if (updateResult is Either<Error, UserDto>.Left)
+                return BadRequest(new ErrorResponse("Update failed"));
+        }
+
+        var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId);
+        return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(), user.CompanyId));
     }
 }
