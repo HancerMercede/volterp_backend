@@ -15,7 +15,7 @@ namespace Volterp.Tests.Services;
 public class ProductServiceTests
 {
     [Fact]
-    public async Task GetByIdAsync_WithWrongCompanyId_ReturnsNull()
+    public async Task GetByIdAsync_WithWrongCompanyId_ThrowsProductNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -32,10 +32,10 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT - Request product from company 2
-        var result = await service.GetByIdAsync(1, companyId: 2);
+        var act = () => service.GetByIdAsync(1, companyId: 2);
 
         // ASSERT
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<ProductNotFoundException>().WithMessage("Product not found");
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class ProductServiceTests
     }
 
     [Fact]
-    public async Task GetByIdAsync_WhenNotFound_ReturnsNull()
+    public async Task GetByIdAsync_WhenNotFound_ThrowsProductNotFoundException()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -120,10 +120,10 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetByIdAsync(999, companyId: 1);
+        var act = () => service.GetByIdAsync(999, companyId: 1);
 
         // ASSERT
-        result.Should().BeNull();
+        await act.Should().ThrowAsync<ProductNotFoundException>().WithMessage("Product not found");
     }
 
     [Fact]

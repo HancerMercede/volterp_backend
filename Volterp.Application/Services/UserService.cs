@@ -111,7 +111,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
             .Ensure(u => !string.IsNullOrWhiteSpace(u), new Error("username cannot be empty"))
             .FlatMap(async u => await unitOfWork.Users.GetByUsernameAsync(u, ct),
                 ex => new Error(ex.Message))
-            .Ensure(user => user is not null, new Error("user already exists"))
+            .Ensure(user => user is not null, new Error("user not found"))
             .Map(user => user?.MapTo<User, UserWithPasswordHashDto>())
             .Run();
     }

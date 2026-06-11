@@ -104,7 +104,7 @@ public class PurchaseServiceTests
             SupplierName: "Updated",
             Status: EntityStatus.Pending,
             Total: 800,
-            Notes: null,
+            Notes: "",
             CreatedAt: DateTime.UtcNow,
             UpdatedAt: null,
             CreatedBy: 1,
@@ -223,7 +223,7 @@ public class PurchaseServiceTests
         var service = new PurchaseService(mockUnitOfWork.Object);
         var updateRequest = new PurchaseDto(
             Id: 1, SupplierId: 1, SupplierName: "Updated",
-            Status: EntityStatus.Pending, Total: 800, Notes: null,
+            Status: EntityStatus.Pending, Total: 800, Notes: "",
             CreatedAt: DateTime.UtcNow, UpdatedAt: null,
             CreatedBy: 1, UpdatedBy: null,
             Items: new List<PurchaseItemDto>
@@ -315,7 +315,7 @@ public class PurchaseServiceTests
         var service = new PurchaseService(mockUnitOfWork.Object);
         var request = new PurchaseDto(
             Id: 0, SupplierId: 1, SupplierName: "Supplier",
-            Status: EntityStatus.Pending, Total: 1500, Notes: null,
+            Status: EntityStatus.Pending, Total: 1500, Notes: "",
             CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
             Items: new List<PurchaseItemDto>
             {
@@ -354,7 +354,7 @@ public class PurchaseServiceTests
         var service = new PurchaseService(mockUnitOfWork.Object);
         var request = new PurchaseDto(
             Id: 0, SupplierId: 1, SupplierName: "Supplier",
-            Status: EntityStatus.Pending, Total: 500, Notes: null,
+            Status: EntityStatus.Pending, Total: 500, Notes: "",
             CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
             Items: new List<PurchaseItemDto>
             {
@@ -424,7 +424,7 @@ public class PurchaseServiceTests
         var service = new PurchaseService(mockUnitOfWork.Object);
         var request = new PurchaseDto(
             Id: 0, SupplierId: 1, SupplierName: "Supplier",
-            Status: EntityStatus.Pending, Total: 500, Notes: null,
+            Status: EntityStatus.Pending, Total: 500, Notes: "",
             CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
             Items: new List<PurchaseItemDto>
             {
@@ -461,7 +461,7 @@ public class PurchaseServiceTests
         var service = new PurchaseService(mockUnitOfWork.Object);
         var request = new PurchaseDto(
             Id: 0, SupplierId: 1, SupplierName: "Supplier",
-            Status: EntityStatus.Pending, Total: 800, Notes: null,
+            Status: EntityStatus.Pending, Total: 800, Notes: "",
             CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
             Items: new List<PurchaseItemDto>
             {

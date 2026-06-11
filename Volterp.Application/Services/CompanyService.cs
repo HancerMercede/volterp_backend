@@ -21,7 +21,7 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
         return await EitherAsync<Error, int>
             .FromRight(id)
             .Ensure(x => x > 0, new Error("id must be greater than zero"))
-            .FlatMap(async company => await unitOfWork.Companies.GetCompanyByIdAsync(id, ct),
+            .FlatMap(async companyId => await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct),
                 error => new Error(error.Message))
             .Ensure(company => company is not null, new Error("company not found"))
             .Map(company => company?.MapTo<Company, CompanyDto>())
@@ -84,9 +84,23 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Run();
     }
 
-    public async Task DeleteCompanyAsync(int id, CancellationToken ct = default) 
-        => await  unitOfWork.Companies.DeleteCompanyAsync(id, ct);
-    
-    public async Task<bool> ExistsCompanyAsync(int id, CancellationToken ct = default) 
-        => await unitOfWork.Companies.ExistsAsync(c=>c.Id == id, ct);
+    public async Task<Either<Error, Unit>> DeleteCompanyAsync(int id, CancellationToken ct = default)
+        => await EitherAsync<Error, int>.FromRight(id)
+            .Ensure(x => x > 0, new Error("id must be greater than zero."))
+            .FlatMap(async _ =>
+            {
+                await unitOfWork.Companies.DeleteCompanyAsync(id, ct);
+                await unitOfWork.CommitAsync(ct);
+                return new Unit();
+            }, ex => new Error(ex.Message))
+            .Run();
+
+
+    public async Task<Either<Error, bool>> ExistsCompanyAsync(int id, CancellationToken ct = default)
+        => await EitherAsync<Error, int>.FromRight(id)
+            .Ensure(x => x > 0, new Error("id must be greater than zero."))
+            .FlatMap(async companyId => await unitOfWork.Companies.ExistsAsync(c => c.Id == companyId, ct)
+             ,ex => new Error(ex.Message))
+            .Ensure(companyExist => companyExist is not false, new Error("company not found"))
+            .Run();
 }

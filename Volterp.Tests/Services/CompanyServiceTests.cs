@@ -1,7 +1,10 @@
+using EitherWay;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
 using Volterp.Application.DTOs;
 using Volterp.Application.DTOs.CompanyDtos;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -23,8 +26,21 @@ public class CompanyServiceTests
         {
             Items = new List<Company>
             {
-                new() { Id = 1, Name = "Company A", TaxId = "123", Address = "Address A", LegalName = "Legal A", Phone = "123", Email = "a@test.com" },
-                new() { Id = 2, Name = "Company B", TaxId = "456", Address = "Address B", LegalName = "Legal B", Phone = "456", Email = "b@test.com" }
+                new() { 
+                    Id = 1,
+                    Name = "Company A",
+                    TaxId = "123", 
+                    Address = "Address A", 
+                    LegalName = "Legal A", 
+                    Phone = "123", 
+                    Email = "a@test.com" },
+                new() { Id = 2,
+                    Name = "Company B",
+                    TaxId = "456",
+                    Address = "Address B",
+                    LegalName = "Legal B", 
+                    Phone = "456", 
+                    Email = "b@test.com" }
             },
             PageNumber = 1,
             PageSize = 10,
@@ -32,7 +48,9 @@ public class CompanyServiceTests
             PageCount = 1
         };
 
-        mockCompaniesRepo.Setup(r => r.GetAllCompaniesAsync(1, 10, It.IsAny<CancellationToken>()))
+        mockCompaniesRepo.Setup(r => 
+                r.GetAllCompaniesAsync(1, 10, 
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(companies);
         mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
 
@@ -67,11 +85,12 @@ public class CompanyServiceTests
 
         // ACT
         var result = await service.GetCompanyByIdAsync(1);
-
+        
         // ASSERT
-        result.Should().NotBeNull();
-        result!.Name.Should().Be("Company A");
-        result.TaxId.Should().Be("123");
+        result.Should().BeOfType<Either<Error, CompanyDto?>.Right>();
+        var companyDto = ((Either<Error, CompanyDto?>.Right)result).Value;
+        companyDto!.Name.Should().Be("Company A");
+        companyDto.TaxId.Should().Be("123");
     }
 
     [Fact]
@@ -91,7 +110,7 @@ public class CompanyServiceTests
         var result = await service.GetCompanyByIdAsync(999);
 
         // ASSERT
-        result.Should().BeNull();
+        result.Should().BeOfType<Either<Error, CompanyDto?>.Left>();
     }
 
     [Fact]
@@ -117,8 +136,9 @@ public class CompanyServiceTests
         var result = await service.AddCompanyAsync(request);
 
         // ASSERT
-        result.Should().NotBeNull();
-        result.Name.Should().Be("New Company");
+        result.Should().BeOfType<Either<Error, CompanyDto?>.Right>();
+        var company = ((Either<Error, CompanyDto?>.Right)result).Value;
+        company!.Name.Should().Be("New Company");
         mockCompaniesRepo.Verify(r => r.AddCompanyAsync(It.IsAny<Company>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -196,7 +216,9 @@ public class CompanyServiceTests
         var result = await service.ExistsCompanyAsync(1);
 
         // ASSERT
-        result.Should().BeTrue();
+        result.Should().BeOfType<Either<Error, bool>.Right>();
+        var exists = ((Either<Error, bool>.Right)result).Value;
+        exists.Should().BeTrue();
     }
 
     [Fact]
@@ -216,6 +238,6 @@ public class CompanyServiceTests
         var result = await service.ExistsCompanyAsync(999);
 
         // ASSERT
-        result.Should().BeFalse();
+        result.Should().BeOfType<Either<Error, bool>.Left>();
     }
 }

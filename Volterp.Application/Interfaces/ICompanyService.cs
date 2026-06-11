@@ -15,7 +15,7 @@ public interface ICompanyService
     
     Task<Either<Error,CompanyDto?>> UpdateCompanyAsync(int companyId, UpdateCompanyDto company, CancellationToken ct = default);
     
-    Task<Either<Error,Unit?>> DeleteCompanyAsync(int id, CancellationToken ct = default);
+    Task<Either<Error,Unit>> DeleteCompanyAsync(int id, CancellationToken ct = default);
     
     Task<Either<Error,bool>> ExistsCompanyAsync(int id, CancellationToken ct = default);
 }

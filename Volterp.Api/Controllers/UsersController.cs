@@ -56,12 +56,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         return userResult.Match<ActionResult<UserDto>>(
             error => BadRequest(error.Message),
             value => Ok(value));
-        
-        // if (userResult is Either<Error, UserDto>.Left err)
-        //     return BadRequest(new ErrorResponse(err.Value.Message));
-        //
-        // var user = ((Either<Error, UserDto>.Right)userResult).Value;
-        // return Created("", user);
+
     }
 
 [HttpPut("{id}/role")]
@@ -90,11 +85,6 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         return updateResult.Match<ActionResult<UserDto>>(
             error => BadRequest(error.Message),
             value =>  Ok(value));
-        
-        // if (updateResult is Either<Error, UserDto>.Left err)
-        //     return BadRequest(new ErrorResponse(err.Value.Message));
-        //
-        // return Ok(((Either<Error, UserDto>.Right)updateResult).Value);
     }
 
     [HttpPut("{id}/status")]
@@ -124,12 +114,6 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         return updateResult.Match<ActionResult<UserDto>>(
             error => BadRequest(error.Message), 
             value =>  Ok(value));
-        
-        
-        // if (updateResult is Either<Error, UserDto>.Left err)
-        //     return BadRequest(new ErrorResponse(err.Value.Message));
-        //
-        // return Ok(((Either<Error, UserDto>.Right)updateResult).Value);
     }
 
     [HttpDelete("{id}")]
@@ -150,9 +134,5 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
                 error => BadRequest(error.Message), 
                 _=> NoContent() );
         
-        // if (deleteResult is Either<Error, int>.Left err)
-        //     return BadRequest(new ErrorResponse(err.Value.Message));
-
-        // return NoContent();
     }
 }

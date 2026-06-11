@@ -126,9 +126,9 @@ public class UserServiceTests
         var result = await service.GetByIdAsync(1);
 
         // ASSERT
-        result.Should().BeOfType<Either<Error, UserDto>.Right>();
-        var dto = ((Either<Error, UserDto>.Right)result).Value;
-        dto.Username.Should().Be("testuser");
+        result.Should().BeOfType<Either<Error, UserDto?>.Right>();
+        var dto = ((Either<Error, UserDto?>.Right)result).Value;
+        dto!.Username.Should().Be("testuser");
     }
 
     [Fact]
@@ -148,8 +148,8 @@ public class UserServiceTests
         var result = await service.GetByIdAsync(999);
 
         // ASSERT
-        result.Should().BeOfType<Either<Error, UserDto>.Left>();
-        var error = ((Either<Error, UserDto>.Left)result).Value;
+        result.Should().BeOfType<Either<Error, UserDto?>.Left>();
+        var error = ((Either<Error, UserDto?>.Left)result).Value;
         error.Message.Should().Be("user not found");
     }
 
@@ -178,7 +178,7 @@ public class UserServiceTests
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto>.Left>();
         var error = ((Either<Error, UserDto>.Left)result).Value;
-        error.Message.Should().Be("User not found");
+        error.Message.Should().Be("user not found");
     }
 
     [Fact]
@@ -239,7 +239,7 @@ public class UserServiceTests
         // ASSERT
         result.Should().BeOfType<Either<Error, Unit>.Left>();
         var error = ((Either<Error, Unit>.Left)result).Value;
-        error.Message.Should().Be("User not found");
+        error.Message.Should().Be("user not found");
     }
 
     [Fact]
@@ -269,7 +269,7 @@ public class UserServiceTests
         var result = await service.DeleteAsync(1);
 
         // ASSERT
-        result.Should().BeOfType<Either<Error, int>.Right>();
+        result.Should().BeOfType<Either<Error, Unit>.Right>();
         mockUsersRepo.Verify(r => r.DeleteUserAsync(1, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -297,9 +297,9 @@ public class UserServiceTests
         var result = await service.GetByEmailAsync("test@test.com");
 
         // ASSERT
-        result.Should().BeOfType<Either<Error, UserDto>.Right>();
-        var dto = ((Either<Error, UserDto>.Right)result).Value;
-        dto.Email.Should().Be("test@test.com");
+        result.Should().BeOfType<Either<Error, UserDto?>.Right>();
+        var dto = ((Either<Error, UserDto?>.Right)result).Value;
+        dto!.Email.Should().Be("test@test.com");
     }
 
     [Fact]
@@ -319,9 +319,9 @@ public class UserServiceTests
         var result = await service.GetByEmailAsync("notfound@test.com");
 
         // ASSERT
-        result.Should().BeOfType<Either<Error, UserDto>.Left>();
-        var error = ((Either<Error, UserDto>.Left)result).Value;
-        error.Message.Should().Be("User not found");
+        result.Should().BeOfType<Either<Error, UserDto?>.Left>();
+        var error = ((Either<Error, UserDto?>.Left)result).Value;
+        error.Message.Should().Be("user not found");
     }
 
     [Fact]
@@ -348,9 +348,9 @@ public class UserServiceTests
         var result = await service.GetByUsernameAsync("testuser");
 
         // ASSERT
-        result.Should().BeOfType<Either<Error, UserWithPasswordHashDto>.Right>();
-        var dto = ((Either<Error, UserWithPasswordHashDto>.Right)result).Value;
-        dto.Username.Should().Be("testuser");
+        result.Should().BeOfType<Either<Error, UserWithPasswordHashDto?>.Right>();
+        var dto = ((Either<Error, UserWithPasswordHashDto?>.Right)result).Value;
+        dto!.Username.Should().Be("testuser");
         dto.PasswordHash.Should().Be("somehash");
     }
 
@@ -371,8 +371,8 @@ public class UserServiceTests
         var result = await service.GetByUsernameAsync("notfound");
 
         // ASSERT
-        result.Should().BeOfType<Either<Error, UserWithPasswordHashDto>.Left>();
-        var error = ((Either<Error, UserWithPasswordHashDto>.Left)result).Value;
-        error.Message.Should().Be("User not found");
+        result.Should().BeOfType<Either<Error, UserWithPasswordHashDto?>.Left>();
+        var error = ((Either<Error, UserWithPasswordHashDto?>.Left)result).Value;
+        error.Message.Should().Be("user not found");
     }
 }
