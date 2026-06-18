@@ -18,7 +18,7 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
 
     public async Task<Either<Error,CompanyDto?>> GetCompanyByIdAsync(int id, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+         return await EitherAsync<Error, int>
             .FromRight(id)
             .Ensure(x => x > 0, new Error("id must be greater than zero"))
             .FlatMap(async companyId => await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct),

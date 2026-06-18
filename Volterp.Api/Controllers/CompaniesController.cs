@@ -14,13 +14,18 @@ namespace Volterp.Api.Controllers;
 public class CompaniesController(IServiceManager serviceManager, ILogger<CompaniesController> logger):BaseController
 {
     [HttpGet]
-    public async Task<ActionResult<PagedResult<CompanyDto>>> GetAllCompanies([FromQuery] PaginationParameters parameters, CancellationToken ct = default)
+    public async Task<ActionResult<PagedResult<CompanyDto>>> GetAllCompanies(
+        [FromQuery] PaginationParameters parameters,
+        CancellationToken ct = default)
     {
         if (!IsAdmin())
             return Forbid();
         try
         {
-            return Ok(await serviceManager.Companies.GetAllCompaniesAsync(parameters.PageNumber,parameters.PageSize, ct));
+            return Ok(await serviceManager.Companies.GetAllCompaniesAsync(
+                parameters.PageNumber,
+                parameters.PageSize, 
+                ct));
         }
         catch (Exception e)
         {
@@ -35,16 +40,13 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
     {
         if (!IsAdmin())
             return Forbid();
-        try
-        {
-            return Ok(await serviceManager.Companies.GetCompanyByIdAsync(id, ct));
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return NotFound(new ErrorResponse($"Company with {id}  not found."));
-        }
-       
+
+        var company = await serviceManager.Companies.GetCompanyByIdAsync(id, ct);
+        
+        return company.Match<ActionResult<CompanyDto>>(
+            error => BadRequest(error.Message),
+            result=>Ok(result));
+
     }
 
     [HttpPost]
@@ -53,17 +55,12 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
     {
         if (!IsAdmin())
             return Forbid();
-        try
-        {
-            var company = await serviceManager.Companies.AddCompanyAsync(createCompanyDto, ct);
-            return Created("GetCompany", company);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return BadRequest(new  ErrorResponse("Company creation failed.", e.Message));
-        }
-
+        
+        var company = await serviceManager.Companies.AddCompanyAsync(createCompanyDto, ct);
+       
+        return company.Match<ActionResult<CompanyDto>>(
+            error => BadRequest(error.Message),
+            _ => Created("GetCompany", company));
     }
 
     [HttpPut("{id}")]
@@ -72,18 +69,11 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
     {
         if(!IsAdmin())
             return Forbid();
-
-        try
-        {
-            var company = await serviceManager.Companies.UpdateCompanyAsync(id, updateCompanyDto, ct);
-            return Ok(company);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return BadRequest(new  ErrorResponse("Company modification failed.", e.Message));
-        }
-       
+        var company = await serviceManager.Companies.UpdateCompanyAsync(id, updateCompanyDto, ct);
+        
+        return company.Match<ActionResult>(
+            error => BadRequest(error.Message),
+            result => Ok(result));
     }
 
     [HttpDelete("{id}")]
@@ -91,16 +81,7 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
     {
         if(!IsAdmin())
             return Forbid();
-        try
-        {
-            await serviceManager.Companies.DeleteCompanyAsync(id, ct);
-            return NoContent();
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return  BadRequest(new  ErrorResponse("Company deletion failed.", e.Message));
-        }
-  
+        await serviceManager.Companies.DeleteCompanyAsync(id, ct);
+        return NoContent();
     }
 }
