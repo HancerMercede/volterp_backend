@@ -20,19 +20,13 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
     {
         if (!IsAdmin())
             return Forbid();
-        try
-        {
-            return Ok(await serviceManager.Companies.GetAllCompaniesAsync(
-                parameters.PageNumber,
-                parameters.PageSize, 
-                ct));
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return NotFound(new ErrorResponse($"There are no companies."));
-        }
-       
+
+        var companies = await serviceManager.Companies.GetAllCompaniesAsync(
+            parameters.PageNumber,
+            parameters.PageSize,
+            ct);
+        
+        return Ok(companies);
     }
     
     [HttpGet("{id}", Name = "GetCompany")]

@@ -37,5 +37,16 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
+app.MapGet("health", async (VolterpDbContext db) =>
+{
+    var checks = await HealthCheck.Init(db);
+    var allHealthy = checks.All(c => c.GetType().GetProperty("status")?.GetValue(c)?.ToString() == "healthy");
+    return Results.Ok(new
+    {
+        status = allHealthy ? "healthy" : "degraded",
+        timestamp = DateTime.UtcNow,
+        checks
+    });
+});
+app.UseStaticFiles();
 app.Run();

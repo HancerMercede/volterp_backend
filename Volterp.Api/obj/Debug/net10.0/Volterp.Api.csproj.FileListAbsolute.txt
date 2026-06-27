@@ -193,3 +193,5 @@ C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\obj\Debug\net10.0\Volte
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\bin\Debug\net10.0\MapFlow.dll
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\bin\Debug\net10.0\EitherWay.dll
 C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\obj\Debug\net10.0\Volterp.Api.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\bin\Debug\net10.0\Volterp.Api.staticwebassets.runtime.json
+C:\Users\HANCER MERCEDE\source\repos\Volterp\Volterp.Api\obj\Debug\net10.0\compressed\amcnu1rbpg-{0}-vw4jt7i417-vw4jt7i417.gz

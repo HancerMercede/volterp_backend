@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Volterp · Health Dashboard</title>
+  <style>
+    /* ── reset ── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #0a0c10;
+      --bg-surface: #111318;
+      --bg-elevated: #161922;
+      --border-subtle: #1e2130;
+      --border-hover: #2a2e3e;
+      --text-primary: #e3e5ea;
+      --text-secondary: #8b8fa3;
+      --text-muted: #5c6072;
+      --green: #2ea043;
+      --green-glow: rgba(46, 160, 67, 0.25);
+      --amber: #bb8009;
+      --amber-glow: rgba(187, 128, 9, 0.25);
+      --red: #da3633;
+      --red-glow: rgba(218, 54, 51, 0.25);
+      --blue: #2d7bd4;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 14px;
+      --font-mono: "SF Mono", "Cascadia Code", "Fira Code", "Consolas", monospace;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      background-image:
+        radial-gradient(ellipse at 20% 0%, rgba(45, 123, 212, 0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(46, 160, 67, 0.03) 0%, transparent 60%);
+      background-attachment: fixed;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 820px;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    /* ── header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--blue), #1a5fb4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand h1 span { color: var(--blue); }
+
+    .brand .badge-env {
+      font-size: 0.625rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.125rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(45, 123, 212, 0.12);
+      color: var(--blue);
+      border: 1px solid rgba(45, 123, 212, 0.2);
+      margin-left: 0.25rem;
+    }
+
+    /* ── overall badge ── */
+    .overall-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.375rem 0.875rem 0.375rem 0.75rem;
+      border-radius: 999px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .overall-badge:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .overall-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    .overall-dot.healthy {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green-glow);
+    }
+    .overall-dot.degraded {
+      background: var(--amber);
+      box-shadow: 0 0 6px var(--amber-glow);
+    }
+    .overall-dot.unhealthy {
+      background: var(--red);
+      box-shadow: 0 0 6px var(--red-glow);
+    }
+
+    /* ── summary cards ── */
+    .summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1rem 0.75rem;
+      text-align: center;
+      transition: border-color 0.2s;
+    }
+
+    .stat-card:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .stat-card .value {
+      font-size: 1.625rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.3s;
+    }
+
+    .stat-card .value.green { color: var(--green); }
+    .stat-card .value.amber  { color: var(--amber); }
+    .stat-card .value.red   { color: var(--red); }
+    .stat-card .value.muted { color: var(--text-secondary); }
+
+    .stat-card .label {
+      font-size: 0.6875rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 0.2rem;
+    }
+
+    /* ── filter bar ── */
+    .filter-bar {
+      display: flex;
+      gap: 0.375rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+    }
+
+    .filter-btn.active {
+      background: rgba(45, 123, 212, 0.1);
+      border-color: rgba(45, 123, 212, 0.3);
+      color: var(--blue);
+    }
+
+    .filter-btn:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    /* ── skeleton ── */
+    .skeleton {
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .skeleton.show { display: flex; }
+
+    .skeleton-row {
+      height: 56px;
+      background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-elevated) 50%, var(--bg-surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── checks list ── */
+    #checksContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+      min-height: 120px;
+      transition: opacity 0.2s;
+    }
+
+    #checksContainer.loading { opacity: 0.45; }
+
+    /* ── check card ── */
+    .check-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.875rem 1rem;
+      transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+      animation: fadeIn 0.25s ease-out both;
+    }
+
+    .check-card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .check-card:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .check-card.error {
+      border-left: 3px solid var(--red);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .check-card:nth-child(2) { animation-delay: 0.03s; }
+    .check-card:nth-child(3) { animation-delay: 0.06s; }
+    .check-card:nth-child(4) { animation-delay: 0.09s; }
+    .check-card:nth-child(5) { animation-delay: 0.12s; }
+
+    .check-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .check-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      position: relative;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+
+    .check-dot.healthy {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green-glow);
+    }
+    .check-dot.unhealthy {
+      background: var(--red);
+      box-shadow: 0 0 6px var(--red-glow);
+    }
+
+    .check-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .check-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .check-error {
+      font-size: 0.75rem;
+      color: var(--red);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 320px;
+    }
+
+    .check-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .check-latency {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      min-width: 3.5rem;
+      text-align: right;
+    }
+
+    .check-badge {
+      font-size: 0.625rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border: 1px solid transparent;
+    }
+
+    .check-badge.healthy {
+      background: rgba(46, 160, 67, 0.1);
+      color: var(--green);
+      border-color: rgba(46, 160, 67, 0.2);
+    }
+
+    .check-badge.unhealthy {
+      background: rgba(218, 54, 51, 0.1);
+      color: var(--red);
+      border-color: rgba(218, 54, 51, 0.2);
+    }
+
+    /* ── round-trip meta card ── */
+    .meta-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.625rem 1rem;
+      background: transparent;
+      border: 1px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .meta-card .label { color: var(--text-secondary); }
+    .meta-card .value {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── empty / error states ── */
+    .empty-state,
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 3rem 1.5rem;
+      text-align: center;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+    }
+
+    .empty-state .icon,
+    .error-state .icon {
+      font-size: 2rem;
+      opacity: 0.5;
+    }
+
+    .empty-state .title,
+    .error-state .title {
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+
+    .error-state .title { color: var(--red); }
+
+    .empty-state .desc,
+    .error-state .desc {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      max-width: 360px;
+    }
+
+    .retry-btn {
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.375rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .retry-btn:hover {
+      background: var(--border-hover);
+    }
+
+    .retry-btn:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    /* ── footer ── */
+    footer {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-left .ts {
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+    }
+
+    .footer-left .ts-relative {
+      color: var(--text-muted);
+      font-size: 0.6875rem;
+    }
+
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      flex-wrap: wrap;
+    }
+
+    /* ── refresh controls ── */
+    .refresh-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .refresh-select {
+      font-size: 0.6875rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .refresh-select:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 0.875rem;
+    }
+
+    .icon-btn:hover {
+      background: var(--border-hover);
+      color: var(--text-primary);
+    }
+
+    .icon-btn:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.95);
+    }
+
+    .icon-btn.spinning svg {
+      animation: spin 0.6s linear;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── countdown bar ── */
+    .countdown-track {
+      width: 48px;
+      height: 3px;
+      background: var(--border-subtle);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .countdown-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: 999px;
+      background: var(--blue);
+      transition: width 0.3s linear;
+      transform-origin: left;
+    }
+
+    .countdown-fill.paused {
+      opacity: 0.3;
+    }
+
+    /* ── tooltip (title fallback already works, but a nice native one) ── */
+    [title] {
+      position: relative;
+    }
+
+    /* ── responsive ── */
+    @media (max-width: 640px) {
+      .container { padding: 1.25rem 1rem 2rem; }
+      .summary { grid-template-columns: 1fr 1fr; }
+      .summary .stat-card:last-child { grid-column: 1 / -1; }
+      header { flex-direction: column; align-items: stretch; }
+      .overall-badge { align-self: flex-start; }
+      footer { flex-direction: column; align-items: stretch; }
+      .footer-right { justify-content: space-between; }
+      .check-error { max-width: 180px; }
+    }
+
+    @media (max-width: 400px) {
+      .summary { grid-template-columns: 1fr; }
+      .summary .stat-card:last-child { grid-column: 1; }
+    }
+
+    /* ── reduced motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+      .skeleton-row { animation: none; background: var(--bg-surface); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">V</div>
+        <h1><span>Volterp</span> <span class="badge-env">API</span></h1>
+      </div>
+      <div class="overall-badge" id="overallBadge" role="status" tabindex="0" aria-live="polite">
+        <span class="overall-dot" id="statusDot"></span>
+        <span id="statusText">Checking…</span>
+      </div>
+    </header>
+
+    <!-- summary row -->
+    <div class="summary" role="group" aria-label="Health summary">
+      <div class="stat-card" tabindex="0">
+        <div class="value green" id="healthyCount">0</div>
+        <div class="label">Healthy</div>
+      </div>
+      <div class="stat-card" tabindex="0">
+        <div class="value amber" id="degradedCount">0</div>
+        <div class="label">Degraded</div>
+      </div>
+      <div class="stat-card" tabindex="0">
+        <div class="value muted" id="totalCount">0</div>
+        <div class="label">Total services</div>
+      </div>
+    </div>
+
+    <!-- filter -->
+    <div class="filter-bar" role="tablist" aria-label="Filter checks">
+      <button class="filter-btn active" data-filter="all" role="tab" aria-selected="true">All</button>
+      <button class="filter-btn" data-filter="healthy" role="tab" aria-selected="false">Healthy</button>
+      <button class="filter-btn" data-filter="unhealthy" role="tab" aria-selected="false">Unhealthy</button>
+    </div>
+
+    <!-- skeleton -->
+    <div class="skeleton show" id="skeleton" aria-hidden="true">
+      <div class="skeleton-row"></div>
+      <div class="skeleton-row"></div>
+    </div>
+
+    <!-- checks -->
+    <div id="checksContainer" role="list" aria-label="Service health checks"></div>
+
+    <!-- footer -->
+    <footer>
+      <div class="footer-left">
+        <span class="ts" id="lastUpdated">—</span>
+        <span class="ts-relative" id="lastUpdatedRelative"></span>
+      </div>
+      <div class="footer-right">
+        <div class="countdown-track" title="Time until next auto-refresh" aria-hidden="true">
+          <div class="countdown-fill" id="countdownFill"></div>
+        </div>
+        <div class="refresh-controls">
+          <select class="refresh-select" id="intervalSelect" aria-label="Auto-refresh interval">
+            <option value="5">5s</option>
+            <option value="10" selected>10s</option>
+            <option value="30">30s</option>
+            <option value="60">60s</option>
+            <option value="0">Off</option>
+          </select>
+          <button class="icon-btn" id="refreshBtn" aria-label="Refresh now" title="Refresh now (r)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      /* ── DOM refs ── */
+      const $ = (sel, ctx = document) => ctx.querySelector(sel);
+      const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
+
+      const container    = $('#checksContainer');
+      const skeleton     = $('#skeleton');
+      const statusDot    = $('#statusDot');
+      const statusText   = $('#statusText');
+      const overallBadge = $('#overallBadge');
+      const healthyCount = $('#healthyCount');
+      const degradedCount = $('#degradedCount');
+      const totalCount   = $('#totalCount');
+      const lastUpdated  = $('#lastUpdated');
+      const lastUpdatedRelative = $('#lastUpdatedRelative');
+      const refreshBtn   = $('#refreshBtn');
+      const intervalSelect = $('#intervalSelect');
+      const countdownFill = $('#countdownFill');
+      const filterBtns   = $$('.filter-btn');
+
+      /* ── state ── */
+      let intervalMs   = 10_000;
+      let refreshTimer = null;
+      let countdownTimer = null;
+      let countdownPct = 100;
+      let countdownTickMs = 100;
+      let lastRefreshTime = null;
+      let activeFilter = 'all';
+      let lastChecks = [];
+      let isFetching = false;
+      let abortController = null;
+
+      /* ── helpers ── */
+
+      function formatTime(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+
+      function formatRelative(iso) {
+        if (!iso) return '';
+        const diff = Date.now() - new Date(iso).getTime();
+        if (diff < 1000) return 'just now';
+        const s = Math.floor(diff / 1000);
+        if (s < 60) return `${s}s ago`;
+        const m = Math.floor(s / 60);
+        if (m < 60) return `${m}m ago`;
+        return `${Math.floor(m / 60)}h ago`;
+      }
+
+      function updateRelativeTime() {
+        if (lastRefreshTime) {
+          lastUpdatedRelative.textContent = formatRelative(lastRefreshTime);
+        }
+      }
+
+      /* ── interval management ── */
+
+      function parseInterval(val) {
+        const n = parseInt(val, 10);
+        return n > 0 ? n * 1000 : 0;
+      }
+
+      function stopRefresh() {
+        if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+        countdownFill.style.width = '100%';
+      }
+
+      function startRefresh() {
+        stopRefresh();
+        if (intervalMs <= 0) {
+          countdownFill.style.width = '100%';
+          countdownFill.classList.add('paused');
+          return;
+        }
+        countdownFill.classList.remove('paused');
+        countdownPct = 100;
+        countdownFill.style.width = '100%';
+
+        countdownTimer = setInterval(() => {
+          countdownPct = Math.max(0, countdownPct - (countdownTickMs / intervalMs) * 100);
+          countdownFill.style.width = `${countdownPct}%`;
+        }, countdownTickMs);
+
+        refreshTimer = setInterval(() => { fetchHealth(); }, intervalMs);
+      }
+
+      function handleIntervalChange() {
+        intervalMs = parseInterval(intervalSelect.value);
+        startRefresh();
+      }
+
+      /* ── fetch ── */
+
+      async function fetchHealth() {
+        if (isFetching) return;
+        isFetching = true;
+
+        // cancel previous request if still pending
+        if (abortController) abortController.abort();
+        abortController = new AbortController();
+
+        refreshBtn.classList.add('spinning');
+        container.classList.add('loading');
+        skeleton.classList.remove('show');
+
+        const start = performance.now();
+
+        try {
+          const res = await fetch('/health', {
+            signal: abortController.signal,
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+          const data = await res.json();
+          const elapsed = Math.round(performance.now() - start);
+
+          lastRefreshTime = data.timestamp || new Date().toISOString();
+          lastChecks = data.checks ?? [];
+
+          renderChecks(lastChecks, elapsed, data);
+          updateOverall(data.status);
+          updateFooter();
+        } catch (err) {
+          if (err.name === 'AbortError') return;
+          renderError(err);
+          updateOverall('unhealthy');
+          updateFooter();
+        } finally {
+          isFetching = false;
+          abortController = null;
+          container.classList.remove('loading');
+          refreshBtn.classList.remove('spinning');
+          skeleton.classList.remove('show');
+          // restart countdown cycle
+          if (intervalMs > 0) {
+            countdownPct = 100;
+            countdownFill.style.width = '100%';
+          }
+        }
+      }
+
+      /* ── render ── */
+
+      function renderChecks(checks, fetchMs, data) {
+        const healthy   = checks.filter(c => c.status === 'healthy').length;
+        const degraded  = checks.filter(c => c.status === 'degraded').length;
+        const unhealthy = checks.filter(c => c.status !== 'healthy' && c.status !== 'degraded').length;
+
+        animateCount(healthyCount, healthy);
+        animateCount(degradedCount, degraded);
+        animateCount(totalCount, checks.length);
+
+        // sort: unhealthy first, then degraded, then healthy
+        const sorted = [...checks].sort((a, b) => {
+          const rank = { unhealthy: 0, degraded: 1, healthy: 2 };
+          return (rank[a.status] ?? 0) - (rank[b.status] ?? 0);
+        });
+
+        const filtered = activeFilter === 'all' ? sorted
+          : sorted.filter(c => activeFilter === 'healthy' ? c.status === 'healthy' : c.status !== 'healthy');
+
+        if (filtered.length === 0) {
+          container.innerHTML = `<div class="empty-state" role="status">
+            <div class="icon" aria-hidden="true">✓</div>
+            <div class="title">All clear</div>
+            <div class="desc">Every service is reporting healthy.</div>
+          </div>`;
+          return;
+        }
+
+        container.innerHTML = filtered.map((c, i) => {
+          const isHealthy = c.status === 'healthy';
+          const isDegraded = c.status === 'degraded';
+          const dotClass = isHealthy ? 'healthy' : 'unhealthy';
+          const badgeClass = isDegraded ? 'degraded' : dotClass;
+          const cardClass = c.error ? 'check-card error' : 'check-card';
+          const displayStatus = isDegraded ? 'degraded' : isHealthy ? 'healthy' : 'unhealthy';
+
+          return `<div class="${cardClass}" role="listitem" tabindex="0" style="animation-delay:${i * 0.04}s">
+            <div class="check-left">
+              <span class="check-dot ${dotClass}" aria-hidden="true"></span>
+              <div class="check-info">
+                <span class="check-name">${escHtml(c.service)}</span>
+                ${c.error ? `<span class="check-error" title="${escHtml(c.error)}">${escHtml(c.error)}</span>` : ''}
+              </div>
+            </div>
+            <div class="check-right">
+              <span class="check-latency">${c.latencyMs != null ? c.latencyMs + 'ms' : '—'}</span>
+              <span class="check-badge ${badgeClass}">${displayStatus}</span>
+            </div>
+          </div>`;
+        }).join('');
+
+        // round-trip meta
+        container.insertAdjacentHTML('beforeend', `<div class="meta-card" aria-hidden="true">
+          <span class="label">HTTP round-trip <span style="color:var(--text-muted)">/health</span></span>
+          <span class="value">${fetchMs}ms</span>
+        </div>`);
+      }
+
+      function renderError(err) {
+        container.innerHTML = `<div class="error-state" role="alert">
+          <div class="icon" aria-hidden="true">!</div>
+          <div class="title">Connection lost</div>
+          <div class="desc">${escHtml(err.message)}</div>
+          <button class="retry-btn" id="retryBtn">Retry</button>
+        </div>`;
+        const retryBtn = $('#retryBtn', container);
+        if (retryBtn) retryBtn.addEventListener('click', fetchHealth);
+      }
+
+      function updateOverall(status) {
+        const cls = status === 'healthy' ? 'healthy'
+                  : status === 'degraded' ? 'degraded'
+                  : 'unhealthy';
+        statusDot.className = `overall-dot ${cls}`;
+        statusText.textContent = status === 'healthy' ? 'All Systems Healthy'
+                               : status === 'degraded' ? 'Degraded'
+                               : 'Unhealthy';
+        overallBadge.style.borderColor =
+          status === 'healthy' ? 'rgba(46,160,67,0.25)'
+          : status === 'degraded' ? 'rgba(187,128,9,0.25)'
+          : 'rgba(218,54,51,0.25)';
+      }
+
+      function updateFooter() {
+        if (lastRefreshTime) {
+          lastUpdated.textContent = formatTime(lastRefreshTime);
+          updateRelativeTime();
+        }
+      }
+
+      /* ── animated counter ── */
+      function animateCount(el, target) {
+        const current = parseInt(el.textContent, 10);
+        if (current === target) return;
+        const diff = target - current;
+        const steps = Math.min(Math.abs(diff), 20);
+        const step = diff / steps;
+        let i = 0;
+        const frame = () => {
+          i++;
+          const val = Math.round(current + step * i);
+          el.textContent = Math.min(Math.max(val, 0), target);
+          if (i < steps) requestAnimationFrame(frame);
+          else el.textContent = target;
+        };
+        requestAnimationFrame(frame);
+      }
+
+      /* ── filter ── */
+      function setFilter(filter) {
+        activeFilter = filter;
+        filterBtns.forEach(btn => {
+          const isActive = btn.dataset.filter === filter;
+          btn.classList.toggle('active', isActive);
+          btn.setAttribute('aria-selected', isActive);
+        });
+        if (lastChecks.length > 0) {
+          renderChecks(lastChecks, 0, {});
+        }
+      }
+
+      /* ── esc ── */
+      function escHtml(str) {
+        if (!str) return '';
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+      }
+
+      /* ── keyboard ── */
+      document.addEventListener('keydown', (e) => {
+        // ignore if user is typing in an input/select
+        if (e.target.matches('input, select, textarea, [contenteditable]')) return;
+        if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          fetchHealth();
+        }
+      });
+
+      /* ── page visibility ── */
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          stopRefresh();
+        } else {
+          startRefresh();
+          // refresh immediately on return if it's been a while
+          if (lastRefreshTime && Date.now() - new Date(lastRefreshTime).getTime() > intervalMs) {
+            fetchHealth();
+          }
+        }
+      });
+
+      /* ── events ── */
+      refreshBtn.addEventListener('click', fetchHealth);
+
+      intervalSelect.addEventListener('change', handleIntervalChange);
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => setFilter(btn.dataset.filter));
+      });
+
+      // relative time ticker
+      setInterval(updateRelativeTime, 5_000);
+
+      /* ── init ── */
+      intervalMs = parseInterval(intervalSelect.value);
+      fetchHealth();
+      startRefresh();
+    })();
+  </script>
+</body>
+</html>
