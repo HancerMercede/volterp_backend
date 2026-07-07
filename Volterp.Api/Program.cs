@@ -1,7 +1,9 @@
 using Volterp.Api.Configuration;
 using Volterp.Api.Helpers;
+using Volterp.Application.Diagnostics;
 using Volterp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Volterp.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,7 @@ ServiceExtensions.ConfigureServiceManager(builder.Services);
 ServiceExtensions.ConfigureJwt(builder.Services, jwtSettings);
 ServiceExtensions.ConfigureControllers(builder.Services);
 ServiceExtensions.ConfigureCors(builder.Services);
+ServiceExtensions.ConfigureExceptionLogStore(builder.Services);
 
 var app = builder.Build();
 
@@ -33,6 +36,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
+app.ConfigureExceptionMiddleWare(app.Logger);
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -48,5 +52,7 @@ app.MapGet("health", async (VolterpDbContext db) =>
         checks
     });
 });
+app.MapGet("/_diagnostics/exceptions", (IExceptionLogStore store) =>
+    Results.Ok(store.GetRecent(50)));
 app.UseStaticFiles();
 app.Run();

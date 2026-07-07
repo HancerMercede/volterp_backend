@@ -1,3 +1,3 @@
 namespace Volterp.Application.Exceptions.User;
 
-public class UserNotFoundException(string message) : Exception(message);
+public class UserNotFoundException(string message) : NotFoundException(message);

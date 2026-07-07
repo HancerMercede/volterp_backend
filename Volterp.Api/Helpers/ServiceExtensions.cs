@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Volterp.Api.Configuration;
+using Volterp.Application.Diagnostics;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
 using Volterp.Infrastructure.Data;
@@ -58,4 +59,7 @@ public static class ServiceExtensions
                 policy.AllowAnyOrigin()
                       .AllowAnyMethod()
                       .AllowAnyHeader()));
+
+    public static void ConfigureExceptionLogStore(IServiceCollection services)
+        => services.AddSingleton<IExceptionLogStore>(new InMemoryExceptionLogStore(100));
 }

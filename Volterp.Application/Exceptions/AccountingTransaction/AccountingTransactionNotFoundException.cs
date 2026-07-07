@@ -1,3 +1,3 @@
 namespace Volterp.Application.Exceptions.AccountingTransaction;
 
-public class AccountingTransactionNotFoundException(string message) : Exception(message);
+public class AccountingTransactionNotFoundException(string message) : NotFoundException(message);

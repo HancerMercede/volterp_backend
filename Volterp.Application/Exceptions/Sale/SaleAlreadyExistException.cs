@@ -1,3 +1,3 @@
 namespace Volterp.Application.Exceptions.Sale;
 
-public class SaleAlreadyExistException(string message) : Exception(message);
+public class SaleAlreadyExistException(string message) : AlreadyExistException(message);
