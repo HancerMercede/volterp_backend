@@ -46,7 +46,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         return product.MapTo<Product, ProductDto>();
     }
 
-    public async Task<ProductDto> UpdateAsync(int id, UpdateProductDto request, int companyId, CancellationToken ct = default)
+    public async Task<ProductDto>  UpdateAsync(int id, UpdateProductDto request, int companyId, CancellationToken ct = default)
     {
         var product = await unitOfWork.Products.GetProductByIdAsync(id, ct);
         

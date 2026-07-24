@@ -22,7 +22,8 @@ public record UpdateProductDto(
             Description = Description,
             Price = Price,
             Stock = Stock,
-            CategoryId = CategoryId
+            CategoryId = CategoryId,
+            ImageUrl =  ImageUrl
         };
     }
 }

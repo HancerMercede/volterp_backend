@@ -1,6 +1,7 @@
 using EitherWay;
 using Volterp.Application.DTOs.UserDtos;
 using Volterp.Application.Exceptions.AppErrors;
+using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 
@@ -50,6 +51,8 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
         return await EitherAsync<Error, int>
             .FromRight(id)
             .Ensure(x=> x > 0 , new Error("id must be greater than zero."))
+            .Ensure(_=> request.Email.IsValidEmail(), 
+                _ => new Error("the email address is not valid"))
             .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
                 ex => new Error(ex.Message))
             .Ensure(user => user is not null, new Error("user not found"))

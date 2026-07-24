@@ -1,6 +1,8 @@
+using System.Runtime.InteropServices.ComTypes;
+using EitherWay;
 using Volterp.Application.DTOs;
-using Volterp.Application.Exceptions.Supplier;
-
+using Volterp.Application.Exceptions.AppErrors;
+using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 
@@ -12,85 +14,92 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
     {
         var suppliers = await unitOfWork.Suppliers.GetAllSuppliersByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
-        return suppliers.Map(s => new SupplierDto( s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category, s.ContactPerson,
-            s.ImageUrl, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
-        ));
+        return suppliers.MapTo<Supplier, SupplierDto>();
     }
 
-    public async Task<SupplierDto?> GetSupplierByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error,SupplierDto?>> GetSupplierByIdAsync(int id, int companyId, CancellationToken ct = default)
     {
-        var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct);
-
-        if (supplier is null) return null;
-
-        return supplier.Map(s => new SupplierDto(
-            s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.ImageUrl, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
-        ));
+        return await EitherAsync<Error, int>
+            .FromRight(id)
+            .Ensure(x => x > 0, new Error("The id must be greater than zero."))
+            .Ensure(_ => companyId > 0, new Error("The companyId must be greater than zero."))
+            .FlatMap(async (s) => await unitOfWork.Suppliers.GetSupplierByIdAsync(s, companyId, ct),
+                exception => new Error($"Error: {exception.Message}"))
+            .Map(supplier => supplier?.MapTo<Supplier, SupplierDto>())
+            .Run();
     }
 
-    public async Task<SupplierDto> CreateSupplierAsync(SupplierDto request, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error,SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, int companyId, CancellationToken ct = default)
     {
-        var supplier = new Supplier
-        {
-            CompanyId = companyId,
-            Name = request.Name,
-            Email = request.Email,
-            Phone = request.Phone,
-            Address = request.Address,
-            Category = request.Category,
-            ContactPerson = request.ContactPerson,
-            ImageUrl = request.ImageUrl,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        await unitOfWork.Suppliers.AddSupplierAsync(supplier, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        return supplier.Map(s => new SupplierDto(
-            s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.ImageUrl, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
-        ));
+        return await EitherAsync<Error, SupplierCreateDto>.FromRight(request)
+            .Ensure(x => !string.IsNullOrEmpty(x.Name), 
+                new Error("The name must be specified."))
+            .Ensure(x => !string.IsNullOrEmpty(x.Address), 
+                new Error("The address must be specified."))
+            .Ensure(x => !string.IsNullOrEmpty(x.Email),
+                new Error("The email must be specified."))
+            .Ensure(_=> request.Email.IsValidEmail(), _=> new Error("The email is not valid"))
+            .Ensure(_=> companyId > 0, 
+                new Error("The companyId must be greater than zero."))
+            .Map(_ => request.Project())
+            .FlatMap(async supplier => await unitOfWork.Suppliers.AddSupplierAsync(supplier, ct),
+                exception => new Error($"Error: {exception.Message}"))
+            .Map(supplier => supplier.MapTo<Supplier, SupplierDto>())
+            .Run();
     }
-
-    public async Task<SupplierDto> UpdateSupplierAsync(int id, int companyId, SupplierDto request, CancellationToken ct = default)
+    
+    public async Task<Either<Error,SupplierDto>> UpdateSupplierAsync(int id, int companyId, SupplierDto request, CancellationToken ct = default)
     {
-        var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct);
+        return await EitherAsync<Error, int>.FromRight(id)
+            .Ensure(s => s > 0, new Error("The id must be greater than zero."))
+            .Ensure(_ => companyId > 0, new Error("The companyId must be greater than zero."))
+            .Ensure(_ => !string.IsNullOrEmpty(request.Name), new Error("The name must be specified."))
+            .Ensure(_ => !string.IsNullOrEmpty(request.Address), new Error("The address must be specified."))
+            .Ensure(_ => !string.IsNullOrEmpty(request.Email), new Error("The email must be specified."))
+            .Ensure(_=> request.Email.IsValidEmail(), _=> new Error("The email is not valid"))
+            .FlatMap(async supplier => await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct),
+                exception => new Error($"Error: {exception.Message}"))
+            .Map(supplier =>
+            {
+               return supplier.Apply(s =>
+                {
+                    s.Address = request.Address!;
+                    s.Category = request.Category!;
+                    s.Name = request.Name!;
+                    s.Email = request.Email!;
+                    s.CompanyId = request.CompanyId;
+                    s.ImageUrl = request.ImageUrl;
+                    s.ContactPerson = request.ContactPerson!;
+                    s.UpdatedAt = DateTime.Now;
 
-        if (supplier is null)
-            throw new SupplierNotFoundException("Supplier not found");
-
-        supplier.Apply(s =>
-        {
-            s.Name = request.Name;
-            s.Email = request.Email;
-            s.Phone = request.Phone;
-            s.Address = request.Address;
-            s.Category = request.Category;
-            s.ContactPerson = request.ContactPerson;
-            s.ImageUrl = request.ImageUrl;
-            s.IsActive = request.IsActive;
-            s.UpdatedAt = DateTime.UtcNow;
-        });
-
-        await unitOfWork.Suppliers.UpdateSupplierAsync(supplier, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        return supplier.Map(s => new SupplierDto(
-            s.Id, s.Name, s.Email, s.Phone, s.Address, s.Category,
-            s.ContactPerson, s.ImageUrl, s.IsActive, s.CreatedAt, s.UpdatedAt, null, null
-        ));
+                });
+            }).FlatMap(async supplier =>
+                {
+                  await unitOfWork.Suppliers.UpdateSupplierAsync(supplier!, ct);
+                  return supplier;
+                },
+                exception => new Error($"Error: {exception.Message}"))
+            .Map(s => s?.MapTo<Supplier, SupplierDto>())
+            .Run();
     }
-
-    public async Task DeleteSupplierAsync(int id, int companyId, CancellationToken ct = default)
+    
+    public async Task<Either<Error, Unit>> DeleteSupplierAsync(int id, int companyId, CancellationToken ct = default)
     {
-        var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct);
 
-        if (supplier is null)
-            throw new SupplierNotFoundException("Supplier not found");
-
-        await unitOfWork.Suppliers.DeleteSupplierAsync(id, ct);
-        await unitOfWork.CommitAsync(ct);
+        return await EitherAsync<Error, int>.FromRight(id)
+            .Ensure(s => s > 0, new Error("the id must be greater than zero."))
+            .Ensure(_ => companyId > 0, new Error("the companyId must be greater than zero."))
+            .FlatMap(async supplierId =>
+            {
+                var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(supplierId, companyId, ct);
+                return supplier;
+            }, exception => new Error($"error:{exception.Message}"))
+            .FlatMap(async supplier =>
+            {
+                await unitOfWork.Suppliers.DeleteSupplierAsync(supplier.Id, ct);
+                await unitOfWork.CommitAsync(ct);
+                return new Unit();
+            }, exception => new Error($"Error:{exception.Message}"))
+            .Run();
     }
 }

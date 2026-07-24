@@ -33,4 +33,7 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
 
     private IClientService? _clients;
     public IClientService Clients => _clients ??= new ClientService(unitOfWork);
+
+    private IDashboardService? _dashboard;
+    public IDashboardService Dashboard => _dashboard ??= new DashboardService(unitOfWork);
 }

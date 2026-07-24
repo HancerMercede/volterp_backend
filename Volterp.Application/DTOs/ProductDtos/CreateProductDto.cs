@@ -24,6 +24,7 @@ public record CreateProductDto(
            Stock = Stock,
            CategoryId = CategoryId,
            CompanyId = CompanyId,
+           ImageUrl = ImageUrl
         };
     }
 }
