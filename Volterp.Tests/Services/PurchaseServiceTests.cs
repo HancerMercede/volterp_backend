@@ -36,22 +36,23 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
-        var request = new PurchaseDto(
-            Id: 0,
-            SupplierId: 1,
-            SupplierName: "Test Supplier",
-            Status: EntityStatus.Pending,
-            Total: 500,
-            Notes: "Test",
-            CreatedAt: DateTime.UtcNow,
-            UpdatedAt: null,
-            CreatedBy: 1,
-            UpdatedBy: null,
-            Items: new List<PurchaseItemDto>
+        var request = new PurchaseDto
+        {
+            Id = 0,
+            SupplierId = 1,
+            SupplierName = "Test Supplier",
+            Status = EntityStatus.Pending,
+            Total = 500,
+            Notes = "Test",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = null,
+            CreatedBy = 1,
+            UpdatedBy = null,
+            Items = new List<PurchaseItemDto>
             {
-                new(0, 1, "Test Product", "CODE123", 5, 100, 500)
+                new() { Id = 0, ProductId = 1, ProductName = "Test Product", ProductCode = "CODE123", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
-        );
+        };
 
         // ACT
         await service.CreatePurchaseAsync(request, 1, 1);
@@ -99,22 +100,23 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
-        var updateRequest = new PurchaseDto(
-            Id: 1,
-            SupplierId: 1,
-            SupplierName: "Updated",
-            Status: EntityStatus.Pending,
-            Total: 800,
-            Notes: "",
-            CreatedAt: DateTime.UtcNow,
-            UpdatedAt: null,
-            CreatedBy: 1,
-            UpdatedBy: null,
-            Items: new List<PurchaseItemDto>
+        var updateRequest = new PurchaseDto
+        {
+            Id = 1,
+            SupplierId = 1,
+            SupplierName = "Updated",
+            Status = EntityStatus.Pending,
+            Total = 800,
+            Notes = "",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = null,
+            CreatedBy = 1,
+            UpdatedBy = null,
+            Items = new List<PurchaseItemDto>
             {
-                new(0, 1, "Test", "CODE", 8, 100, 800)
+                new() { Id = 0, ProductId = 1, ProductName = "Test", ProductCode = "CODE", Quantity = 8, UnitPrice = 100, Subtotal = 800 }
             }
-        );
+        };
 
         // ACT
         await service.UpdatePurchaseAsync(1, 1, updateRequest, 1);
@@ -226,16 +228,17 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
-        var updateRequest = new PurchaseDto(
-            Id: 1, SupplierId: 1, SupplierName: "Updated",
-            Status: EntityStatus.Pending, Total: 800, Notes: "",
-            CreatedAt: DateTime.UtcNow, UpdatedAt: null,
-            CreatedBy: 1, UpdatedBy: null,
-            Items: new List<PurchaseItemDto>
+        var updateRequest = new PurchaseDto
+        {
+            Id = 1, SupplierId = 1, SupplierName = "Updated",
+            Status = EntityStatus.Pending, Total = 800, Notes = "",
+            CreatedAt = DateTime.UtcNow, UpdatedAt = null,
+            CreatedBy = 1, UpdatedBy = null,
+            Items = new List<PurchaseItemDto>
             {
-                new(0, 1, "Test", "CODE", 5, 100, 500)
+                new() { Id = 0, ProductId = 1, ProductName = "Test", ProductCode = "CODE", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
-        );
+        };
 
         // ACT
         var result = await service.UpdatePurchaseAsync(999, 1, updateRequest, 1);
@@ -322,16 +325,17 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
-        var request = new PurchaseDto(
-            Id: 0, SupplierId: 1, SupplierName: "Supplier",
-            Status: EntityStatus.Pending, Total: 1500, Notes: "",
-            CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
-            Items: new List<PurchaseItemDto>
+        var request = new PurchaseDto
+        {
+            Id = 0, SupplierId = 1, SupplierName = "Supplier",
+            Status = EntityStatus.Pending, Total = 1500, Notes = "",
+            CreatedAt = DateTime.UtcNow, UpdatedAt = null, CreatedBy = 1, UpdatedBy = null,
+            Items = new List<PurchaseItemDto>
             {
-                new(0, 1, "Product A", "CODE1", 15, 100, 1500),
-                new(0, 2, "Product B", "CODE2", 10, 100, 1000)
+                new() { Id = 0, ProductId = 1, ProductName = "Product A", ProductCode = "CODE1", Quantity = 15, UnitPrice = 100, Subtotal = 1500 },
+                new() { Id = 0, ProductId = 2, ProductName = "Product B", ProductCode = "CODE2", Quantity = 10, UnitPrice = 100, Subtotal = 1000 }
             }
-        );
+        };
 
         // ACT
         await service.CreatePurchaseAsync(request, 1, 1);
@@ -361,15 +365,16 @@ public class PurchaseServiceTests
             .ThrowsAsync(new InvalidOperationException("Database connection failed"));
 
         var service = new PurchaseService(mockUnitOfWork.Object);
-        var request = new PurchaseDto(
-            Id: 0, SupplierId: 1, SupplierName: "Supplier",
-            Status: EntityStatus.Pending, Total: 500, Notes: "",
-            CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
-            Items: new List<PurchaseItemDto>
+        var request = new PurchaseDto
+        {
+            Id = 0, SupplierId = 1, SupplierName = "Supplier",
+            Status = EntityStatus.Pending, Total = 500, Notes = "",
+            CreatedAt = DateTime.UtcNow, UpdatedAt = null, CreatedBy = 1, UpdatedBy = null,
+            Items = new List<PurchaseItemDto>
             {
-                new(0, 1, "Test Product", "CODE", 5, 100, 500)
+                new() { Id = 0, ProductId = 1, ProductName = "Test Product", ProductCode = "CODE", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
-        );
+        };
 
         // ACT
         var result = await service.CreatePurchaseAsync(request, 1, 1);
@@ -432,16 +437,17 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
-        var request = new PurchaseDto(
-            Id: 0, SupplierId: 1, SupplierName: "Supplier",
-            Status: EntityStatus.Pending, Total: 500, Notes: "",
-            CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
-            Items: new List<PurchaseItemDto>
+        var request = new PurchaseDto
+        {
+            Id = 0, SupplierId = 1, SupplierName = "Supplier",
+            Status = EntityStatus.Pending, Total = 500, Notes = "",
+            CreatedAt = DateTime.UtcNow, UpdatedAt = null, CreatedBy = 1, UpdatedBy = null,
+            Items = new List<PurchaseItemDto>
             {
-                new(0, 1, "Test Product", "CODE", 3, 100, 300),
-                new(0, 1, "Test Product", "CODE", 2, 100, 200) // Same ProductId, should group to 5
+                new() { Id = 0, ProductId = 1, ProductName = "Test Product", ProductCode = "CODE", Quantity = 3, UnitPrice = 100, Subtotal = 300 },
+                new() { Id = 0, ProductId = 1, ProductName = "Test Product", ProductCode = "CODE", Quantity = 2, UnitPrice = 100, Subtotal = 200 } // Same ProductId, should group to 5
             }
-        );
+        };
 
         // ACT
         await service.CreatePurchaseAsync(request, 1, 1);
@@ -469,16 +475,17 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
-        var request = new PurchaseDto(
-            Id: 0, SupplierId: 1, SupplierName: "Supplier",
-            Status: EntityStatus.Pending, Total: 800, Notes: "",
-            CreatedAt: DateTime.UtcNow, UpdatedAt: null, CreatedBy: 1, UpdatedBy: null,
-            Items: new List<PurchaseItemDto>
+        var request = new PurchaseDto
+        {
+            Id = 0, SupplierId = 1, SupplierName = "Supplier",
+            Status = EntityStatus.Pending, Total = 800, Notes = "",
+            CreatedAt = DateTime.UtcNow, UpdatedAt = null, CreatedBy = 1, UpdatedBy = null,
+            Items = new List<PurchaseItemDto>
             {
-                new(0, 1, "Existing Product", "CODE1", 3, 100, 300),
-                new(0, 999, "NonExistent", "CODE999", 5, 100, 500) // Product not in DB
+                new() { Id = 0, ProductId = 1, ProductName = "Existing Product", ProductCode = "CODE1", Quantity = 3, UnitPrice = 100, Subtotal = 300 },
+                new() { Id = 0, ProductId = 999, ProductName = "NonExistent", ProductCode = "CODE999", Quantity = 5, UnitPrice = 100, Subtotal = 500 } // Product not in DB
             }
-        );
+        };
 
         // ACT - should not throw, just skip the non-existent product
         await service.CreatePurchaseAsync(request, 1, 1);

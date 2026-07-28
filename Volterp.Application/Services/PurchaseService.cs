@@ -9,19 +9,10 @@ namespace Volterp.Application.Services;
 
 public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
 {
-    private static PurchaseDto MapToPurchaseDto(Purchase p) => new PurchaseDto(
-        p.Id, p.SupplierId, p.SupplierName, p.Status, p.Total, p.Notes,
-        p.CreatedAt, p.UpdatedAt, p.CreatedBy, p.UpdatedBy,
-        p.Items.Select(i => new PurchaseItemDto(
-            i.Id, i.ProductId, i.ProductName, i.ProductCode,
-            i.Quantity, i.UnitPrice, i.Subtotal
-        )).ToList()
-    );
-
     public async Task<PagedResult<PurchaseDto>> GetAllPurchasesAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var purchases = await unitOfWork.Purchases.GetAllPurchasesByCompanyAsync(companyId, pageNumber, pageSize, ct);
-        return purchases.Map(MapToPurchaseDto);
+        return purchases.MapTo<Purchase, PurchaseDto>();
     }
 
     public async Task<Either<Error, PurchaseDto?>> GetPurchaseByIdAsync(int id, int companyId, CancellationToken ct = default)
@@ -32,7 +23,7 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
             .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
             .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
                 ex => new Error(ex.Message))
-            .Map(purchase => purchase is null ? null : MapToPurchaseDto(purchase))
+            .Map(purchase => purchase is null ? null : purchase.MapTo<Purchase, PurchaseDto>())
             .Run();
     }
 
@@ -88,7 +79,7 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
                 await unitOfWork.CommitAsync(ct);
                 return purchase;
             }, ex => new Error(ex.Message))
-            .Map(purchase => MapToPurchaseDto(purchase))
+            .Map(purchase => purchase.MapTo<Purchase, PurchaseDto>())
             .Run();
     }
 
@@ -152,7 +143,7 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
                 await unitOfWork.CommitAsync(ct);
                 return purchase;
             }, ex => new Error(ex.Message))
-            .Map(purchase => MapToPurchaseDto(purchase))
+            .Map(purchase => purchase.MapTo<Purchase, PurchaseDto>())
             .Run();
     }
 
