@@ -11,4 +11,11 @@ public class InvalidSaleStateTransitionException : Exception
         FromStatus = fromStatus;
         ToStatus = toStatus;
     }
+
+    public InvalidSaleStateTransitionException(string fromStatus, string toStatus, string message)
+        : base(message)
+    {
+        FromStatus = fromStatus;
+        ToStatus = toStatus;
+    }
 }

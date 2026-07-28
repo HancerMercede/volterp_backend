@@ -1,4 +1,5 @@
 using Volterp.Domain.Enums;
+using Volterp.Domain.Exceptions;
 
 namespace Volterp.Domain.Entities;
 
@@ -18,6 +19,59 @@ public class Sale : AuditEntity
     
     public Company Company { get; set; } = null!;
     public ICollection<SaleItem> Items { get; set; } = new List<SaleItem>();
+
+    public void Complete()
+    {
+        if (Status != SaleStatus.Pending)
+            throw new InvalidSaleStateTransitionException(Status.ToString(), SaleStatus.Completed.ToString());
+
+        if (Items.Count == 0)
+            throw new InvalidSaleStateTransitionException(
+                Status.ToString(), SaleStatus.Completed.ToString(),
+                "Sale must have at least one item before completion.");
+
+        Status = SaleStatus.Completed;
+    }
+
+    public void Cancel()
+    {
+        if (Status != SaleStatus.Pending)
+            throw new InvalidSaleStateTransitionException(Status.ToString(), SaleStatus.Cancelled.ToString());
+
+        Status = SaleStatus.Cancelled;
+    }
+
+    public void AddItem(int productId, string? productName, int quantity, decimal unitPrice)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be positive.", nameof(quantity));
+
+        if (unitPrice < 0)
+            throw new ArgumentException("Unit price cannot be negative.", nameof(unitPrice));
+
+        var subtotal = quantity * unitPrice;
+
+        Items.Add(new SaleItem
+        {
+            ProductId = productId,
+            ProductName = productName ?? string.Empty,
+            Quantity = quantity,
+            UnitPrice = unitPrice,
+            Subtotal = subtotal
+        });
+
+        Total += subtotal;
+    }
+
+    public void RemoveItem(int productId)
+    {
+        var item = Items.FirstOrDefault(i => i.ProductId == productId);
+        if (item is null)
+            return;
+
+        Total -= item.Subtotal;
+        Items.Remove(item);
+    }
 }
 
 
