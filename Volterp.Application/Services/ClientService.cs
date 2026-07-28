@@ -92,7 +92,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .Ensure(client => client is not null, new Error("User not found."))
             .FlatMap(async client =>
             {
-                await unitOfWork.Clients.AddClientAsync(client, ct);
+                await unitOfWork.Clients.DeleteClientAsync(client.Id, ct);
                 await unitOfWork.CommitAsync(ct);
                 return new Unit();
             }, error => new Error(error.Message))
