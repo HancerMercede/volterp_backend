@@ -16,7 +16,11 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         entity.Property(e => e.Category).IsRequired().HasMaxLength(100);
         entity.Property(e => e.Description).HasMaxLength(1000);
         entity.Property(e => e.ImageUrl).HasColumnType("text");
-        entity.Property(e => e.Price).HasPrecision(18, 2);
+        entity.ComplexProperty(p => p.Price, m =>
+        {
+            m.Property(x => x.Amount).HasColumnName("Price").HasPrecision(18, 2);
+            m.Property(x => x.Currency).HasColumnName("Currency");
+        });
         entity.Property(e => e.Stock).HasDefaultValue(0);
         entity.Property(e => e.IsActive).HasDefaultValue(true);
 
