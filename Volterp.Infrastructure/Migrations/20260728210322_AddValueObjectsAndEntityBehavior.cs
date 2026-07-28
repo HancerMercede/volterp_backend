@@ -68,7 +68,7 @@ namespace Volterp.Infrastructure.Migrations
                 table: "Products",
                 type: "integer",
                 nullable: false,
-                defaultValue: 1);
+                defaultValue: 5);
 
             migrationBuilder.AddColumn<int>(
                 name: "UpdatedBy",
