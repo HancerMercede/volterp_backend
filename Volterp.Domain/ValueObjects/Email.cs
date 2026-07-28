@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Volterp.Domain.Exceptions;
 
 namespace Volterp.Domain.ValueObjects;
 
@@ -15,12 +16,10 @@ public readonly partial record struct Email
     public Email(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
-            throw new ArgumentException("Email cannot be null, empty, or whitespace.", nameof(value));
-
-        value = value.Trim();
+            throw new InvalidEmailException(value);
 
         if (!EmailRegex().IsMatch(value))
-            throw new ArgumentException($"'{value}' is not a valid email address.", nameof(value));
+            throw new InvalidEmailException(value);
 
         Value = value;
     }

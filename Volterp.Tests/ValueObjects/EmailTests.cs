@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Volterp.Domain.Exceptions;
 using Volterp.Domain.ValueObjects;
 using Xunit;
 
@@ -39,7 +40,7 @@ public class EmailTests
     {
         var act = () => new Email("userexample.com");
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidEmailException>()
             .WithMessage("*email*");
     }
 
@@ -48,7 +49,7 @@ public class EmailTests
     {
         var act = () => new Email("user@");
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidEmailException>()
             .WithMessage("*email*");
     }
 
@@ -57,7 +58,7 @@ public class EmailTests
     {
         var act = () => new Email(null!);
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidEmailException>()
             .WithMessage("*email*");
     }
 
@@ -66,7 +67,7 @@ public class EmailTests
     {
         var act = () => new Email("");
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidEmailException>()
             .WithMessage("*email*");
     }
 
@@ -75,7 +76,16 @@ public class EmailTests
     {
         var act = () => new Email("   ");
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidEmailException>()
+            .WithMessage("*email*");
+    }
+
+    [Fact]
+    public void Email_WithSurroundingWhitespace_ShouldThrow()
+    {
+        var act = () => new Email(" user@example.com ");
+
+        act.Should().Throw<InvalidEmailException>()
             .WithMessage("*email*");
     }
 
