@@ -162,6 +162,6 @@ public class MoneyTests
         var zero = Money.Zero;
 
         zero.Amount.Should().Be(0);
-        zero.Currency.Should().Be(Currency.ARS);
+        zero.Currency.Should().Be(Currency.DOP);
     }
 }

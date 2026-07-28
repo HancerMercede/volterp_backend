@@ -16,7 +16,7 @@ public readonly record struct Money
         Currency = currency;
     }
 
-    public static Money Zero => new(0, Currency.ARS);
+    public static Money Zero => new(0, Currency.DOP);
 
     public Money Add(Money other)
     {

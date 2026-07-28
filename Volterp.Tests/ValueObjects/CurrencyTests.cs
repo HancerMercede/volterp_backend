@@ -7,10 +7,10 @@ namespace Volterp.Tests.ValueObjects;
 public class CurrencyTests
 {
     [Fact]
-    public void Currency_ShouldHaveFourValues()
+    public void Currency_ShouldHaveFiveValues()
     {
         var values = Enum.GetValues<Currency>();
-        values.Should().HaveCount(4);
+        values.Should().HaveCount(5);
     }
 
     [Fact]
@@ -35,5 +35,11 @@ public class CurrencyTests
     public void BRL_ShouldHaveValue4()
     {
         ((int)Currency.BRL).Should().Be(4);
+    }
+
+    [Fact]
+    public void DOP_ShouldHaveValue5()
+    {
+        ((int)Currency.DOP).Should().Be(5);
     }
 }
