@@ -1,6 +1,6 @@
 using Volterp.Domain.Entities;
 
-namespace Volterp.Application.DTOs;
+namespace Volterp.Application.DTOs.SupplierDtos;
 
 public record SupplierDto:IMapFrom<Supplier>
 {

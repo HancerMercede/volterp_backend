@@ -1,6 +1,6 @@
 using Volterp.Domain.Entities;
 
-namespace Volterp.Application.DTOs;
+namespace Volterp.Application.DTOs.SupplierDtos;
 
 public record SupplierCreateDto:IMapTo<Supplier>
 {
@@ -19,7 +19,7 @@ public record SupplierCreateDto:IMapTo<Supplier>
 
     public Supplier MapTo()
     {
-        return new Supplier
+        return new Domain.Entities.Supplier
         {
             CompanyId = CompanyId,
             Name = Name,

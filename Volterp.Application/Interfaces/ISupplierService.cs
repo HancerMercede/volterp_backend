@@ -1,5 +1,5 @@
 using EitherWay;
-using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.SupplierDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 

@@ -1,6 +1,5 @@
-using System.Runtime.InteropServices.ComTypes;
 using EitherWay;
-using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.SupplierDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
@@ -29,9 +28,10 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Run();
     }
 
-    public async Task<Either<Error,SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, int companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, SupplierCreateDto>.FromRight(request)
+        return await EitherAsync<Error, SupplierCreateDto>
+            .FromRight(request)
             .Ensure(x => !string.IsNullOrEmpty(x.Name), 
                 new Error("The name must be specified."))
             .Ensure(x => !string.IsNullOrEmpty(x.Address), 
