@@ -8,6 +8,8 @@ using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
+using Volterp.Domain.ValueObjects;
 using Xunit;
 
 namespace Volterp.Tests.Services;
@@ -22,7 +24,7 @@ public class ProductServiceTests
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
 
-        var productInCompany1 = new Product { Id = 1, Name = "Test", CompanyId = 1, Stock = 10, Price = 100 };
+        var productInCompany1 = new Product { Id = 1, Name = "Test", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS) };
 
         mockProductsRepo.Setup(r => r.GetProductByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(productInCompany1);
@@ -49,8 +51,8 @@ public class ProductServiceTests
         {
             Items = new List<Product>
             {
-                new() { Id = 1, Name = "Product A", CompanyId = 1, Stock = 10, Price = 100, Category = "Category A" },
-                new() { Id = 2, Name = "Product B", CompanyId = 1, Stock = 20, Price = 200, Category = "Category B" }
+                new() { Id = 1, Name = "Product A", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS), Category = "Category A" },
+                new() { Id = 2, Name = "Product B", CompanyId = 1, Stock = 20, Price = new Money(200, Currency.ARS), Category = "Category B" }
             },
             PageNumber = 1,
             PageSize = 10,
@@ -82,7 +84,7 @@ public class ProductServiceTests
 
         var product = new Product
         {
-            Id = 1, Name = "Test Product", CompanyId = 1, Stock = 10, Price = 100,
+            Id = 1, Name = "Test Product", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS),
             CategoryId = 1, Category = "Category A", Description = "Description", IsActive = true
         };
 
@@ -216,7 +218,7 @@ public class ProductServiceTests
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
 
-        var product = new Product { Id = 1, Name = "Test", CompanyId = 1, Stock = 10, Price = 100 };
+        var product = new Product { Id = 1, Name = "Test", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS) };
 
         mockProductsRepo.Setup(r => r.GetProductByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
@@ -246,7 +248,7 @@ public class ProductServiceTests
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
 
-        var product = new Product { Id = 1, Name = "Old Name", CompanyId = 1, Stock = 10, Price = 100, Category = "Old Category" };
+        var product = new Product { Id = 1, Name = "Old Name", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS), Category = "Old Category" };
 
         mockProductsRepo.Setup(r => r.GetProductByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
@@ -270,7 +272,7 @@ public class ProductServiceTests
         // ASSERT
         result.Should().NotBeNull();
         product.Name.Should().Be("New Name");
-        product.Price.Should().Be(200);
+        product.Price.Amount.Should().Be(200);
         mockProductsRepo.Verify(r => r.UpdateProductAsync(product, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -301,7 +303,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Name = "Test", CompanyId = 1, Stock = 10, Price = 100 };
+        var product = new Product { Id = 1, Name = "Test", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS) };
 
         mockProductsRepo.Setup(r => r.GetProductByIdAsync(1, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);

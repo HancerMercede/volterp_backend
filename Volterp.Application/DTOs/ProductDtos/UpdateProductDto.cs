@@ -1,4 +1,6 @@
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
+using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Application.DTOs.ProductDtos;
 
@@ -20,7 +22,7 @@ public record UpdateProductDto(
             Name = Name,
             Category = Category,
             Description = Description,
-            Price = Price,
+            Price = new Money(Price, Currency.ARS),
             Stock = Stock,
             CategoryId = CategoryId,
             ImageUrl =  ImageUrl

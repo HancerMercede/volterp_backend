@@ -22,7 +22,7 @@ public record ProductDto : IMapFrom<Product>
         Name = source.Name;
         Category = source.Category;
         Description = source.Description;
-        Price = source.Price;
+        Price = source.Price.Amount;
         Stock = source.Stock;
         CategoryId = source.CategoryId;
         CompanyId = source.CompanyId;

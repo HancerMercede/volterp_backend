@@ -6,6 +6,8 @@ using Volterp.Application.Exceptions.Product;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
+using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Application.Services;
 
@@ -65,7 +67,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             r.Name = request.Name;
             r.Category = request.Category;
             r.Description = request.Description;
-            r.Price = request.Price;
+            r.Price = new Money(request.Price, Currency.ARS);
             r.Stock = request.Stock;
             r.CategoryId = request.CategoryId;
             r.ImageUrl = request.ImageUrl;
