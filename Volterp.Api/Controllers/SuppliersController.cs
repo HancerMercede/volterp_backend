@@ -1,3 +1,4 @@
+using EitherWay;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
@@ -21,74 +22,67 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
         var result = await serviceManager
             .Suppliers
             .GetAllSuppliersAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
-        
+
         return Ok(result);
     }
-    
+
     [HttpGet("{id}")]
     public async Task<ActionResult<SupplierDto>> GetSupplier(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var supplier = await serviceManager
+        var result = await serviceManager
             .Suppliers
             .GetSupplierByIdAsync(id, companyId, ct);
-        
-        if (supplier is null)
-            return NotFound(new { message = "Proveedor no encontrado" });
-            
-        return Ok(supplier);
+
+        return result.Match<ActionResult<SupplierDto>>(
+            error => NotFound(new { message = error.Message }),
+            value => Ok(value));
     }
-    
+
     [HttpPost]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<SupplierDto>> CreateSupplier([FromBody] SupplierDto request, CancellationToken ct = default)
+    public async Task<ActionResult<SupplierDto>> CreateSupplier(
+        [FromBody] SupplierCreateDto request,
+        CancellationToken ct = default)
     {
-        try
-        {
-            var companyId = GetCurrentUserCompanyId();
-            var supplier = await serviceManager
-                .Suppliers
-                .CreateSupplierAsync(request, companyId, ct);
-        
-            return CreatedAtAction(nameof(GetSupplier), new { id = supplier.Id }, supplier);
-        }
-        catch (Exception e)
-        {
-            return BadRequest(new ErrorResponse("Could not create supplier", e.Message));
-        }
+        var companyId = GetCurrentUserCompanyId();
+        var result = await serviceManager
+            .Suppliers
+            .CreateSupplierAsync(request, companyId, ct);
+
+        return result.Match<ActionResult<SupplierDto>>(
+            error => BadRequest(new { message = error.Message }),
+            value => CreatedAtAction(nameof(GetSupplier), new { id = value.Id }, value));
     }
-    
+
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<SupplierDto>> UpdateSupplier(int id, [FromBody] SupplierDto request, CancellationToken ct = default)
+    public async Task<ActionResult<SupplierDto>> UpdateSupplier(
+        int id,
+        [FromBody] SupplierDto request,
+        CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            var supplier = await serviceManager.Suppliers.UpdateSupplierAsync(id, companyId, request, ct);
-            return Ok(supplier);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await serviceManager
+            .Suppliers
+            .UpdateSupplierAsync(id, companyId, request, ct);
+
+        return result.Match<ActionResult<SupplierDto>>(
+            error => NotFound(new { message = error.Message }),
+            value => Ok(value));
     }
-    
+
     [HttpDelete("{id}")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult> DeleteSupplier(int id, CancellationToken ct = default)
+    public async Task<IActionResult> DeleteSupplier(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            await serviceManager.Suppliers.DeleteSupplierAsync(id, companyId, ct);
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await serviceManager
+            .Suppliers
+            .DeleteSupplierAsync(id, companyId, ct);
+
+        return result.Match<IActionResult>(
+            error => NotFound(new { message = error.Message }),
+            _ => NoContent());
     }
 }
