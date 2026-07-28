@@ -1,0 +1,96 @@
+using FluentAssertions;
+using Volterp.Domain.Exceptions;
+using Xunit;
+
+namespace Volterp.Tests.Exceptions;
+
+public class ExceptionTests
+{
+    [Fact]
+    public void InsufficientStockException_ShouldIncludeRequestedAndAvailable()
+    {
+        var ex = new InsufficientStockException(requested: 10, available: 3);
+
+        ex.Requested.Should().Be(10);
+        ex.Available.Should().Be(3);
+        ex.Message.Should().Contain("10").And.Contain("3");
+    }
+
+    [Fact]
+    public void InsufficientStockException_ShouldInheritFromException()
+    {
+        var ex = new InsufficientStockException(5, 2);
+
+        ex.Should().BeAssignableTo<Exception>();
+    }
+
+    [Fact]
+    public void InvalidEmailException_ShouldIncludeInvalidValue()
+    {
+        var ex = new InvalidEmailException("not-an-email");
+
+        ex.InvalidValue.Should().Be("not-an-email");
+        ex.Message.Should().Contain("not-an-email");
+    }
+
+    [Fact]
+    public void InvalidEmailException_ShouldInheritFromException()
+    {
+        var ex = new InvalidEmailException("bad");
+
+        ex.Should().BeAssignableTo<Exception>();
+    }
+
+    [Fact]
+    public void InvalidTaxIdException_ShouldIncludeInvalidValue()
+    {
+        var ex = new InvalidTaxIdException("ABC-1234");
+
+        ex.InvalidValue.Should().Be("ABC-1234");
+        ex.Message.Should().Contain("ABC-1234");
+    }
+
+    [Fact]
+    public void InvalidTaxIdException_ShouldInheritFromException()
+    {
+        var ex = new InvalidTaxIdException("bad");
+
+        ex.Should().BeAssignableTo<Exception>();
+    }
+
+    [Fact]
+    public void InvalidSaleStateTransitionException_ShouldIncludeFromAndTo()
+    {
+        var ex = new InvalidSaleStateTransitionException(fromStatus: "Pending", toStatus: "Cancelled");
+
+        ex.FromStatus.Should().Be("Pending");
+        ex.ToStatus.Should().Be("Cancelled");
+        ex.Message.Should().Contain("Pending").And.Contain("Cancelled");
+    }
+
+    [Fact]
+    public void InvalidSaleStateTransitionException_ShouldInheritFromException()
+    {
+        var ex = new InvalidSaleStateTransitionException("Pending", "Completed");
+
+        ex.Should().BeAssignableTo<Exception>();
+    }
+
+    [Fact]
+    public void InvalidRoleTransitionException_ShouldIncludeFromAndTo()
+    {
+        var ex = new InvalidRoleTransitionException(fromRole: "Ventas", toRole: "SuperAdmin");
+
+        ex.FromRole.Should().Be("Ventas");
+        ex.ToRole.Should().Be("SuperAdmin");
+        ex.Message.Should().Contain("Ventas").And.Contain("SuperAdmin");
+    }
+
+    [Fact]
+    public void InvalidRoleTransitionException_ShouldInheritFromException()
+    {
+        var ex = new InvalidRoleTransitionException("Admin", "SuperAdmin");
+
+        ex.Should().BeAssignableTo<Exception>();
+    }
+}
