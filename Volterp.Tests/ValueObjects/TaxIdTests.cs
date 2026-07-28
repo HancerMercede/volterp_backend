@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Volterp.Domain.Exceptions;
 using Volterp.Domain.ValueObjects;
 using Xunit;
 
@@ -35,11 +36,20 @@ public class TaxIdTests
     }
 
     [Fact]
-    public void TaxId_ShouldConvertToUpperCase()
+    public void TaxId_WithLowercase_ShouldPreserveCase()
     {
         var taxId = new TaxId("abc12345");
 
-        taxId.Value.Should().Be("ABC12345");
+        taxId.Value.Should().Be("abc12345");
+    }
+
+    [Fact]
+    public void TaxId_WithSurroundingWhitespace_ShouldThrow()
+    {
+        var act = () => new TaxId(" ABC12345 ");
+
+        act.Should().Throw<InvalidTaxIdException>()
+            .WithMessage("*Tax ID*");
     }
 
     // === Invalid inputs ===
@@ -49,7 +59,7 @@ public class TaxIdTests
     {
         var act = () => new TaxId("ABC-1234");
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidTaxIdException>()
             .WithMessage("*Tax ID*");
     }
 
@@ -58,7 +68,7 @@ public class TaxIdTests
     {
         var act = () => new TaxId("ABC1234");
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidTaxIdException>()
             .WithMessage("*Tax ID*");
     }
 
@@ -67,7 +77,7 @@ public class TaxIdTests
     {
         var act = () => new TaxId("ABCDEF1234567890");
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidTaxIdException>()
             .WithMessage("*Tax ID*");
     }
 
@@ -76,7 +86,7 @@ public class TaxIdTests
     {
         var act = () => new TaxId(null!);
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidTaxIdException>()
             .WithMessage("*Tax ID*");
     }
 
@@ -85,7 +95,7 @@ public class TaxIdTests
     {
         var act = () => new TaxId("");
 
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidTaxIdException>()
             .WithMessage("*Tax ID*");
     }
 
@@ -102,12 +112,12 @@ public class TaxIdTests
     }
 
     [Fact]
-    public void TaxId_Equals_CaseInsensitive_ShouldBeEqual()
+    public void TaxId_Equals_CaseSensitive_ShouldNotBeEqual()
     {
         var a = new TaxId("ABC12345");
         var b = new TaxId("abc12345");
 
-        a.Should().Be(b);
+        a.Should().NotBe(b);
     }
 
     [Fact]
