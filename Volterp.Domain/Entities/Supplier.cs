@@ -1,3 +1,5 @@
+using Volterp.Domain.ValueObjects;
+
 namespace Volterp.Domain.Entities;
 
 public class Supplier : AuditEntity
@@ -13,4 +15,10 @@ public class Supplier : AuditEntity
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public Company Company { get; set; } = null!;
+
+    public void Activate() => IsActive = true;
+    public void Deactivate() => IsActive = false;
+
+    public void UpdateEmail(Email email) => Email = email.Value;
+    public void UpdatePhone(string? phone) => Phone = phone ?? string.Empty;
 }

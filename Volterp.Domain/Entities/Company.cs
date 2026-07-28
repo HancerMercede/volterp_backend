@@ -1,6 +1,8 @@
+using Volterp.Domain.ValueObjects;
+
 namespace Volterp.Domain.Entities;
 
-public class Company:AuditEntity
+public class Company : AuditEntity
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -20,4 +22,11 @@ public class Company:AuditEntity
     public ICollection<Purchase> Purchases { get; set; } = new List<Purchase>();
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     public ICollection<AccountingTransaction> AccountingTransactions { get; set; } = new List<AccountingTransaction>();
+
+    public void Activate() => IsActive = true;
+    public void Deactivate() => IsActive = false;
+
+    public void UpdateTaxId(TaxId taxId) => TaxId = taxId.Value;
+    public void UpdateEmail(Email email) => Email = email.Value;
+    public void UpdatePhone(string? phone) => Phone = phone ?? string.Empty;
 }

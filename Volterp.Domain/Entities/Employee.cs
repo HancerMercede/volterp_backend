@@ -1,4 +1,5 @@
 using Volterp.Domain.Enums;
+using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Domain.Entities;
 
@@ -24,4 +25,10 @@ public class Employee : AuditEntity
     public string? Bank { get; set; }
     public string? AccountNumber { get; set; }
     public Company Company { get; set; } = null!;
+
+    public void Activate() => Status = EntityStatus.Active;
+    public void Deactivate() => Status = EntityStatus.Inactive;
+
+    public void UpdateEmail(Email email) => Email = email.Value;
+    public void UpdateSalary(decimal salary) => Salary = salary;
 }
