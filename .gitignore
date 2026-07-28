@@ -6,3 +6,16 @@ openspec/
 
 # Gentle AI / ATL skills
 .atl/
+
+# .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.nupkg
+.vs/
+*.DotSettings.user
+Debug/
+Release/
+*.csproj.user
