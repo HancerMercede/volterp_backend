@@ -13,7 +13,7 @@ public record SupplierCreateDto:IMapTo<Supplier>
     public string? ContactPerson { get; set; }
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTime? CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
 
@@ -32,7 +32,6 @@ public record SupplierCreateDto:IMapTo<Supplier>
             IsActive = IsActive,
             CreatedAt = CreatedAt,
             UpdatedAt = UpdatedAt
-
         };
     }
 }

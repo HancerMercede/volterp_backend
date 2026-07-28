@@ -23,8 +23,5 @@ public class Employee : AuditEntity
     public string? ImageUrl { get; set; }
     public string? Bank { get; set; }
     public string? AccountNumber { get; set; }
-    public int? CreatedBy { get; set; }
-    public int? UpdatedBy { get; set; }
-
     public Company Company { get; set; } = null!;
 }

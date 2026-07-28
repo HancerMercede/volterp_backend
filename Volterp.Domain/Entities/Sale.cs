@@ -16,9 +16,6 @@ public class Sale : AuditEntity
     
     public string? Notes { get; set; }
     
-    public DateTime CreatedAt { get; set; }
-    public DateTime? UpdatedAt { get; set; }
-
     public Company Company { get; set; } = null!;
     public ICollection<SaleItem> Items { get; set; } = new List<SaleItem>();
 }

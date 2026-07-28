@@ -14,8 +14,5 @@ public class AccountingTransaction : AuditEntity
     public string Category { get; set; } = string.Empty;
     public string? Notes { get; set; }
     public EntityStatus Status { get; set; } = EntityStatus.Active;
-    public int? CreatedBy { get; set; }
-    public int? UpdatedBy { get; set; }
-
     public Company Company { get; set; } = null!;
 }

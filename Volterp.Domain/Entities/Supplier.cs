@@ -12,8 +12,5 @@ public class Supplier : AuditEntity
     public string ContactPerson { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
-    public DateTime? CreatedAt { get; set; } = DateTime.Now;
-    public DateTime? UpdatedAt { get; set; } 
-
     public Company Company { get; set; } = null!;
 }

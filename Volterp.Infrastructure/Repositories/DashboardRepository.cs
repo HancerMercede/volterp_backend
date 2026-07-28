@@ -170,7 +170,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
             .Take(3)
             .Select(c => new
             {
-                CreatedAt = c.CreatedAt ?? DateTime.MinValue,
+                CreatedAt = c.CreatedAt,
                 Text = $"Nuevo cliente registrado: {c.Name}",
                 Type = "client"
             })
