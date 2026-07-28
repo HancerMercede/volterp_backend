@@ -1,7 +1,8 @@
+using EitherWay;
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
-using Volterp.Application.Exceptions.Purchase;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -184,9 +185,11 @@ public class PurchaseServiceTests
         var result = await service.GetPurchaseByIdAsync(1, 1);
 
         // ASSERT
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(1);
-        result.SupplierName.Should().Be("Supplier A");
+        result.Should().BeOfType<Either<Error, PurchaseDto?>.Right>();
+        var dto = ((Either<Error, PurchaseDto?>.Right)result).Value;
+        dto.Should().NotBeNull();
+        dto!.Id.Should().Be(1);
+        dto.SupplierName.Should().Be("Supplier A");
     }
 
     [Fact]
@@ -206,7 +209,9 @@ public class PurchaseServiceTests
         var result = await service.GetPurchaseByIdAsync(999, 1);
 
         // ASSERT
-        result.Should().BeNull();
+        result.Should().BeOfType<Either<Error, PurchaseDto?>.Right>();
+        var right = (Either<Error, PurchaseDto?>.Right)result;
+        right.Value.Should().BeNull();
     }
 
     [Fact]
@@ -233,10 +238,12 @@ public class PurchaseServiceTests
         );
 
         // ACT
-        var act = () => service.UpdatePurchaseAsync(999, 1, updateRequest, 1);
+        var result = await service.UpdatePurchaseAsync(999, 1, updateRequest, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<PurchaseNotFoundException>().WithMessage("Purchase not found");
+        result.Should().BeOfType<Either<Error, PurchaseDto>.Left>();
+        var error = ((Either<Error, PurchaseDto>.Left)result).Value;
+        error.Message.Should().Be("Purchase not found.");
     }
 
     [Fact]
@@ -253,10 +260,12 @@ public class PurchaseServiceTests
         var service = new PurchaseService(mockUnitOfWork.Object);
 
         // ACT
-        var act = () => service.DeletePurchaseAsync(999, 1);
+        var result = await service.DeletePurchaseAsync(999, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<PurchaseNotFoundException>().WithMessage("Purchase not found");
+        result.Should().BeOfType<Either<Error, Unit>.Left>();
+        var error = ((Either<Error, Unit>.Left)result).Value;
+        error.Message.Should().Be("Purchase not found.");
     }
 
     [Fact]
@@ -363,11 +372,12 @@ public class PurchaseServiceTests
         );
 
         // ACT
-        var act = () => service.CreatePurchaseAsync(request, 1, 1);
+        var result = await service.CreatePurchaseAsync(request, 1, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Database connection failed");
+        result.Should().BeOfType<Either<Error, PurchaseDto>.Left>();
+        var error = ((Either<Error, PurchaseDto>.Left)result).Value;
+        error.Message.Should().Be("Database connection failed");
         // NOTE: Stock change happens in memory before commit. True rollback needs integration tests.
         product.Stock.Should().Be(15); // Stock incremented before commit failed
     }
@@ -590,11 +600,12 @@ public class PurchaseServiceTests
         var service = new PurchaseService(mockUnitOfWork.Object);
 
         // ACT
-        var act = () => service.DeletePurchaseAsync(1, 1);
+        var result = await service.DeletePurchaseAsync(1, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Database connection failed");
+        result.Should().BeOfType<Either<Error, Unit>.Left>();
+        var error = ((Either<Error, Unit>.Left)result).Value;
+        error.Message.Should().Be("Database connection failed");
         // Stock was modified in memory before commit failed
         // NOTE: This documents current behavior. True rollback requires integration tests.
         product.Stock.Should().Be(15); // 20 - 5 decremented before commit failed

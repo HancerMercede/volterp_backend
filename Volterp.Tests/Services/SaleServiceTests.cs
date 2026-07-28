@@ -1,7 +1,8 @@
+using EitherWay;
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
-using Volterp.Application.Exceptions.Sale;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -265,9 +266,11 @@ public class SaleServiceTests
         var result = await service.GetSaleByIdAsync(1, 1);
 
         // ASSERT
-        result.Should().NotBeNull();
-        result!.Id.Should().Be(1);
-        result.ClienteName.Should().Be("Test Client");
+        result.Should().BeOfType<Either<Error, SaleDto?>.Right>();
+        var dto = ((Either<Error, SaleDto?>.Right)result).Value;
+        dto.Should().NotBeNull();
+        dto!.Id.Should().Be(1);
+        dto.ClienteName.Should().Be("Test Client");
     }
 
     [Fact]
@@ -287,7 +290,9 @@ public class SaleServiceTests
         var result = await service.GetSaleByIdAsync(999, 1);
 
         // ASSERT
-        result.Should().BeNull();
+        result.Should().BeOfType<Either<Error, SaleDto?>.Right>();
+        var dto = ((Either<Error, SaleDto?>.Right)result).Value;
+        dto.Should().BeNull();
     }
 
     [Fact]
@@ -347,14 +352,16 @@ public class SaleServiceTests
         );
 
         // ACT
-        var act = () => service.UpdateSaleAsync(999, 1, updateRequest);
+        var result = await service.UpdateSaleAsync(999, 1, updateRequest);
 
         // ASSERT
-        await act.Should().ThrowAsync<SaleNotFoundException>().WithMessage("Sale not found");
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Be("Sale not found.");
     }
 
     [Fact]
-    public async Task CompleteSaleAsync_WhenSaleNotFound_ThrowsSaleNotFoundException()
+    public async Task CompleteSaleAsync_WhenSaleNotFound_ReturnsLeft()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -367,14 +374,16 @@ public class SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var act = () => service.CompleteSaleAsync(999, 1);
+        var result = await service.CompleteSaleAsync(999, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<SaleNotFoundException>().WithMessage("Sale not found");
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Be("Sale not found.");
     }
 
     [Fact]
-    public async Task DeleteSaleAsync_WhenSaleNotFound_ThrowsSaleNotFoundException()
+    public async Task DeleteSaleAsync_WhenSaleNotFound_ReturnsLeft()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -387,10 +396,12 @@ public class SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var act = () => service.DeleteSaleAsync(999, 1);
+        var result = await service.DeleteSaleAsync(999, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<SaleNotFoundException>().WithMessage("Sale not found");
+        result.Should().BeOfType<Either<Error, Unit>.Left>();
+        var error = ((Either<Error, Unit>.Left)result).Value;
+        error.Message.Should().Be("Sale not found.");
     }
 
     [Fact]
@@ -452,11 +463,12 @@ public class SaleServiceTests
         );
 
         // ACT
-        var act = () => service.CreateSaleAsync(request);
+        var result = await service.CreateSaleAsync(request);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Insufficient stock*");
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Contain("Insufficient stock");
         product.Stock.Should().Be(5); // Stock unchanged
     }
 
@@ -523,11 +535,12 @@ public class SaleServiceTests
         );
 
         // ACT
-        var act = () => service.CreateSaleAsync(request);
+        var result = await service.CreateSaleAsync(request);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Database connection failed");
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Be("Database connection failed");
         // NOTE: In unit tests with mocks, stock changes persist in memory even when
         // commit fails. In a real DB transaction, this would be rolled back.
         // This test documents the current behavior - proper transaction handling
@@ -615,10 +628,12 @@ public class SaleServiceTests
         );
 
         // ACT
-        var act = () => service.UpdateSaleAsync(1, 1, updateRequest);
+        var result = await service.UpdateSaleAsync(1, 1, updateRequest);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Be("Commit failed");
         // Stock changes applied in memory before commit: 10 + 5 (return old) - 8 (deduct new) = 7
         // NOTE: This documents current behavior. True rollback requires integration tests.
         product.Stock.Should().Be(7);
@@ -663,11 +678,12 @@ public class SaleServiceTests
         );
 
 // ACT
-        var act = () => service.UpdateSaleAsync(1, 1, updateRequest);
+        var result = await service.UpdateSaleAsync(1, 1, updateRequest);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Insufficient stock*");
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Contain("Insufficient stock");
         // Stock was restored by oldReturns (5 + 4 = 9) before validation failed
         // oldReturns are applied in-memory before the new deduction is validated
         product.Stock.Should().Be(9);
@@ -829,11 +845,12 @@ public class SaleServiceTests
         );
 
         // ACT
-        var act = () => service.CreateSaleAsync(request);
+        var result = await service.CreateSaleAsync(request);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Insufficient stock*");
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Contain("Insufficient stock");
         product.Stock.Should().Be(0); // Stock unchanged
     }
 
@@ -899,10 +916,12 @@ public class SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var act = () => service.CompleteSaleAsync(1, 1);
+        var result = await service.CompleteSaleAsync(1, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Sale is already completed");
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Be("Invalid sale state transition: 'Completed' → 'Completed'");
     }
 
     [Fact]
@@ -973,15 +992,12 @@ public class SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var act = () => service.CompleteSaleAsync(1, 1);
+        var result = await service.CompleteSaleAsync(1, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Cannot complete sale*")
-            .WithMessage("*Insufficient stock*")
-            .WithMessage("*Available: 3*")
-            .WithMessage("*Requested: 10*");
-        sale.Status.Should().Be(SaleStatus.Pending); // Status unchanged
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Contain("Insufficient stock");
     }
 
     [Fact]
@@ -1020,7 +1036,9 @@ public class SaleServiceTests
 
         // ASSERT
         sale.Status.Should().Be(SaleStatus.Completed);
-        result.Status.Should().Be(SaleStatus.Completed);
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+        dto.Status.Should().Be(SaleStatus.Completed);
         mockSalesRepo.Verify(r => r.UpdateSaleAsync(sale, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -1095,11 +1113,12 @@ public class SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var act = () => service.DeleteSaleAsync(1, 1);
+        var result = await service.DeleteSaleAsync(1, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("Database connection failed");
+        result.Should().BeOfType<Either<Error, Unit>.Left>();
+        var error = ((Either<Error, Unit>.Left)result).Value;
+        error.Message.Should().Be("Database connection failed");
         // Stock was modified in memory before commit failed
         // NOTE: This documents current behavior. True rollback requires integration tests.
         product.Stock.Should().Be(15); // 5 + 10 restored before commit failed

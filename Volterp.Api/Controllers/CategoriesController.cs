@@ -1,3 +1,4 @@
+using EitherWay;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
@@ -27,11 +28,10 @@ public class CategoriesController(IServiceManager services) : BaseController
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await services.Categories.GetByIdAsync(id, companyId, ct);
-        
-        if (result is null)
-            return NotFound(new ErrorResponse("Category not found"));
-        
-        return Ok(result);
+        return result.Match<ActionResult<CategoryDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            category => category is null ? NotFound(new ErrorResponse("Category not found")) : Ok(category)
+        );
     }
 
     [HttpPost]
@@ -42,16 +42,11 @@ public class CategoriesController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            var result = await services.Categories.CreateAsync(request, companyId, ct);
-            return CreatedAtAction(nameof(GetCategory), new { id = result.Id }, result);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new ErrorResponse(ex.Message));
-        }
+        var result = await services.Categories.CreateAsync(request, companyId, ct);
+        return result.Match<ActionResult<CategoryDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            category => CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category)
+        );
     }
 
     [HttpPut("{id}")]
@@ -62,16 +57,11 @@ public class CategoriesController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            var result = await services.Categories.UpdateAsync(id, request, companyId, ct);
-            return Ok(result);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new ErrorResponse(ex.Message));
-        }
+        var result = await services.Categories.UpdateAsync(id, request, companyId, ct);
+        return result.Match<ActionResult<CategoryDto>>(
+            error => NotFound(new ErrorResponse(error.Message)),
+            category => Ok(category)
+        );
     }
 
     [HttpDelete("{id}")]
@@ -81,15 +71,10 @@ public class CategoriesController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            await services.Categories.DeleteAsync(id, companyId, ct);
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new ErrorResponse(ex.Message));
-        }
+        var result = await services.Categories.DeleteAsync(id, companyId, ct);
+        return result.Match<IActionResult>(
+            error => NotFound(new ErrorResponse(error.Message)),
+            _ => NoContent()
+        );
     }
 }

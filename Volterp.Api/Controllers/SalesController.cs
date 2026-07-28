@@ -1,3 +1,4 @@
+using EitherWay;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
@@ -55,79 +56,53 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     public async Task<ActionResult<SaleDto>> GetSale(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var sale = await serviceManager
-            .Sales
-            .GetSaleByIdAsync(id, companyId, ct);
-        
-        if (sale is null)
-            return NotFound(new { message = "Venta no encontrada" });
-            
-        return Ok(sale);
+        var result = await serviceManager.Sales.GetSaleByIdAsync(id, companyId, ct);
+        return result.Match<ActionResult<SaleDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            sale => sale is null ? NotFound(new { message = "Venta no encontrada" }) : Ok(sale)
+        );
     }
     
     [HttpPost]
     public async Task<ActionResult<SaleDto>> CreateSale([FromBody] CreateSaleRequest request, CancellationToken ct = default)
     {
-        try
-        {
-            var sale = await serviceManager
-                .Sales
-                .CreateSaleAsync(request, ct);
-        
-            return CreatedAtAction(nameof(GetSale), new { id = sale.Id }, sale);
-        }
-        catch (Exception e)
-        {
-            return BadRequest(new ErrorResponse("Could not create sale", e.Message));
-        }
-     
+        var result = await serviceManager.Sales.CreateSaleAsync(request, ct);
+        return result.Match<ActionResult<SaleDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            sale => CreatedAtAction(nameof(GetSale), new { id = sale.Id }, sale)
+        );
     }
     
     [HttpPut("{id}")]
     public async Task<ActionResult<SaleDto>> UpdateSale(int id, [FromBody] UpdateSaleRequest request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            var sale = await serviceManager.Sales.UpdateSaleAsync(id, companyId, request, ct);
-            return Ok(sale);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await serviceManager.Sales.UpdateSaleAsync(id, companyId, request, ct);
+        return result.Match<ActionResult<SaleDto>>(
+            error => NotFound(new { message = error.Message }),
+            sale => Ok(sale)
+        );
     }
     
     [HttpPut("{id}/complete")]
     public async Task<ActionResult<SaleDto>> CompleteSale(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            var sale = await serviceManager.Sales.CompleteSaleAsync(id, companyId, ct);
-            return Ok(sale);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await serviceManager.Sales.CompleteSaleAsync(id, companyId, ct);
+        return result.Match<ActionResult<SaleDto>>(
+            error => NotFound(new { message = error.Message }),
+            sale => Ok(sale)
+        );
     }
     
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteSale(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            await serviceManager.Sales.DeleteSaleAsync(id, companyId, ct);
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await serviceManager.Sales.DeleteSaleAsync(id, companyId, ct);
+        return result.Match<ActionResult>(
+            error => NotFound(new { message = error.Message }),
+            _ => NoContent()
+        );
     }
 }

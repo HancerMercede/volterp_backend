@@ -1,3 +1,4 @@
+using EitherWay;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
@@ -29,34 +30,24 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
     public async Task<ActionResult<AccountingTransactionDto>> GetTransaction(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var transaction = await serviceManager
-            .AccountingTransactions
-            .GetByIdAsync(id, companyId, ct);
-
-        if (transaction is null)
-            return NotFound(new { message = "Transaccion contable no encontrada" });
-
-        return Ok(transaction);
+        var result = await serviceManager.AccountingTransactions.GetByIdAsync(id, companyId, ct);
+        return result.Match<ActionResult<AccountingTransactionDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            transaction => transaction is null ? NotFound(new { message = "Transaccion contable no encontrada" }) : Ok(transaction)
+        );
     }
 
     [HttpPost]
     [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<AccountingTransactionDto>> CreateTransaction([FromBody] AccountingTransactionDto request, CancellationToken ct = default)
     {
-        try
-        {
-            var companyId = GetCurrentUserCompanyId();
-            var userId = GetCurrentUserId() ?? 0;
-            var transaction = await serviceManager
-                .AccountingTransactions
-                .CreateAsync(request, companyId, userId, ct);
-
-            return CreatedAtAction(nameof(GetTransaction), new { id = transaction.Id }, transaction);
-        }
-        catch (Exception e)
-        {
-            return BadRequest(new ErrorResponse("Could not create accounting transaction", e.Message));
-        }
+        var companyId = GetCurrentUserCompanyId();
+        var userId = GetCurrentUserId() ?? 0;
+        var result = await serviceManager.AccountingTransactions.CreateAsync(request, companyId, userId, ct);
+        return result.Match<ActionResult<AccountingTransactionDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            transaction => CreatedAtAction(nameof(GetTransaction), new { id = transaction.Id }, transaction)
+        );
     }
 
     [HttpPut("{id}")]
@@ -64,19 +55,12 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
     public async Task<ActionResult<AccountingTransactionDto>> UpdateTransaction(int id, [FromBody] AccountingTransactionDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-
-        try
-        {
-            var userId = GetCurrentUserId() ?? 0;
-            var transaction = await serviceManager
-                .AccountingTransactions
-                .UpdateAsync(id, companyId, request, userId, ct);
-            return Ok(transaction);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var userId = GetCurrentUserId() ?? 0;
+        var result = await serviceManager.AccountingTransactions.UpdateAsync(id, companyId, request, userId, ct);
+        return result.Match<ActionResult<AccountingTransactionDto>>(
+            error => NotFound(new { message = error.Message }),
+            transaction => Ok(transaction)
+        );
     }
 
     [HttpDelete("{id}")]
@@ -84,15 +68,10 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
     public async Task<ActionResult> DeleteTransaction(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-
-        try
-        {
-            await serviceManager.AccountingTransactions.DeleteAsync(id, companyId, ct);
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await serviceManager.AccountingTransactions.DeleteAsync(id, companyId, ct);
+        return result.Match<ActionResult>(
+            error => NotFound(new { message = error.Message }),
+            _ => NoContent()
+        );
     }
 }

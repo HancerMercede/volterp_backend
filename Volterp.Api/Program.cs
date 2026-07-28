@@ -27,6 +27,7 @@ ServiceExtensions.ConfigureJwt(builder.Services, jwtSettings);
 ServiceExtensions.ConfigureControllers(builder.Services);
 ServiceExtensions.ConfigureCors(builder.Services);
 ServiceExtensions.ConfigureExceptionLogStore(builder.Services);
+ServiceExtensions.ConfigureCurrentUser(builder.Services);
 
 var app = builder.Build();
 

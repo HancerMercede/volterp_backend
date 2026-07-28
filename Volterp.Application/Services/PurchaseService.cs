@@ -1,5 +1,6 @@
+using EitherWay;
 using Volterp.Application.DTOs;
-using Volterp.Application.Exceptions.Purchase;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
@@ -8,189 +9,187 @@ namespace Volterp.Application.Services;
 
 public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
 {
+    private static PurchaseDto MapToPurchaseDto(Purchase p) => new PurchaseDto(
+        p.Id, p.SupplierId, p.SupplierName, p.Status, p.Total, p.Notes,
+        p.CreatedAt, p.UpdatedAt, p.CreatedBy, p.UpdatedBy,
+        p.Items.Select(i => new PurchaseItemDto(
+            i.Id, i.ProductId, i.ProductName, i.ProductCode,
+            i.Quantity, i.UnitPrice, i.Subtotal
+        )).ToList()
+    );
+
     public async Task<PagedResult<PurchaseDto>> GetAllPurchasesAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var purchases = await unitOfWork.Purchases.GetAllPurchasesByCompanyAsync(companyId, pageNumber, pageSize, ct);
-
-        return purchases.Map(p => new PurchaseDto(
-            p.Id, p.SupplierId, p.SupplierName, p.Status, p.Total, p.Notes,
-            p.CreatedAt, p.UpdatedAt, p.CreatedBy, p.UpdatedBy,
-            p.Items.Select(i => new PurchaseItemDto(
-                i.Id, i.ProductId, i.ProductName, i.ProductCode,
-                i.Quantity, i.UnitPrice, i.Subtotal
-            )).ToList()
-        ));
+        return purchases.Map(MapToPurchaseDto);
     }
 
-    public async Task<PurchaseDto?> GetPurchaseByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, PurchaseDto?>> GetPurchaseByIdAsync(int id, int companyId, CancellationToken ct = default)
     {
-        var purchase = await unitOfWork.Purchases.GetPurchaseByIdAsync(id, companyId, ct);
-
-        if (purchase is null) return null;
-
-        return purchase.Map(x=> new PurchaseDto(
-            x.Id, x.SupplierId, x.SupplierName, x.Status, x.Total, x.Notes,
-            x.CreatedAt, x.UpdatedAt, x.CreatedBy, x.UpdatedBy,
-            x.Items.Select(i => new PurchaseItemDto(
-                i.Id, i.ProductId, i.ProductName, i.ProductCode,
-                i.Quantity, i.UnitPrice, i.Subtotal
-            )).ToList()
-        ));
+        return await EitherAsync<Error, int>
+            .FromRight(id)
+            .Ensure(x => x > 0, new Error("id must be greater than zero."))
+            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
+                ex => new Error(ex.Message))
+            .Map(purchase => purchase is null ? null : MapToPurchaseDto(purchase))
+            .Run();
     }
 
-    public async Task<PurchaseDto> CreatePurchaseAsync(PurchaseDto request, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, PurchaseDto>> CreatePurchaseAsync(PurchaseDto request, int companyId, int? userId, CancellationToken ct = default)
     {
-        var purchase = new Purchase
-        {
-            CompanyId = companyId,
-            SupplierId = request.SupplierId,
-            SupplierName = request.SupplierName,
-            Status = request.Status,
-            Total = request.Total,
-            Notes = request.Notes,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = userId
-        };
-
-        foreach (var item in request.Items)
-        {
-            purchase.Items.Add(new PurchaseItem
+        return await EitherAsync<Error, PurchaseDto>
+            .FromRight(request)
+            .Ensure(r => r.Items.Count > 0, new Error("Purchase must have at least one item."))
+            .FlatMap(async req =>
             {
-                ProductId = item.ProductId,
-                ProductName = item.ProductName,
-                ProductCode = item.ProductCode,
-                Quantity = item.Quantity,
-                UnitPrice = item.UnitPrice,
-                Subtotal = item.Subtotal
-            });
-        }
+                var purchase = new Purchase
+                {
+                    CompanyId = companyId,
+                    SupplierId = req.SupplierId,
+                    SupplierName = req.SupplierName,
+                    Status = req.Status,
+                    Total = req.Total,
+                    Notes = req.Notes,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = userId
+                };
 
-        // Batch query: single SELECT for all products (avoids N+1)
-        var productIds = purchase.Items
-            .Where(i => i.ProductId.HasValue)
-            .Select(i => i.ProductId!.Value)
-            .ToHashSet();
+                foreach (var item in req.Items)
+                {
+                    purchase.Items.Add(new PurchaseItem
+                    {
+                        ProductId = item.ProductId,
+                        ProductName = item.ProductName,
+                        ProductCode = item.ProductCode,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice,
+                        Subtotal = item.Subtotal
+                    });
+                }
 
-        var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
-        var productMap = products.ToDictionary(p => p.Id);
+                // Batch query: single SELECT for all products (avoids N+1)
+                var productIds = purchase.Items
+                    .Where(i => i.ProductId.HasValue)
+                    .Select(i => i.ProductId!.Value)
+                    .ToHashSet();
 
-        // Apply stock increments for each item (one item per product expected)
-        foreach (var item in purchase.Items.Where(i => i.ProductId.HasValue))
-        {
-            if (productMap.TryGetValue(item.ProductId!.Value, out var product))
-                product.Stock += item.Quantity;
-        }
+                var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
+                var productMap = products.ToDictionary(p => p.Id);
 
-        // EF change tracker persists changes automatically on CommitAsync
-        await unitOfWork.Purchases.AddPurchaseAsync(purchase, ct);
-        await unitOfWork.CommitAsync(ct);
+                // Apply stock increments for each item (one item per product expected)
+                foreach (var item in purchase.Items.Where(i => i.ProductId.HasValue))
+                {
+                    if (productMap.TryGetValue(item.ProductId!.Value, out var product))
+                        product.IncrementStock(item.Quantity);
+                }
 
-        return purchase.Map(x=> new PurchaseDto(
-            x.Id, x.SupplierId, x.SupplierName, x.Status, x.Total, x.Notes,
-            x.CreatedAt, x.UpdatedAt, x.CreatedBy, x.UpdatedBy,
-            x.Items.Select(i => new PurchaseItemDto(
-                i.Id, i.ProductId, i.ProductName, i.ProductCode,
-                i.Quantity, i.UnitPrice, i.Subtotal
-            )).ToList()
-        ));
+                await unitOfWork.Purchases.AddPurchaseAsync(purchase, ct);
+                await unitOfWork.CommitAsync(ct);
+                return purchase;
+            }, ex => new Error(ex.Message))
+            .Map(purchase => MapToPurchaseDto(purchase))
+            .Run();
     }
 
-    public async Task<PurchaseDto> UpdatePurchaseAsync(int id, int companyId, PurchaseDto request, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, PurchaseDto>> UpdatePurchaseAsync(int id, int companyId, PurchaseDto request, int? userId, CancellationToken ct = default)
     {
-        var purchase = await unitOfWork.Purchases.GetPurchaseByIdAsync(id, companyId, ct);
-
-        if (purchase is null)
-            throw new PurchaseNotFoundException("Purchase not found");
-
-        // Collect all product IDs (old items + new items)
-        var oldProductIds = purchase.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value);
-        var newProductIds = request.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value);
-        var allProductIds = oldProductIds.Concat(newProductIds).ToHashSet();
-
-        // Batch query: single SELECT for all products involved
-        var products = await unitOfWork.Products.GetProductsByIdsAsync(allProductIds, ct);
-        var productMap = products.ToDictionary(p => p.Id);
-
-        // First: restore stock from old items being removed
-        foreach (var item in purchase.Items.Where(i => i.ProductId.HasValue))
-        {
-            if (productMap.TryGetValue(item.ProductId!.Value, out var product))
-                product.Stock -= item.Quantity;
-        }
-
-        // Then: add stock from new items
-        foreach (var item in request.Items.Where(i => i.ProductId.HasValue))
-        {
-            if (productMap.TryGetValue(item.ProductId!.Value, out var product))
-                product.Stock += item.Quantity;
-        }
-
-        var newItems = request.Items.Select(p => new PurchaseItem
-        {
-            ProductId = p.ProductId,
-            ProductName = p.ProductName,
-            ProductCode = p.ProductCode,
-            Quantity = p.Quantity,
-            UnitPrice = p.UnitPrice,
-            Subtotal = p.Subtotal
-        }).ToList();
-
-        // EF change tracker persists changes automatically on CommitAsync
-        purchase.Apply(p =>
-        {
-            p.SupplierId = request.SupplierId;
-            p.SupplierName = request.SupplierName;
-            p.Status = request.Status;
-            p.Total = request.Total;
-            p.Notes = request.Notes;
-            p.UpdatedAt = DateTime.UtcNow;
-            p.UpdatedBy = userId;
-            p.Items = newItems;
-        });
-        
-
-        await unitOfWork.Purchases.UpdatePurchaseAsync(purchase, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        return purchase.Map(x=> new PurchaseDto(
-            x.Id, x.SupplierId, x.SupplierName, x.Status, x.Total, x.Notes,
-            x.CreatedAt, x.UpdatedAt, x.CreatedBy, x.UpdatedBy,
-            x.Items.Select(i => new PurchaseItemDto(
-                i.Id, i.ProductId, i.ProductName, i.ProductCode,
-                i.Quantity, i.UnitPrice, i.Subtotal
-            )).ToList()
-        ));
-    }
-
-    public async Task DeletePurchaseAsync(int id, int companyId, CancellationToken ct = default)
-    {
-        var purchase = await unitOfWork.Purchases.GetPurchaseByIdAsync(id, companyId, ct);
-
-        if (purchase is null)
-            throw new PurchaseNotFoundException("Purchase not found");
-
-        // Only decrement stock if there are items with product IDs
-        var productIds = purchase.Items
-            .Where(i => i.ProductId.HasValue)
-            .Select(i => i.ProductId!.Value)
-            .ToHashSet();
-
-        if (productIds.Count > 0)
-        {
-            // Batch query: decrement stock for all items before deleting
-            var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
-            var productMap = products.ToDictionary(p => p.Id);
-
-            // Decrement stock for each item
-            foreach (var item in purchase.Items.Where(i => i.ProductId.HasValue))
+        return await EitherAsync<Error, int>
+            .FromRight(id)
+            .Ensure(x => x > 0, new Error("id must be greater than zero."))
+            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
+                ex => new Error(ex.Message))
+            .Ensure(purchase => purchase is not null, new Error("Purchase not found."))
+            .FlatMap(async purchase =>
             {
-                if (productMap.TryGetValue(item.ProductId!.Value, out var product))
-                    product.Stock -= item.Quantity;
-            }
-        }
+                // Collect all product IDs (old items + new items)
+                var oldProductIds = purchase.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value);
+                var newProductIds = request.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value);
+                var allProductIds = oldProductIds.Concat(newProductIds).ToHashSet();
 
-        await unitOfWork.Purchases.DeletePurchaseAsync(id, ct);
-        await unitOfWork.CommitAsync(ct);
+                // Batch query: single SELECT for all products involved
+                var products = await unitOfWork.Products.GetProductsByIdsAsync(allProductIds, ct);
+                var productMap = products.ToDictionary(p => p.Id);
+
+                // First: restore stock from old items being removed (using DeductStock with allowNegative for reversal)
+                foreach (var item in purchase.Items.Where(i => i.ProductId.HasValue))
+                {
+                    if (productMap.TryGetValue(item.ProductId!.Value, out var product))
+                        product.DeductStock(item.Quantity, allowNegative: true);
+                }
+
+                // Then: add stock from new items
+                foreach (var item in request.Items.Where(i => i.ProductId.HasValue))
+                {
+                    if (productMap.TryGetValue(item.ProductId!.Value, out var product))
+                        product.IncrementStock(item.Quantity);
+                }
+
+                var newItems = request.Items.Select(p => new PurchaseItem
+                {
+                    ProductId = p.ProductId,
+                    ProductName = p.ProductName,
+                    ProductCode = p.ProductCode,
+                    Quantity = p.Quantity,
+                    UnitPrice = p.UnitPrice,
+                    Subtotal = p.Subtotal
+                }).ToList();
+
+                purchase.Apply(p =>
+                {
+                    p.SupplierId = request.SupplierId;
+                    p.SupplierName = request.SupplierName;
+                    p.Status = request.Status;
+                    p.Total = request.Total;
+                    p.Notes = request.Notes;
+                    p.UpdatedAt = DateTime.UtcNow;
+                    p.UpdatedBy = userId;
+                    p.Items = newItems;
+                });
+
+                await unitOfWork.Purchases.UpdatePurchaseAsync(purchase, ct);
+                await unitOfWork.CommitAsync(ct);
+                return purchase;
+            }, ex => new Error(ex.Message))
+            .Map(purchase => MapToPurchaseDto(purchase))
+            .Run();
     }
 
+    public async Task<Either<Error, Unit>> DeletePurchaseAsync(int id, int companyId, CancellationToken ct = default)
+    {
+        return await EitherAsync<Error, int>
+            .FromRight(id)
+            .Ensure(x => x > 0, new Error("id must be greater than zero."))
+            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
+                ex => new Error(ex.Message))
+            .Ensure(purchase => purchase is not null, new Error("Purchase not found."))
+            .FlatMap(async purchase =>
+            {
+                // Only decrement stock if there are items with product IDs
+                var productIds = purchase.Items
+                    .Where(i => i.ProductId.HasValue)
+                    .Select(i => i.ProductId!.Value)
+                    .ToHashSet();
+
+                if (productIds.Count > 0)
+                {
+                    var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
+                    var productMap = products.ToDictionary(p => p.Id);
+
+                    // Decrement stock for each item using allowNegative for delete-recovery path
+                    foreach (var item in purchase.Items.Where(i => i.ProductId.HasValue))
+                    {
+                        if (productMap.TryGetValue(item.ProductId!.Value, out var product))
+                            product.DeductStock(item.Quantity, allowNegative: true);
+                    }
+                }
+
+                await unitOfWork.Purchases.DeletePurchaseAsync(id, ct);
+                await unitOfWork.CommitAsync(ct);
+                return new Unit();
+            }, ex => new Error(ex.Message))
+            .Run();
     }
+}

@@ -62,4 +62,10 @@ public static class ServiceExtensions
 
     public static void ConfigureExceptionLogStore(IServiceCollection services)
         => services.AddSingleton<IExceptionLogStore>(new InMemoryExceptionLogStore(100));
+
+    public static void ConfigureCurrentUser(IServiceCollection services)
+    {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+    }
 }

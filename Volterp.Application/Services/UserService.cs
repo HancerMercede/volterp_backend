@@ -4,10 +4,11 @@ using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Application.Services;
 
-public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher) : IUserService
+public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, ICurrentUserService currentUserService) : IUserService
 {
     public async Task<PagedResult<UserDto>> GetAllAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
@@ -34,6 +35,8 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
             .Try(async() => await unitOfWork.Users.GetByUsernameAsync(request.Username, ct))
             .MapLeft(ex => new Error(ex.Message))
             .Ensure(user => user is null, new Error("username already exists"))
+            .Ensure(_ => request.Role != UserRole.SuperAdmin || currentUserService.IsSuperAdmin(),
+                _ => new Error("Only SuperAdmin can create SuperAdmin users"))
             .Map(_ => request.Project())
             .FlatMap(async user =>
             {

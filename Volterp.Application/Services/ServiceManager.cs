@@ -2,7 +2,7 @@ using Volterp.Application.Interfaces;
 
 namespace Volterp.Application.Services;
 
-public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher) : IServiceManager
+public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, ICurrentUserService currentUserService) : IServiceManager
 {
     private IProductService? _products;
     public IProductService Products => _products ??= new ProductService(unitOfWork);
@@ -11,7 +11,7 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
     public ICategoryService Categories => _categories ??= new CategoryService(unitOfWork);
 
     private IUserService? _users;
-    public IUserService Users => _users ??= new UserService(unitOfWork, passwordHasher);
+    public IUserService Users => _users ??= new UserService(unitOfWork, passwordHasher, currentUserService);
     
     private ICompanyService? _companies;
     public ICompanyService Companies => _companies  ??= new CompanyService(unitOfWork);

@@ -1,3 +1,4 @@
+using EitherWay;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
@@ -30,34 +31,24 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
     public async Task<ActionResult<EmployeeDto>> GetEmployee(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var employee = await serviceManager
-            .Employees
-            .GetEmployeeByIdAsync(id, companyId, ct);
-
-        if (employee is null)
-            return NotFound(new { message = "Empleado no encontrado" });
-
-        return Ok(employee);
+        var result = await serviceManager.Employees.GetEmployeeByIdAsync(id, companyId, ct);
+        return result.Match<ActionResult<EmployeeDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            employee => employee is null ? NotFound(new { message = "Empleado no encontrado" }) : Ok(employee)
+        );
     }
 
     [HttpPost]
     [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<EmployeeDto>> CreateEmployee([FromBody] CreateEmployeeDto request, CancellationToken ct = default)
     {
-        try
-        {
-            var companyId = GetCurrentUserCompanyId();
-            var userId = GetCurrentUserId() ?? 0;
-            var employee = await serviceManager
-                .Employees
-                .CreateEmployeeAsync(request, companyId, userId, ct);
-
-            return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee);
-        }
-        catch (Exception e)
-        {
-            return BadRequest(new ErrorResponse("Could not create employee", e.Message));
-        }
+        var companyId = GetCurrentUserCompanyId();
+        var userId = GetCurrentUserId() ?? 0;
+        var result = await serviceManager.Employees.CreateEmployeeAsync(request, companyId, userId, ct);
+        return result.Match<ActionResult<EmployeeDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            employee => CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee)
+        );
     }
 
     [HttpPut("{id}")]
@@ -65,19 +56,12 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
     public async Task<ActionResult<EmployeeDto>> UpdateEmployee(int id, [FromBody] UpdateEmployeeDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-
-        try
-        {
-            var userId = GetCurrentUserId() ?? 0;
-            var employee = await serviceManager
-                .Employees
-                .UpdateEmployeeAsync(id, companyId, request, userId, ct);
-            return Ok(employee);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var userId = GetCurrentUserId() ?? 0;
+        var result = await serviceManager.Employees.UpdateEmployeeAsync(id, companyId, request, userId, ct);
+        return result.Match<ActionResult<EmployeeDto>>(
+            error => NotFound(new { message = error.Message }),
+            employee => Ok(employee)
+        );
     }
 
     [HttpDelete("{id}")]
@@ -85,15 +69,10 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
     public async Task<ActionResult> DeleteEmployee(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-
-        try
-        {
-            await serviceManager.Employees.DeleteEmployeeAsync(id, companyId, ct);
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await serviceManager.Employees.DeleteEmployeeAsync(id, companyId, ct);
+        return result.Match<ActionResult>(
+            error => NotFound(new { message = error.Message }),
+            _ => NoContent()
+        );
     }
 }

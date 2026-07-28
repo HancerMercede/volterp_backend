@@ -1,4 +1,4 @@
-using System.Security.Claims;
+using EitherWay;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
@@ -29,11 +29,10 @@ public class ProductsController(IServiceManager services) : BaseController
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await services.Products.GetByIdAsync(id, companyId, ct);
-        
-        if (result is null)
-            return NotFound(new ErrorResponse("Product not found"));
-        
-        return Ok(result);
+        return result.Match<ActionResult<ProductDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            product => product is null ? NotFound(new ErrorResponse("Product not found")) : Ok(product)
+        );
     }
 
     [HttpPost]
@@ -44,16 +43,11 @@ public class ProductsController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            var result = await services.Products.CreateAsync(request, companyId, ct);
-            return CreatedAtAction(nameof(GetProduct), new { id = result.Id }, result);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new ErrorResponse(ex.Message));
-        }
+        var result = await services.Products.CreateAsync(request, companyId, ct);
+        return result.Match<ActionResult<ProductDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            product => CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product)
+        );
     }
 
     [HttpPut("{id}")]
@@ -64,16 +58,11 @@ public class ProductsController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            var result = await services.Products.UpdateAsync(id, request, companyId, ct);
-            return Ok(result);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new ErrorResponse(ex.Message));
-        }
+        var result = await services.Products.UpdateAsync(id, request, companyId, ct);
+        return result.Match<ActionResult<ProductDto>>(
+            error => NotFound(new ErrorResponse(error.Message)),
+            product => Ok(product)
+        );
     }
 
     [HttpDelete("{id}")]
@@ -83,15 +72,10 @@ public class ProductsController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            await services.Products.DeleteAsync(id, companyId, ct);
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new ErrorResponse(ex.Message));
-        }
+        var result = await services.Products.DeleteAsync(id, companyId, ct);
+        return result.Match<IActionResult>(
+            error => NotFound(new ErrorResponse(error.Message)),
+            _ => NoContent()
+        );
     }
 }

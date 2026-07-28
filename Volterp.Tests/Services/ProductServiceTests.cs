@@ -1,9 +1,9 @@
+using EitherWay;
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.DTOs.ProductDtos;
-using Volterp.Application.Exceptions.Category;
-using Volterp.Application.Exceptions.Product;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -34,10 +34,12 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT - Request product from company 2
-        var act = () => service.GetByIdAsync(1, companyId: 2);
+        var result = await service.GetByIdAsync(1, companyId: 2);
 
         // ASSERT
-        await act.Should().ThrowAsync<ProductNotFoundException>().WithMessage("Product not found");
+        result.Should().BeOfType<Either<Error, ProductDto?>.Left>();
+        var error = ((Either<Error, ProductDto?>.Left)result).Value;
+        error.Message.Should().Be("Product not found.");
     }
 
     [Fact]
@@ -103,9 +105,11 @@ public class ProductServiceTests
         var result = await service.GetByIdAsync(1, companyId: 1);
 
         // ASSERT
-        result.Should().NotBeNull();
-        result!.Name.Should().Be("Test Product");
-        result.Category.Should().Be("Category A");
+        result.Should().BeOfType<Either<Error, ProductDto?>.Right>();
+        var dto = ((Either<Error, ProductDto?>.Right)result).Value;
+        dto.Should().NotBeNull();
+        dto!.Name.Should().Be("Test Product");
+        dto.Category.Should().Be("Category A");
     }
 
     [Fact]
@@ -122,10 +126,12 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var act = () => service.GetByIdAsync(999, companyId: 1);
+        var result = await service.GetByIdAsync(999, companyId: 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ProductNotFoundException>().WithMessage("Product not found");
+        result.Should().BeOfType<Either<Error, ProductDto?>.Left>();
+        var error = ((Either<Error, ProductDto?>.Left)result).Value;
+        error.Message.Should().Be("Product not found.");
     }
 
     [Fact]
@@ -148,10 +154,12 @@ public class ProductServiceTests
         );
 
         // ACT
-        var act = () => service.CreateAsync(request, 1);
+        var result = await service.CreateAsync(request, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<CategoryNotFoundException>().WithMessage("Category not found");
+        result.Should().BeOfType<Either<Error, ProductDto>.Left>();
+        var error = ((Either<Error, ProductDto>.Left)result).Value;
+        error.Message.Should().Be("Category not found.");
     }
 
     [Fact]
@@ -180,9 +188,11 @@ public class ProductServiceTests
         var result = await service.CreateAsync(request, 1);
 
         // ASSERT
-        result.Should().NotBeNull();
-        result.Name.Should().Be("New Product");
-        result.Stock.Should().Be(25);
+        result.Should().BeOfType<Either<Error, ProductDto>.Right>();
+        var dto = ((Either<Error, ProductDto>.Right)result).Value;
+        dto.Should().NotBeNull();
+        dto.Name.Should().Be("New Product");
+        dto.Stock.Should().Be(25);
         mockProductsRepo.Verify(r => r.AddProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -204,10 +214,12 @@ public class ProductServiceTests
         );
 
         // ACT
-        var act = () => service.UpdateAsync(999, request, 1);
+        var result = await service.UpdateAsync(999, request, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ProductNotFoundException>().WithMessage("Product not found");
+        result.Should().BeOfType<Either<Error, ProductDto>.Left>();
+        var error = ((Either<Error, ProductDto>.Left)result).Value;
+        error.Message.Should().Be("Product not found.");
     }
 
     [Fact]
@@ -234,10 +246,12 @@ public class ProductServiceTests
         );
 
         // ACT
-        var act = () => service.UpdateAsync(1, request, 1);
+        var result = await service.UpdateAsync(1, request, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<CategoryNotFoundException>().WithMessage("Category not found");
+        result.Should().BeOfType<Either<Error, ProductDto>.Left>();
+        var error = ((Either<Error, ProductDto>.Left)result).Value;
+        error.Message.Should().Be("Category not found.");
     }
 
     [Fact]
@@ -290,10 +304,12 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var act = () => service.DeleteAsync(999, 1);
+        var result = await service.DeleteAsync(999, 1);
 
         // ASSERT
-        await act.Should().ThrowAsync<ProductNotFoundException>().WithMessage("Product not found");
+        result.Should().BeOfType<Either<Error, Unit>.Left>();
+        var error = ((Either<Error, Unit>.Left)result).Value;
+        error.Message.Should().Be("Product not found.");
     }
 
     [Fact]
