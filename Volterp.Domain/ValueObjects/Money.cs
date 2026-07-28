@@ -16,22 +16,24 @@ public readonly record struct Money
         Currency = currency;
     }
 
+    private Money(decimal amount, Currency currency, bool _)
+    {
+        Amount = amount;
+        Currency = currency;
+    }
+
     public static Money Zero => new(0, Currency.DOP);
 
     public Money Add(Money other)
     {
         EnsureSameCurrency(other);
-        return new Money(Amount + other.Amount, Currency);
+        return new Money(Amount + other.Amount, Currency, false);
     }
 
     public Money Subtract(Money other)
     {
         EnsureSameCurrency(other);
-        var result = Amount - other.Amount;
-        if (result < 0)
-            throw new InvalidOperationException(
-                $"Cannot subtract {other.Amount} from {Amount}: result would be negative.");
-        return new Money(result, Currency);
+        return new Money(Amount - other.Amount, Currency, false);
     }
 
     public static Money operator +(Money left, Money right) => left.Add(right);

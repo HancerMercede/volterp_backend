@@ -89,15 +89,15 @@ public class MoneyTests
     }
 
     [Fact]
-    public void Money_Subtract_ResultNegative_ShouldThrow()
+    public void Money_Subtract_ResultNegative_ShouldReturnNegativeMoney()
     {
         var a = new Money(30m, Currency.USD);
         var b = new Money(100m, Currency.USD);
 
-        var act = () => a.Subtract(b);
+        var result = a.Subtract(b);
 
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*negative*");
+        result.Amount.Should().Be(-70m);
+        result.Currency.Should().Be(Currency.USD);
     }
 
     [Fact]
