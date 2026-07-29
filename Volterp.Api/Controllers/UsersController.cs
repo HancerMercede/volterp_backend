@@ -66,7 +66,8 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
 
-        var user = ((Either<Error, UserDto>.Right)userResult).Value;
+        
+        var user = ((Either<Error, UserDto>.Right)userResult!).Value;
 
         if (!CanManageUser(user.Role, request.Role))
             return Forbid();
@@ -94,7 +95,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
         
-        var user = ((Either<Error, UserDto>.Right)userResult).Value;
+        var user = ((Either<Error, UserDto>.Right)userResult!).Value;
 
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
@@ -123,7 +124,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
         
-        var user = ((Either<Error, UserDto>.Right)userResult).Value;
+        var user = ((Either<Error, UserDto>.Right)userResult!).Value;
 
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();

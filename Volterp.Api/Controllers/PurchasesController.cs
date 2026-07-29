@@ -33,7 +33,7 @@ public class PurchasesController(IServiceManager serviceManager) : BaseControlle
         var result = await serviceManager.Purchases.GetPurchaseByIdAsync(id, companyId, ct);
         return result.Match<ActionResult<PurchaseDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
-            purchase => purchase is null ? NotFound(new { message = "Compra no encontrada" }) : Ok(purchase)
+            purchase => purchase is null ? NotFound(new { message = "Not Found Purchase" }) : Ok(purchase)
         );
     }
 

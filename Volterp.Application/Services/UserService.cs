@@ -61,7 +61,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Ensure(user => user is not null, new Error("user not found"))
             .Map(user =>
             {
-                user.Apply(x =>
+                return user.Apply(x =>
                 {
                     x.Email = request.Email;
                     x.FullName = request.FullName;
@@ -69,7 +69,6 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
                     x.IsActive = request.IsActive;
                     x.UpdatedAt = DateTime.UtcNow;
                 });
-                return user;
             })
             .FlatMap(async user =>
             {

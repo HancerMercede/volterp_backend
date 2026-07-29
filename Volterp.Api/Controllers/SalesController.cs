@@ -57,10 +57,12 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Sales.GetSaleByIdAsync(id, companyId, ct);
+        
         return result.Match<ActionResult<SaleDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
-            sale => sale is null ? NotFound(new { message = "Venta no encontrada" }) : Ok(sale)
-        );
+            sale => sale is null 
+                ? NotFound(new { message = "Not Found any sale." }) 
+                   : Ok(sale));
     }
     
     [HttpPost]

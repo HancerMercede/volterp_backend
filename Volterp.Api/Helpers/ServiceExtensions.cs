@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -67,5 +68,21 @@ public static class ServiceExtensions
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+    }
+
+    public static void ConfigureRateLimiting(this IServiceCollection services)
+    {
+        services.AddRateLimiter(opt =>
+        {
+           opt.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context => 
+               RateLimitPartition.GetFixedWindowLimiter("GlobalLimiter",
+                   partition => new FixedWindowRateLimiterOptions
+                   {
+                       AutoReplenishment = true,
+                       PermitLimit = 5,
+                       QueueLimit = 0,
+                       Window = TimeSpan.FromMinutes(1)
+                   }));
+        });
     }
 }

@@ -28,6 +28,7 @@ ServiceExtensions.ConfigureControllers(builder.Services);
 ServiceExtensions.ConfigureCors(builder.Services);
 ServiceExtensions.ConfigureExceptionLogStore(builder.Services);
 ServiceExtensions.ConfigureCurrentUser(builder.Services);
+builder.Services.ConfigureRateLimiting();
 
 var app = builder.Build();
 
@@ -38,6 +39,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.ConfigureExceptionMiddleWare(app.Logger);
+app.UseRateLimiter();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
