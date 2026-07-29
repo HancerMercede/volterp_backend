@@ -5,7 +5,7 @@ using Volterp.Domain.Exceptions;
 using Volterp.Domain.ValueObjects;
 using Xunit;
 
-namespace Volterp.Tests.Entities;
+namespace Volterp.Tests.Domain;
 
 public class ProductBehaviorTests
 {

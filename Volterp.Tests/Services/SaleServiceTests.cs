@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Volterp.Tests.Services;
 
-public class SaleServiceTests
+public class  SaleServiceTests
 {
     [Fact]
     public async Task CreateSaleAsync_WithValidInput_DecrementsProductStock()

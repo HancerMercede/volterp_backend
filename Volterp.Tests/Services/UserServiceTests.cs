@@ -28,7 +28,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", Domain.Enums.UserRole.Ventas, 1);
+        var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", UserRole.Ventas, 1);
 
         // ACT
         var result = await service.CreateAsync(request);
@@ -57,7 +57,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", Domain.Enums.UserRole.Ventas, 1);
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas, 1);
 
         // ACT
         var result = await service.CreateAsync(request);
@@ -79,8 +79,8 @@ public class UserServiceTests
         {
             Items = new List<User>
             {
-                new() { Id = 1, Username = "user1", Email = "user1@test.com", FullName = "User One", Role = Domain.Enums.UserRole.Ventas, CompanyId = 1, IsActive = true },
-                new() { Id = 2, Username = "user2", Email = "user2@test.com", FullName = "User Two", Role = Domain.Enums.UserRole.Inventario, CompanyId = 1, IsActive = true }
+                new() { Id = 1, Username = "user1", Email = "user1@test.com", FullName = "User One", Role = UserRole.Ventas, CompanyId = 1, IsActive = true },
+                new() { Id = 2, Username = "user2", Email = "user2@test.com", FullName = "User Two", Role = UserRole.Inventario, CompanyId = 1, IsActive = true }
             },
             PageNumber = 1,
             PageSize = 10,
@@ -112,7 +112,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = 1, Username = "testuser", Email = "test@test.com",
-            FullName = "Test User", Role = Domain.Enums.UserRole.Ventas,
+            FullName = "Test User", Role = UserRole.Ventas,
             CompanyId = 1, IsActive = true
         };
 
@@ -168,7 +168,7 @@ public class UserServiceTests
         var request = new UserWithPasswordHashDto
         {
             Id = 999, Username = "updated", Email = "updated@test.com",
-            FullName = "Updated User", Role = Domain.Enums.UserRole.Ventas,
+            FullName = "Updated User", Role = UserRole.Ventas,
             IsActive = true, CompanyId = 1, PasswordHash = "hash"
         };
 
@@ -191,7 +191,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = 1, Username = "testuser", Email = "old@test.com",
-            FullName = "Old Name", Role = Domain.Enums.UserRole.Ventas,
+            FullName = "Old Name", Role = UserRole.Ventas,
             CompanyId = 1, IsActive = true
         };
 
@@ -206,7 +206,7 @@ public class UserServiceTests
         var request = new UserWithPasswordHashDto
         {
             Id = 1, Username = "testuser", Email = "new@test.com",
-            FullName = "New Name", Role = Domain.Enums.UserRole.Admin,
+            FullName = "New Name", Role = UserRole.Admin,
             IsActive = true, CompanyId = 1, PasswordHash = user.PasswordHash
         };
 
@@ -252,7 +252,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = 1, Username = "testuser", Email = "test@test.com",
-            FullName = "Test User", Role = Domain.Enums.UserRole.Ventas,
+            FullName = "Test User", Role = UserRole.Ventas,
             CompanyId = 1, IsActive = true
         };
 
@@ -283,7 +283,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = 1, Username = "testuser", Email = "test@test.com",
-            FullName = "Test User", Role = Domain.Enums.UserRole.Ventas,
+            FullName = "Test User", Role = UserRole.Ventas,
             CompanyId = 1, IsActive = true
         };
 
@@ -334,7 +334,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = 1, Username = "testuser", Email = "test@test.com",
-            FullName = "Test User", Role = Domain.Enums.UserRole.Ventas,
+            FullName = "Test User", Role = UserRole.Ventas,
             CompanyId = 1, IsActive = true, PasswordHash = "somehash"
         };
 

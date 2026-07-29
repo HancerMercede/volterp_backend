@@ -2,7 +2,7 @@ using FluentAssertions;
 using Volterp.Domain.Entities;
 using Xunit;
 
-namespace Volterp.Tests.Entities;
+namespace Volterp.Tests.Domain;
 
 public class AuditEntityTests
 {
