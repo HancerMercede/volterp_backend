@@ -1,10 +1,21 @@
+using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.IO;
+using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Volterp.Api.Configuration;
+using Volterp.Api.RateLimiting;
 using Volterp.Application.Diagnostics;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -16,7 +27,7 @@ namespace Volterp.Api.Helpers;
 
 public static class ServiceExtensions
 {
-    public static void ConfigureDbContext(IServiceCollection services, DatabaseSettings settings)
+    public static void ConfigureDbContext(this IServiceCollection services, DatabaseSettings settings)
         => services.AddDbContext<VolterpDbContext>(options =>
             options.UseNpgsql(settings.DefaultConnection));
 
@@ -70,19 +81,133 @@ public static class ServiceExtensions
         services.AddScoped<ICurrentUserService, CurrentUserService>();
     }
 
-    public static void ConfigureRateLimiting(this IServiceCollection services)
+    public static void ConfigureRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
+        var rateLimiting = new RateLimitingOptions();
+        configuration.GetSection(RateLimitingOptions.SectionName).Bind(rateLimiting);
+        Validator.ValidateObject(rateLimiting, new ValidationContext(rateLimiting), validateAllProperties: true);
+
+        services.AddSingleton(rateLimiting);
+        services.AddSingleton<RateLimitPartitionResolver>();
+
         services.AddRateLimiter(opt =>
         {
-           opt.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context => 
-               RateLimitPartition.GetFixedWindowLimiter("GlobalLimiter",
-                   partition => new FixedWindowRateLimiterOptions
-                   {
-                       AutoReplenishment = true,
-                       PermitLimit = 5,
-                       QueueLimit = 0,
-                       Window = TimeSpan.FromMinutes(1)
-                   }));
+            opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            opt.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            {
+                var resolver = httpContext.RequestServices.GetRequiredService<RateLimitPartitionResolver>();
+                var policy = httpContext.User.Identity?.IsAuthenticated == true
+                    ? rateLimiting.Authenticated
+                    : rateLimiting.Anonymous;
+                var key = resolver.GetGlobalPartitionKey(httpContext);
+
+                return RateLimitPartition.GetSlidingWindowLimiter(key, _ => new SlidingWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = policy.PermitLimit,
+                    Window = TimeSpan.FromSeconds(policy.WindowSeconds),
+                    SegmentsPerWindow = 6,
+                    QueueLimit = 0,
+                    QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                });
+            });
+
+            opt.AddPolicy(RateLimiterPolicies.Authentication, httpContext =>
+            {
+                var resolver = httpContext.RequestServices.GetRequiredService<RateLimitPartitionResolver>();
+                var key = resolver.GetAuthenticationPartitionKey(httpContext);
+                return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+                {
+                    AutoReplenishment = true,
+                    PermitLimit = rateLimiting.Authentication.PermitLimit,
+                    Window = TimeSpan.FromSeconds(rateLimiting.Authentication.WindowSeconds),
+                    QueueLimit = 0
+                });
+            });
+
+            opt.OnRejected = OnRejectedAsync;
         });
+    }
+
+    public static void ConfigureForwardedHeaders(this IServiceCollection services)
+    {
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.ForwardLimit = 1;
+
+            if (!options.KnownProxies.Contains(IPAddress.Loopback))
+                options.KnownProxies.Add(IPAddress.Loopback);
+            if (!options.KnownProxies.Contains(IPAddress.IPv6Loopback))
+                options.KnownProxies.Add(IPAddress.IPv6Loopback);
+        });
+    }
+
+    public static void ConfigureSwagger(this IServiceCollection services)
+    {
+        services.AddEndpointsApiExplorer();
+
+        services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo
+            {
+                Title = "Volterp ERP API",
+                Version = "v1",
+                Description = "Backend API for Volterp ERP — Clean Architecture on .NET 10 + PostgreSQL."
+            });
+
+            // JWT Bearer security scheme so the Swagger UI exposes an "Authorize" button.
+            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT"
+            });
+
+            c.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+
+            // XML documentation — only loaded if the file exists (XML docs are added progressively).
+            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            if (File.Exists(xmlPath))
+                c.IncludeXmlComments(xmlPath);
+        });
+    }
+
+    private static async ValueTask OnRejectedAsync(OnRejectedContext context, CancellationToken cancellationToken)
+    {
+        var response = context.HttpContext.Response;
+        response.StatusCode = StatusCodes.Status429TooManyRequests;
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds))
+                .ToString(CultureInfo.InvariantCulture);
+        }
+
+        var problem = new ProblemDetails
+        {
+            Type = "https://datatracker.ietf.org/doc/html/rfc6585#section-4",
+            Title = "Too Many Requests",
+            Status = StatusCodes.Status429TooManyRequests,
+            Detail = "The request was rate-limited. Retry later."
+        };
+        await response.WriteAsJsonAsync(problem, cancellationToken);
     }
 }
