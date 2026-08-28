@@ -1,16 +1,10 @@
-using EitherWay;
-using Microsoft.AspNetCore.Mvc;
-using Volterp.Api.Helpers;
-using Volterp.Application.DTOs;
-using Volterp.Application.DTOs.UserDtos;
-using Volterp.Application.Exceptions.AppErrors;
-using Volterp.Application.Interfaces;
-
 namespace Volterp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController(IServiceManager serviceManager, IJwtService jwtService, IPasswordHasher passwordHasher) : BaseController
+[EnableRateLimiting(RateLimiterPolicies.Authentication)]
+public class AuthController(IServiceManager serviceManager, IJwtService jwtService, IPasswordHasher passwordHasher) 
+    : BaseController
 {
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] CreateUserDto request, CancellationToken ct)

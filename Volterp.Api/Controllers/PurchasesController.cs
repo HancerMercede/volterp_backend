@@ -1,11 +1,3 @@
-using EitherWay;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Volterp.Api.Helpers;
-using Volterp.Application.DTOs;
-using Volterp.Application.Helpers;
-using Volterp.Application.Interfaces;
-
 namespace Volterp.Api.Controllers;
 
 [ApiController]

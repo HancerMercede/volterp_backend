@@ -1,9 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Volterp.Api.Helpers;
-using Volterp.Application.DTOs;
 using Volterp.Application.DTOs.ClientDtos;
-using Volterp.Application.Interfaces;
 
 namespace Volterp.Api.Controllers;
 

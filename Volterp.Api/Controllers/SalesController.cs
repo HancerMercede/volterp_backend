@@ -1,4 +1,5 @@
 using EitherWay;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
@@ -10,6 +11,7 @@ namespace Volterp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class SalesController(IServiceManager serviceManager) : BaseController
 {
     [HttpGet]
