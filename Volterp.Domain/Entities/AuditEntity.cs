@@ -16,4 +16,9 @@ public abstract class AuditEntity
     {
         CreatedBy = createdBy;
     }
+
+    public void SetUpdatedBy(int updatedBy)
+    {
+        UpdatedBy = updatedBy;
+    }
 }

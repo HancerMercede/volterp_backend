@@ -83,6 +83,16 @@ public class AuditEntityTests
 
         entity.CreatedBy.Should().Be(42);
     }
+
+    [Fact]
+    public void SetUpdatedBy_ShouldSetUpdatedBy()
+    {
+        var entity = new TestEntity();
+
+        entity.SetUpdatedBy(7);
+
+        entity.UpdatedBy.Should().Be(7);
+    }
 }
 
 /// <summary>

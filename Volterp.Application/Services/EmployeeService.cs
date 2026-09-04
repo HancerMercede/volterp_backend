@@ -40,6 +40,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             .Map(employee =>
             {
                 employee.CompanyId = companyId;
+                employee.SetCreatedBy(userId);
                 return employee;
             })
             .FlatMap(async employee =>
@@ -82,7 +83,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
                     x.Bank = request.Bank;
                     x.AccountNumber = request.AccountNumber;
                     x.UpdatedAt = DateTime.UtcNow;
-                    x.UpdatedBy = userId;
+                    x.SetUpdatedBy(userId);
                 });
                 return employee;
             })

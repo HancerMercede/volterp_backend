@@ -42,9 +42,10 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
                     Status = req.Status,
                     Total = req.Total,
                     Notes = req.Notes,
-                    CreatedAt = DateTime.UtcNow,
-                    CreatedBy = userId
+                    CreatedAt = DateTime.UtcNow
                 };
+
+                if (userId.HasValue) purchase.SetCreatedBy(userId.Value);
 
                 foreach (var item in req.Items)
                 {
@@ -135,7 +136,7 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
                     p.Total = request.Total;
                     p.Notes = request.Notes;
                     p.UpdatedAt = DateTime.UtcNow;
-                    p.UpdatedBy = userId;
+                    if (userId.HasValue) p.SetUpdatedBy(userId.Value);
                     p.Items = newItems;
                 });
 
