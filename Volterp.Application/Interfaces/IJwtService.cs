@@ -2,5 +2,5 @@ namespace Volterp.Application.Interfaces;
 
 public interface IJwtService
 {
-    string GenerateToken(string username, string email, string role, int companyId);
+    string GenerateToken(string username, string email, string role, int companyId, int userId);
 }

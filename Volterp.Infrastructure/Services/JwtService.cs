@@ -9,7 +9,7 @@ namespace Volterp.Infrastructure.Services;
 
 public class JwtService(IConfiguration configuration) : IJwtService
 {
-    public string GenerateToken(string username, string email, string role, int companyId)
+    public string GenerateToken(string username, string email, string role, int companyId, int userId)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -20,6 +20,7 @@ public class JwtService(IConfiguration configuration) : IJwtService
             new Claim(ClaimTypes.Email, email),
             new Claim(ClaimTypes.Role, role),
             new Claim("companyId", companyId.ToString()),
+            new Claim("userId", userId.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

@@ -15,7 +15,7 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
             error => BadRequest(new ErrorResponse(error.Message)),
             user =>
             {
-                var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId);
+                var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId, user.Id);
                 return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(),
                     user.CompanyId));
             });
@@ -51,7 +51,7 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
                 return BadRequest(new ErrorResponse("Update failed"));
         }
 
-        var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId);
+        var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId, user.Id);
         return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(), user.CompanyId));
     }
 }
