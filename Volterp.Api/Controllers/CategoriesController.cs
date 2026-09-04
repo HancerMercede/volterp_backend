@@ -7,6 +7,7 @@ namespace Volterp.Api.Controllers;
 [Authorize]
 public class CategoriesController(IServiceManager services) : BaseController
 {
+    
     [HttpGet]
     public async Task<ActionResult<PagedResult<CategoryDto>>> GetCategories(
         [FromQuery] PaginationParameters pagination,
@@ -36,7 +37,8 @@ public class CategoriesController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        var result = await services.Categories.CreateAsync(request, companyId, ct);
+        var userId = GetCurrentUserId();
+        var result = await services.Categories.CreateAsync(request, companyId, userId, ct);
         return result.Match<ActionResult<CategoryDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             category => CreatedAtAction(nameof(GetCategory), new { id = category.Id }, category)
@@ -51,7 +53,8 @@ public class CategoriesController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        var result = await services.Categories.UpdateAsync(id, request, companyId, ct);
+        var userId = GetCurrentUserId();
+        var result = await services.Categories.UpdateAsync(id, request, companyId, userId, ct);
         return result.Match<ActionResult<CategoryDto>>(
             error => NotFound(new ErrorResponse(error.Message)),
             category => Ok(category)

@@ -154,7 +154,7 @@ public class ProductServiceTests
         );
 
         // ACT
-        var result = await service.CreateAsync(request, 1);
+        var result = await service.CreateAsync(request, 1, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto>.Left>();
@@ -185,7 +185,7 @@ public class ProductServiceTests
         );
 
         // ACT
-        var result = await service.CreateAsync(request, 1);
+        var result = await service.CreateAsync(request, 1, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto>.Right>();
@@ -214,7 +214,7 @@ public class ProductServiceTests
         );
 
         // ACT
-        var result = await service.UpdateAsync(999, request, 1);
+        var result = await service.UpdateAsync(999, request, 1, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto>.Left>();
@@ -246,7 +246,7 @@ public class ProductServiceTests
         );
 
         // ACT
-        var result = await service.UpdateAsync(1, request, 1);
+        var result = await service.UpdateAsync(1, request, 1, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto>.Left>();
@@ -281,7 +281,7 @@ public class ProductServiceTests
         );
 
         // ACT
-        var result = await service.UpdateAsync(1, request, 1);
+        var result = await service.UpdateAsync(1, request, 1, 42);
 
         // ASSERT
         result.Should().NotBeNull();

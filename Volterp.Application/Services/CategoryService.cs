@@ -28,7 +28,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
             .Run();
     }
 
-    public async Task<Either<Error, CategoryDto>> CreateAsync(CreateCategoryRequest request, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, CategoryDto>> CreateAsync(CreateCategoryRequest request, int companyId, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateCategoryRequest>
             .FromRight(request)
@@ -38,6 +38,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
             .Map(category =>
             {
                 category.CompanyId = companyId;
+                if (userId.HasValue) category.SetCreatedBy(userId.Value);
                 return category;
             })
             .FlatMap(async category =>
@@ -50,7 +51,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
             .Run();
     }
 
-    public async Task<Either<Error, CategoryDto>> UpdateAsync(int id, UpdateCategoryRequest request, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, CategoryDto>> UpdateAsync(int id, UpdateCategoryRequest request, int companyId, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, int>
             .FromRight(id)
@@ -68,6 +69,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
                     x.Description = request.Description;
                     x.IsActive = request.IsActive;
                     x.UpdatedAt = DateTime.UtcNow;
+                    if (userId.HasValue) x.SetUpdatedBy(userId.Value);
                 });
                 return category;
             })

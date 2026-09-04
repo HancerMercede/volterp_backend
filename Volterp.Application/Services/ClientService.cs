@@ -30,7 +30,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .Run();
     }
 
-    public async Task<Either<Error, ClientDto>> CreateClientAsync(CreateClientDto request, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, ClientDto>> CreateClientAsync(CreateClientDto request, int companyId, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateClientDto>
             .FromRight(request)
@@ -43,6 +43,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .FlatMap(async client =>
             {
                 client.CompanyId = companyId;
+                if (userId.HasValue) client.SetCreatedBy(userId.Value);
                 await unitOfWork.Clients.AddClientAsync(client, ct);
                 await unitOfWork.CommitAsync(ct);
                 return client;
@@ -51,7 +52,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .Run();
     }
 
-    public async Task<Either<Error, ClientDto>> UpdateClientAsync(int id, int companyId, UpdateClientDto request, CancellationToken ct = default)
+public async Task<Either<Error, ClientDto>> UpdateClientAsync(int id, int companyId, UpdateClientDto request, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, ClientDto>
             .Try(async () => await unitOfWork.Clients.GetClientByIdAsync(id, companyId, ct))
@@ -68,7 +69,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
                     c.Address = request.Address;
                     c.IsActive = request.IsActive;
                     c.UpdatedAt = DateTime.UtcNow;
-                    
+                    if (userId.HasValue) c.SetUpdatedBy(userId.Value);
                 });
                 return client;
             }).FlatMap(async client =>

@@ -39,9 +39,10 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
     public async Task<ActionResult<ClientDto>> CreateClient([FromBody] CreateClientDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
+        var userId = GetCurrentUserId();
         var client = await serviceManager
             .Clients
-            .CreateClientAsync(request, companyId, ct);
+            .CreateClientAsync(request, companyId, userId, ct);
 
         return client.Match<ActionResult<ClientDto>>(
             error => BadRequest(error.Message),
@@ -54,7 +55,8 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
     public async Task<ActionResult<ClientDto>> UpdateClient(int id, [FromBody] UpdateClientDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var client = await serviceManager.Clients.UpdateClientAsync(id, companyId, request, ct);
+        var userId = GetCurrentUserId();
+        var client = await serviceManager.Clients.UpdateClientAsync(id, companyId, request, userId, ct);
         
         return client.Match<ActionResult<ClientDto>>(
             error => BadRequest(error.Message),
@@ -71,7 +73,7 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Clients.DeleteClientAsync(id, companyId, ct);
 
-        return result.Match<IActionResult>(
+        return result.Match<ActionResult>(
             error => NotFound(new { message = error.Message }),
             _ => NoContent());
     }

@@ -44,7 +44,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.CreateSaleAsync(request);
+        await service.CreateSaleAsync(request, 42);
 
         // ASSERT - EF change tracker handles persistence; verify stock was decremented
         product.Stock.Should().Be(5);
@@ -79,7 +79,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.CreateSaleAsync(request);
+        await service.CreateSaleAsync(request, 42);
 
         // ASSERT
         product.Stock.Should().Be(5);
@@ -117,7 +117,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(1, 1);
+        var result = await service.CompleteSaleAsync(1, 1, 42);
 
         // ASSERT
         sale.Status.Should().Be(SaleStatus.Completed);
@@ -165,7 +165,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.UpdateSaleAsync(1, 1, updateRequest);
+        await service.UpdateSaleAsync(1, 1, updateRequest, 42);
 
         // ASSERT - Expected: old qty (5) returned, new qty (8) deducted
         // So stock should be: 10 + 5 - 8 = 7
@@ -323,7 +323,7 @@ public class  SaleServiceTests
         );
 
         // ACT - should not throw, just doesn't decrement stock for missing products
-        var result = await service.CreateSaleAsync(request);
+        var result = await service.CreateSaleAsync(request, 42);
 
         // ASSERT - sale created, no stock modification occurred
         result.Should().NotBeNull();
@@ -352,7 +352,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        var result = await service.UpdateSaleAsync(999, 1, updateRequest);
+        var result = await service.UpdateSaleAsync(999, 1, updateRequest, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -374,7 +374,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(999, 1);
+        var result = await service.CompleteSaleAsync(999, 1, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -463,7 +463,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        var result = await service.CreateSaleAsync(request);
+        var result = await service.CreateSaleAsync(request, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -535,7 +535,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        var result = await service.CreateSaleAsync(request);
+        var result = await service.CreateSaleAsync(request, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -581,7 +581,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.CreateSaleAsync(request);
+        await service.CreateSaleAsync(request, 42);
 
         // ASSERT
         product1.Stock.Should().Be(90);  // 100 - 10
@@ -628,7 +628,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        var result = await service.UpdateSaleAsync(1, 1, updateRequest);
+        var result = await service.UpdateSaleAsync(1, 1, updateRequest, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -678,7 +678,7 @@ public class  SaleServiceTests
         );
 
 // ACT
-        var result = await service.UpdateSaleAsync(1, 1, updateRequest);
+        var result = await service.UpdateSaleAsync(1, 1, updateRequest, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -728,7 +728,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.UpdateSaleAsync(1, 1, updateRequest);
+        await service.UpdateSaleAsync(1, 1, updateRequest, 42);
 
         // ASSERT: 20 + 5 (return old) - 3 (deduct new) = 22
         product.Stock.Should().Be(22);
@@ -776,7 +776,7 @@ public class  SaleServiceTests
         );
 
         // ACT - should not throw, just skip the non-existent product
-        var result = await service.UpdateSaleAsync(1, 1, updateRequest);
+        var result = await service.UpdateSaleAsync(1, 1, updateRequest, 42);
 
         // ASSERT - stock of existing product should change correctly
         existingProduct.Stock.Should().Be(22); // 20 + 5 (return) - 3 (deduct)
@@ -813,7 +813,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.CreateSaleAsync(request);
+        await service.CreateSaleAsync(request, 42);
 
         // ASSERT - grouped quantity 3 + 2 = 5 should be decremented
         product.Stock.Should().Be(15); // 20 - 5
@@ -845,7 +845,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        var result = await service.CreateSaleAsync(request);
+        var result = await service.CreateSaleAsync(request, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -916,7 +916,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(1, 1);
+        var result = await service.CompleteSaleAsync(1, 1, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -992,7 +992,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(1, 1);
+        var result = await service.CompleteSaleAsync(1, 1, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -1032,7 +1032,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(1, 1);
+        var result = await service.CompleteSaleAsync(1, 1, 42);
 
         // ASSERT
         sale.Status.Should().Be(SaleStatus.Completed);

@@ -36,7 +36,8 @@ public class ProductsController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        var result = await services.Products.CreateAsync(request, companyId, ct);
+        var userId = GetCurrentUserId();
+        var result = await services.Products.CreateAsync(request, companyId, userId, ct);
         return result.Match<ActionResult<ProductDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             product => CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product)
@@ -51,7 +52,8 @@ public class ProductsController(IServiceManager services) : BaseController
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
-        var result = await services.Products.UpdateAsync(id, request, companyId, ct);
+        var userId = GetCurrentUserId();
+        var result = await services.Products.UpdateAsync(id, request, companyId, userId, ct);
         return result.Match<ActionResult<ProductDto>>(
             error => NotFound(new ErrorResponse(error.Message)),
             product => Ok(product)

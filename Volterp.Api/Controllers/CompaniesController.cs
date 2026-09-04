@@ -44,7 +44,8 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
         if (!IsAdmin())
             return Forbid();
         
-        var company = await serviceManager.Companies.AddCompanyAsync(createCompanyDto, ct);
+        var userId = GetCurrentUserId();
+        var company = await serviceManager.Companies.AddCompanyAsync(createCompanyDto, userId, ct);
        
         return company.Match<ActionResult<CompanyDto>>(
             error => BadRequest(error.Message),
@@ -57,7 +58,8 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
     {
         if(!IsAdmin())
             return Forbid();
-        var company = await serviceManager.Companies.UpdateCompanyAsync(id, updateCompanyDto, ct);
+        var userId = GetCurrentUserId();
+        var company = await serviceManager.Companies.UpdateCompanyAsync(id, updateCompanyDto, userId, ct);
         
         return company.Match<ActionResult>(
             error => BadRequest(error.Message),

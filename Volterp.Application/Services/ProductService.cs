@@ -32,7 +32,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             .Run();
     }
 
-    public async Task<Either<Error, ProductDto>> CreateAsync(CreateProductDto request, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, ProductDto>> CreateAsync(CreateProductDto request, int companyId, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateProductDto>
             .FromRight(request)
@@ -48,6 +48,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
 
                 var product = req.Project();
                 product.CompanyId = companyId;
+                if (userId.HasValue) product.SetCreatedBy(userId.Value);
                 product.SetPrice(new Money(req.Price, Currency.ARS));
 
                 await unitOfWork.Products.AddProductAsync(product, ct);
@@ -58,7 +59,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             .Run();
     }
 
-    public async Task<Either<Error, ProductDto>> UpdateAsync(int id, UpdateProductDto request, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, ProductDto>> UpdateAsync(int id, UpdateProductDto request, int companyId, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, int>
             .FromRight(id)
@@ -86,6 +87,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
                     r.CategoryId = request.CategoryId;
                     r.ImageUrl = request.ImageUrl;
                     r.UpdatedAt = DateTime.UtcNow;
+                    if (userId.HasValue) r.SetUpdatedBy(userId.Value);
                 });
                 product.SetPrice(new Money(request.Price, Currency.ARS));
                 if (request.IsActive) product.Activate(); else product.Deactivate();

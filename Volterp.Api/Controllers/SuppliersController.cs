@@ -40,9 +40,10 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
         CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
+        var userId = GetCurrentUserId();
         var result = await serviceManager
             .Suppliers
-            .CreateSupplierAsync(request, companyId, ct);
+            .CreateSupplierAsync(request, companyId, userId, ct);
 
         return result.Match<ActionResult<SupplierDto>>(
             error => BadRequest(new { message = error.Message }),
@@ -57,9 +58,10 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
         CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
+        var userId = GetCurrentUserId();
         var result = await serviceManager
             .Suppliers
-            .UpdateSupplierAsync(id, companyId, request, ct);
+            .UpdateSupplierAsync(id, companyId, request, userId, ct);
 
         return result.Match<ActionResult<SupplierDto>>(
             error => NotFound(new { message = error.Message }),

@@ -133,7 +133,7 @@ public class CompanyServiceTests
         );
 
         // ACT
-        var result = await service.AddCompanyAsync(request);
+        var result = await service.AddCompanyAsync(request, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, CompanyDto?>.Right>();
@@ -170,7 +170,7 @@ public class CompanyServiceTests
         );
 
         // ACT
-        var result = await service.UpdateCompanyAsync(1, request);
+        var result = await service.UpdateCompanyAsync(1, request, 42);
 
         // ASSERT
         company.Name.Should().Be("Updated Name");

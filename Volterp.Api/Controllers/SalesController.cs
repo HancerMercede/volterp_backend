@@ -70,7 +70,8 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     [HttpPost]
     public async Task<ActionResult<SaleDto>> CreateSale([FromBody] CreateSaleRequest request, CancellationToken ct = default)
     {
-        var result = await serviceManager.Sales.CreateSaleAsync(request, ct);
+        var userId = GetCurrentUserId();
+        var result = await serviceManager.Sales.CreateSaleAsync(request, userId, ct);
         return result.Match<ActionResult<SaleDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             sale => CreatedAtAction(nameof(GetSale), new { id = sale.Id }, sale)
@@ -81,7 +82,8 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     public async Task<ActionResult<SaleDto>> UpdateSale(int id, [FromBody] UpdateSaleRequest request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.Sales.UpdateSaleAsync(id, companyId, request, ct);
+        var userId = GetCurrentUserId();
+        var result = await serviceManager.Sales.UpdateSaleAsync(id, companyId, request, userId, ct);
         return result.Match<ActionResult<SaleDto>>(
             error => NotFound(new { message = error.Message }),
             sale => Ok(sale)
@@ -92,7 +94,8 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     public async Task<ActionResult<SaleDto>> CompleteSale(int id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.Sales.CompleteSaleAsync(id, companyId, ct);
+        var userId = GetCurrentUserId();
+        var result = await serviceManager.Sales.CompleteSaleAsync(id, companyId, userId, ct);
         return result.Match<ActionResult<SaleDto>>(
             error => NotFound(new { message = error.Message }),
             sale => Ok(sale)

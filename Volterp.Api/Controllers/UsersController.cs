@@ -40,10 +40,11 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
             return Forbid();
 
         var companyId = GetCurrentUserCompanyId();
+        var userId = GetCurrentUserId();
 
         var userForCreation = request with { CompanyId = companyId };
 
-        var userResult = await serviceManager.Users.CreateAsync(userForCreation, ct);
+        var userResult = await serviceManager.Users.CreateAsync(userForCreation, userId, ct);
         
         return userResult.Match<ActionResult<UserDto>>(
             error => BadRequest(error.Message),
@@ -56,6 +57,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     {
         if (!IsAdmin()) return Forbid();
 
+        var userId = GetCurrentUserId();
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
 
         
@@ -73,8 +75,8 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
             FullName = user.FullName
         };
 
-        var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, ct);
-        
+        var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, userId, ct);
+
         return updateResult.Match<ActionResult<UserDto>>(
             error => BadRequest(error.Message),
             value =>  Ok(value));
@@ -85,6 +87,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     {
         if (!IsAdmin()) return Forbid();
 
+        var userId = GetCurrentUserId();
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
         
         var user = ((Either<Error, UserDto>.Right)userResult!).Value;
@@ -102,10 +105,10 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
             IsActive = request.IsActive
         };
 
-        var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, ct);
-        
+        var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, userId, ct);
+
         return updateResult.Match<ActionResult<UserDto>>(
-            error => BadRequest(error.Message), 
+            error => BadRequest(error.Message),
             value =>  Ok(value));
     }
 

@@ -28,7 +28,7 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Run();
     }
 
-    public async Task<Either<Error,CompanyDto?>> AddCompanyAsync(CreateCompanyDto company, CancellationToken ct = default)
+    public async Task<Either<Error,CompanyDto?>> AddCompanyAsync(CreateCompanyDto company, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateCompanyDto>
             .FromRight(company)
@@ -37,6 +37,11 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Ensure(c => !string.IsNullOrEmpty(c.Phone), new Error("phone can't be null or empty."))
             .Ensure(c => !string.IsNullOrEmpty(c.LegalName), new Error("legal name can't be null or empty."))
             .Map(c => c.Project())
+            .Map(companyToAdd =>
+            {
+                if (userId.HasValue) companyToAdd.SetCreatedBy(userId.Value);
+                return companyToAdd;
+            })
             .FlatMap(async companyToAdd =>
             {
                 await unitOfWork.Companies.AddCompanyAsync(companyToAdd, ct);
@@ -47,7 +52,7 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Run();
     }
 
-    public async Task<Either<Error,CompanyDto?>> UpdateCompanyAsync(int companyId, UpdateCompanyDto company, CancellationToken ct = default)
+    public async Task<Either<Error,CompanyDto?>> UpdateCompanyAsync(int companyId, UpdateCompanyDto company, int? userId, CancellationToken ct = default)
     {
 
         return await EitherAsync<Error, int>
@@ -72,6 +77,7 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
                     c.Phone = company.Phone;
                     c.Email = company.Email;
                     c.UpdatedAt = DateTime.UtcNow;
+                    if (userId.HasValue) c.SetUpdatedBy(userId.Value);
                 });
                 return companyToUpdate;
             }).FlatMap(async companyToUpdate =>

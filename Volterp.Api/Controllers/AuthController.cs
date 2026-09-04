@@ -9,7 +9,8 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] CreateUserDto request, CancellationToken ct)
     {
-        var userResult = await serviceManager.Users.CreateAsync(request, ct);
+        var userId = GetCurrentUserId();
+        var userResult = await serviceManager.Users.CreateAsync(request, userId, ct);
 
         return userResult.Match<IActionResult>(
             error => BadRequest(new ErrorResponse(error.Message)),
@@ -46,7 +47,7 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
         if (!user.PasswordHash.StartsWith("$2"))
         {
             user.PasswordHash = passwordHasher.Hash(request.Password);
-            var updateResult = await serviceManager.Users.UpdateAsync(user.Id, user, ct);
+            var updateResult = await serviceManager.Users.UpdateAsync(user.Id, user, user.Id, ct);
             if (updateResult is Either<Error, UserDto>.Left)
                 return BadRequest(new ErrorResponse("Update failed"));
         }

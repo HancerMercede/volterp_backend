@@ -29,7 +29,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Run();
     }
 
-    public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, CancellationToken ct = default)
+    public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync
             .Try(async() => await unitOfWork.Users.GetByUsernameAsync(request.Username, ct))
@@ -41,6 +41,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .FlatMap(async user =>
             {
                 user.PasswordHash = passwordHasher.Hash(request.Password);
+                if (userId.HasValue) user.SetCreatedBy(userId.Value);
                 await unitOfWork.Users.AddUserAsync(user, ct);
                 await unitOfWork.CommitAsync(ct);
                 return user;
@@ -49,12 +50,12 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Run();
     }
 
-    public async Task<Either<Error, UserDto>> UpdateAsync(int id, UserWithPasswordHashDto request, CancellationToken ct = default)
+    public async Task<Either<Error, UserDto>> UpdateAsync(int id, UserWithPasswordHashDto request, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, int>
             .FromRight(id)
             .Ensure(x=> x > 0 , new Error("id must be greater than zero."))
-            .Ensure(_=> request.Email.IsValidEmail(), 
+            .Ensure(_=> request.Email.IsValidEmail(),
                 _ => new Error("the email address is not valid"))
             .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
                 ex => new Error(ex.Message))
@@ -68,6 +69,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
                     x.Role = request.Role;
                     x.IsActive = request.IsActive;
                     x.UpdatedAt = DateTime.UtcNow;
+                    if (userId.HasValue) x.SetUpdatedBy(userId.Value);
                 });
             })
             .FlatMap(async user =>

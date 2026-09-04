@@ -28,27 +28,32 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Run();
     }
 
-    public async Task<Either<Error, SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, int companyId, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, SupplierCreateDto>
             .FromRight(request)
-            .Ensure(x => !string.IsNullOrEmpty(x.Name), 
+            .Ensure(x => !string.IsNullOrEmpty(x.Name),
                 new Error("The name must be specified."))
-            .Ensure(x => !string.IsNullOrEmpty(x.Address), 
+            .Ensure(x => !string.IsNullOrEmpty(x.Address),
                 new Error("The address must be specified."))
             .Ensure(x => !string.IsNullOrEmpty(x.Email),
                 new Error("The email must be specified."))
             .Ensure(_=> request.Email.IsValidEmail(), _=> new Error("The email is not valid"))
-            .Ensure(_=> companyId > 0, 
+            .Ensure(_=> companyId > 0,
                 new Error("The companyId must be greater than zero."))
             .Map(_ => request.Project())
+            .Map(supplier =>
+            {
+                if (userId.HasValue) supplier.SetCreatedBy(userId.Value);
+                return supplier;
+            })
             .FlatMap(async supplier => await unitOfWork.Suppliers.AddSupplierAsync(supplier, ct),
                 exception => new Error($"Error: {exception.Message}"))
             .Map(supplier => supplier.MapTo<Supplier, SupplierDto>())
             .Run();
     }
     
-    public async Task<Either<Error,SupplierDto>> UpdateSupplierAsync(int id, int companyId, SupplierDto request, CancellationToken ct = default)
+    public async Task<Either<Error,SupplierDto>> UpdateSupplierAsync(int id, int companyId, SupplierDto request, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, int>.FromRight(id)
             .Ensure(s => s > 0, new Error("The id must be greater than zero."))
@@ -71,6 +76,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
                     s.ImageUrl = request.ImageUrl;
                     s.ContactPerson = request.ContactPerson!;
                     s.UpdatedAt = DateTime.Now;
+                    if (userId.HasValue) s.SetUpdatedBy(userId.Value);
 
                 });
             }).FlatMap(async supplier =>

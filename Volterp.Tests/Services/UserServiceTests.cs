@@ -31,7 +31,7 @@ public class UserServiceTests
         var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", UserRole.Ventas, 1);
 
         // ACT
-        var result = await service.CreateAsync(request);
+        var result = await service.CreateAsync(request, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto>.Left>();
@@ -60,7 +60,7 @@ public class UserServiceTests
         var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas, 1);
 
         // ACT
-        var result = await service.CreateAsync(request);
+        var result = await service.CreateAsync(request, 42);
 
         // ASSERT - verify password hasher was called with the plain password
         mockPasswordHasher.Verify(
@@ -173,7 +173,7 @@ public class UserServiceTests
         };
 
         // ACT
-        var result = await service.UpdateAsync(999, request);
+        var result = await service.UpdateAsync(999, request, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto>.Left>();
@@ -211,7 +211,7 @@ public class UserServiceTests
         };
 
         // ACT
-        var result = await service.UpdateAsync(1, request);
+        var result = await service.UpdateAsync(1, request, 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto>.Right>();

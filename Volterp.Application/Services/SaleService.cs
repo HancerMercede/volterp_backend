@@ -76,7 +76,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Run();
     }
 
-    public async Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, CancellationToken ct = default)
+    public async Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateSaleRequest>
             .FromRight(request)
@@ -84,6 +84,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .FlatMap(async req =>
             {
                 var sale = MapToSaleEntity(req);
+                if (userId.HasValue) sale.SetCreatedBy(userId.Value);
 
                 // Batch query: single SELECT for all products (avoids N+1)
                 var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
@@ -109,7 +110,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Run();
     }
 
-    public async Task<Either<Error, SaleDto>> UpdateSaleAsync(int id, int companyId, UpdateSaleRequest request, CancellationToken ct = default)
+    public async Task<Either<Error, SaleDto>> UpdateSaleAsync(int id, int companyId, UpdateSaleRequest request, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, int>
             .FromRight(id)
@@ -162,6 +163,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                     s.Total = request.Total;
                     s.Notes = request.Notes;
                     s.UpdatedAt = DateTime.UtcNow;
+                    if (userId.HasValue) s.SetUpdatedBy(userId.Value);
                     s.Items = newItems;
                 });
 
@@ -173,7 +175,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Run();
     }
 
-    public async Task<Either<Error, SaleDto>> CompleteSaleAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, SaleDto>> CompleteSaleAsync(int id, int companyId, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, int>
             .FromRight(id)
@@ -204,6 +206,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                 sale.Apply(s =>
                 {
                     s.UpdatedAt = DateTime.UtcNow;
+                    if (userId.HasValue) s.SetUpdatedBy(userId.Value);
                 });
 
                 await unitOfWork.Sales.UpdateSaleAsync(sale, ct);
