@@ -68,7 +68,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
                     c.Address = request.Address;
                     c.IsActive = request.IsActive;
                     c.UpdatedAt = DateTime.UtcNow;
-        
+                    
                 });
                 return client;
             }).FlatMap(async client =>
