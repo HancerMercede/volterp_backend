@@ -12,11 +12,11 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
+         
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager
             .Clients
-            .GetAllClientsAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
-        
+            .GetAllClientsAsync(companyId,pagination.PageNumber, pagination.PageSize, ct);
         
         return Ok(result);
     }
@@ -28,9 +28,7 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
         var client = await serviceManager
             .Clients
             .GetClientByIdAsync(id, companyId, ct);
-        
-       
-            
+ 
         return client.Match<ActionResult<ClientDto>>(
             error => NotFound(error.Message),
             result=> Ok(result));
@@ -56,16 +54,11 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
     public async Task<ActionResult<ClientDto>> UpdateClient(int id, [FromBody] UpdateClientDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
+        var client = await serviceManager.Clients.UpdateClientAsync(id, companyId, request, ct);
         
-        try
-        {
-            var client = await serviceManager.Clients.UpdateClientAsync(id, companyId, request, ct);
-            return Ok(client);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        return client.Match<ActionResult<ClientDto>>(
+            error => BadRequest(error.Message),
+            result => Ok(result));
     }
     
     [HttpDelete("{id}")]
@@ -76,15 +69,10 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
             return Forbid();
         
         var companyId = GetCurrentUserCompanyId();
-        
-        try
-        {
-            await serviceManager.Clients.DeleteClientAsync(id, companyId, ct);
-            return NoContent();
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
+        var result = await serviceManager.Clients.DeleteClientAsync(id, companyId, ct);
+
+        return result.Match<IActionResult>(
+            error => NotFound(new { message = error.Message }),
+            _ => NoContent());
     }
 }

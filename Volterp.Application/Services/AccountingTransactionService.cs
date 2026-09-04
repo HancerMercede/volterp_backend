@@ -57,7 +57,7 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = userId
                 };
-
+            
                 await unitOfWork.AccountingTransactions.AddTransactionAsync(transaction, ct);
                 await unitOfWork.CommitAsync(ct);
                 return transaction;
