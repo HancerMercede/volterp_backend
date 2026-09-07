@@ -10,12 +10,7 @@ namespace Volterp.Application.Services;
 
 public class SaleService(IUnitOfWork unitOfWork) : ISaleService
 {
-    private static SaleDto MapToSaleDto(Sale s) => new SaleDto(
-        s.Id, s.CompanyId, s.ClienteId, s.ClienteName, s.Status, s.Total, s.Notes,
-        s.CreatedAt, s.UpdatedAt,
-        s.Items.Select(i => new SaleItemDto(i.Id, i.ProductId, i.ProductName,
-            i.ProductCategory, i.ProductCode, i.ProductImageUrl,
-            i.Quantity, i.UnitPrice, i.Subtotal)).ToList());
+
 
     private static Sale MapToSaleEntity(CreateSaleRequest r) => new Sale
     {
@@ -55,13 +50,13 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
     public async Task<PagedResult<SaleDto>> GetAllSalesAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var sales = await unitOfWork.Sales.GetAllSalesByCompanyAsync(companyId, pageNumber, pageSize, ct);
-        return sales.Map(MapToSaleDto);
+        return sales.MapTo<Sale, SaleDto>();
     }
 
     public async Task<PagedResult<SaleDto>> GetSalesByStatusAsync(int companyId, SaleStatus status, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var sales = await unitOfWork.Sales.GetSalesByStatusAsync(companyId, status, pageNumber, pageSize, ct);
-        return sales.Map(MapToSaleDto);
+        return sales.MapTo<Sale, SaleDto>();
     }
 
     public async Task<Either<Error, SaleDto?>> GetSaleByIdAsync(int id, int companyId, CancellationToken ct = default)
@@ -72,7 +67,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, companyId, ct),
                 ex => new Error(ex.Message))
-            .Map(sale => sale is null ? null : MapToSaleDto(sale))
+            .Map(sale => sale?.MapTo<Sale, SaleDto>())
             .Run();
     }
 
@@ -83,7 +78,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Ensure(r => r.Items.Count > 0, new Error("Sale must have at least one item."))
             .FlatMap(async req =>
             {
-                var sale = MapToSaleEntity(req);
+                var sale = req.Project();
                 if (userId.HasValue) sale.SetCreatedBy(userId.Value);
 
                 // Batch query: single SELECT for all products (avoids N+1)
@@ -106,7 +101,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                 await unitOfWork.CommitAsync(ct);
                 return sale;
             }, ex => new Error(ex.Message))
-            .Map(sale => MapToSaleDto(sale))
+            .Map(sale =>sale.MapTo<Sale, SaleDto>())
             .Run();
     }
 
@@ -152,7 +147,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
 
                     product.DeductStock(quantity);
                 }
-
+                
                 var newItems = MapToSaleItems(request.Items);
 
                 sale.Apply(s =>
@@ -171,7 +166,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                 await unitOfWork.CommitAsync(ct);
                 return sale;
             }, ex => new Error(ex.Message))
-            .Map(sale => MapToSaleDto(sale))
+            .Map(sale => sale.MapTo<Sale, SaleDto>())
             .Run();
     }
 
@@ -213,7 +208,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                 await unitOfWork.CommitAsync(ct);
                 return sale;
             }, ex => new Error(ex.Message))
-            .Map(sale => MapToSaleDto(sale))
+            .Map(sale => sale.MapTo<Sale, SaleDto>())
             .Run();
     }
 

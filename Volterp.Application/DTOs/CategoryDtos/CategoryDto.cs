@@ -19,6 +19,5 @@ public record CategoryDto:IMapFrom<Category>
         CompanyId = source.CompanyId;
         IsActive = source.IsActive;
         CreatedAt = source.CreatedAt;
-        
     }
 }

@@ -27,7 +27,7 @@ namespace Volterp.Api.Helpers;
 
 public static class ServiceExtensions
 {
-    public static void ConfigureDbContext(this IServiceCollection services, DatabaseSettings settings)
+    public static void ConfigureDbContext(IServiceCollection services, DatabaseSettings settings)
         => services.AddDbContext<VolterpDbContext>(options =>
             options.UseNpgsql(settings.DefaultConnection));
 
@@ -68,9 +68,9 @@ public static class ServiceExtensions
     public static void ConfigureCors(IServiceCollection services)
         => services.AddCors(options =>
             options.AddDefaultPolicy(policy =>
-                policy.AllowAnyOrigin()
-                      .AllowAnyMethod()
-                      .AllowAnyHeader()));
+                policy.WithOrigins("http://localhost:5173")
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()));
 
     public static void ConfigureExceptionLogStore(IServiceCollection services)
         => services.AddSingleton<IExceptionLogStore>(new InMemoryExceptionLogStore(100));
@@ -154,7 +154,7 @@ public static class ServiceExtensions
             {
                 Title = "Volterp ERP API",
                 Version = "v1",
-                Description = "Backend API for Volterp ERP — Clean Architecture on .NET 10 + PostgreSQL."
+                Description = Constants.Description
             });
 
             // JWT Bearer security scheme so the Swagger UI exposes an "Authorize" button.

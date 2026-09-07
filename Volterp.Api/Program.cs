@@ -20,7 +20,7 @@ var dbSettings = new DatabaseSettings
     DefaultConnection = builder.Configuration.GetConnectionString("DefaultConnection")!
 };
 
-builder.Services.ConfigureDbContext(dbSettings);
+ServiceExtensions.ConfigureDbContext(builder.Services, dbSettings);
 ServiceExtensions.ConfigureUnitOfWork(builder.Services);
 ServiceExtensions.ConfigureServiceManager(builder.Services);
 ServiceExtensions.ConfigureJwt(builder.Services, jwtSettings);
@@ -53,6 +53,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Volterp ERP API v1");
+        app.MapGet("/", () => Results.Redirect("/swagger"));  
     });
 }
 
