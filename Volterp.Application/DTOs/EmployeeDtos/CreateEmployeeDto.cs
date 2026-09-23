@@ -26,22 +26,22 @@ public record CreateEmployeeDto(
  {
    return new Employee
    {
-     FirstName = this.FirstName,
-     LastName = this.LastName,
-     Email = this.Email,
-     Phone = this.Phone,
-     Position = this.Position,
-     Department = this.Department,
-     HireDate = this.HireDate,
-     Salary = this.Salary,
-     Status = this.Status,
-     WorkSchedule = this.WorkSchedule,
-     ImageUrl = this.ImageUrl,
-     AFP = this.AFP,
-     ARS = this.ARS,
-     NSS = this.NSS,
-     Bank = this.Bank,
-     AccountNumber = this.AccountNumber
+     FirstName = FirstName,
+     LastName = LastName,
+     Email = Email,
+     Phone = Phone,
+     Position = Position,
+     Department = Department,
+     HireDate = HireDate,
+     Salary = Salary,
+     Status = Status,
+     WorkSchedule = WorkSchedule,
+     ImageUrl = ImageUrl,
+     AFP = AFP,
+     ARS = ARS,
+     NSS = NSS,
+     Bank = Bank,
+     AccountNumber = AccountNumber
    };
  }
 }

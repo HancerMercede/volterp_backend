@@ -65,7 +65,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         if (!CanManageUser(user.Role, request.Role))
             return Forbid();
-
+        
         var userForUpdate = new UserWithPasswordHashDto
         {
             Id = user.Id,

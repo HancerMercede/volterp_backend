@@ -52,7 +52,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .Run();
     }
 
-public async Task<Either<Error, ClientDto>> UpdateClientAsync(int id, int companyId, UpdateClientDto request, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, ClientDto?>> UpdateClientAsync(int id, int companyId, UpdateClientDto request, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, ClientDto>
             .Try(async () => await unitOfWork.Clients.GetClientByIdAsync(id, companyId, ct))
@@ -63,22 +63,24 @@ public async Task<Either<Error, ClientDto>> UpdateClientAsync(int id, int compan
             {
                 client.Apply(c =>
                 {
-                    c.Name = request.Name;
-                    c.Email = request.Email;
-                    c.Phone = request.Phone;
-                    c.Address = request.Address;
-                    c.IsActive = request.IsActive;
-                    c.UpdatedAt = DateTime.UtcNow;
-                    if (userId.HasValue) c.SetUpdatedBy(userId.Value);
+                    c?.Name = request.Name;
+                    c?.Email = request.Email;
+                    c?.Phone = request.Phone;
+                    c?.Address = request.Address;
+                    c?.IsActive = request.IsActive;
+                    c?.UpdatedAt = DateTime.UtcNow;
+                    if (userId.HasValue) c?.SetUpdatedBy(userId.Value);
                 });
                 return client;
             }).FlatMap(async client =>
             {
-                await unitOfWork.Clients.UpdateClientAsync(client, ct);
+                
+                await unitOfWork.Clients.UpdateClientAsync(client!, ct);
                 await unitOfWork.CommitAsync(ct);
                 return client;
+          
             }, ex => new Error(ex.Message))
-            .Map(client => client.MapTo<Client, ClientDto>())
+            .Map(client => client?.MapTo<Client, ClientDto>())
             .Run();
     }
 

@@ -1,8 +1,6 @@
 using EitherWay;
-using Volterp.Application.DTOs;
 using Volterp.Application.DTOs.CompanyDtos;
 using Volterp.Application.Exceptions.AppErrors;
-using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 

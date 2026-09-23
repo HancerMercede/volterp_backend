@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 using Volterp.Application.DTOs;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Enums;

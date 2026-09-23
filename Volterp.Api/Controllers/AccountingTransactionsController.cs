@@ -26,7 +26,9 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
         
         return result.Match<ActionResult<AccountingTransactionDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
-            transaction => transaction is null ? NotFound(new { message = "Transaccion contable no encontrada" }) : Ok(transaction)
+            transaction => transaction is null 
+                ? NotFound(new { message = "Transaccion contable no encontrada" }) 
+                   : Ok(transaction)
         );
     }
 

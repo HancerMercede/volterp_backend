@@ -83,7 +83,7 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
                     t.Amount = request.Amount;
                     t.Description = request.Description;
                     t.ReferenceNumber = request.ReferenceNumber;
-                    t.TransactionDate = request.TransactionDate;
+                    t.TransactionDate = request.TransactionDate.AsUtc();
                     t.Category = request.Category;
                     t.Notes = request.Notes;
                     t.Status = request.Status;

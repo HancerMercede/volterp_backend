@@ -32,7 +32,7 @@ public record EmployeeDto : IMapFrom<Employee>
         Phone = source.Phone;
         Position = source.Position;
         Department = source.Department;
-        HireDate = source.HireDate;
+        HireDate = DateTime.SpecifyKind(source.HireDate, DateTimeKind.Utc);
         Salary = source.Salary;
         Status = source.Status;
         WorkSchedule = source.WorkSchedule;

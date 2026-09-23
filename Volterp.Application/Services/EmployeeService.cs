@@ -72,7 +72,7 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
                     x.Phone = request.Phone;
                     x.Position = request.Position;
                     x.Department = request.Department;
-                    x.HireDate = request.HireDate;
+                    x.HireDate = request.HireDate.AsUtc();
                     x.Salary = request.Salary;
                     x.Status = request.Status;
                     x.WorkSchedule = request.WorkSchedule;
