@@ -33,11 +33,11 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 
 ## Scope (Phase 1 — 5 ciclos TDD)
 
-- [ ] **Ciclo 1.0** — Characterization tests del comportamiento actual + auditoría de duplicación (sin tocar DB ni wire).
-- [ ] **Ciclo 1.1** — Wire refactor: `companyId` sale de los 5 request DTOs.
-- [ ] **Ciclo 1.2** — Guid 7 migration: `int Id` → `Guid Id` en 12 entities + JWT claim + schema reset.
-- [x] **Ciclo 1.3** — Integration tests de aislamiento + `HasQueryFilter` vía `ITenantContext`.
-- [ ] **Ciclo 1.4** — `docs/multitenancy.md` con Fase 0 (4 contextos).
+- [x] **Ciclo 1.0** — Characterization tests + auditoría de duplicación. Commit `2b633a0`.
+- [x] **Ciclo 1.1** — Wire refactor: `companyId` sale de los 5 request DTOs. 3 bugs cross-tenant cerrados. Commit `2384a8a` + cleanup `d9ab96d`.
+- [x] **Ciclo 1.2** — Guid 7 migration: 12 entities + JWT claim. Split a/b/c: `d5eac9e` / `bf55432` / `187b069`. Schema reset diferido al usuario.
+- [x] **Ciclo 1.3** — Integration tests + `HasQueryFilter` vía `ITenantContext`. Commits `d613727` / `afcdeb6` / `6803319` / `75d415c`.
+- [x] **Ciclo 1.4** — Operational guide incorporado a este plan (no `docs/multitenancy.md` separado). Commit `a34549a`.
 
 ## Constraints
 - DB actual es disposable (datos de prueba del usuario) → schema reset OK.
@@ -57,7 +57,7 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 - [ ] `BaseController` y `CurrentUserService` consolidados en `HttpTenantContext` + `ICurrentUserService`. — *Diferido a 1.4+ (no era requisito del 1.3 quirúrgico).*
 - [ ] Schema reset ejecutado, migraciones regeneradas con Guid 7. — *Trabajo del usuario (Postgres apagado en sesión 1.2c).*
 - [x] Tests passing con strict TDD.
-- [ ] `docs/multitenancy.md` describe los 4 contextos. — *Ciclo 1.4.*
+- [x] Operational guide describe los contextos (HTTP ✅, Admin Global ❌, Tests/Seeder ✅; Message Handler descartado porque el ERP es síncrono). — *Ciclo 1.4, incorporado en sección "Operational guide" abajo.*
 
 ## Applicable checks (por ciclo)
 - `dotnet test` (todos los tests verdes).
