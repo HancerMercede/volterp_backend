@@ -9,10 +9,10 @@ public class PurchaseRepository(VolterpDbContext context) : RepositoryBase<Purch
 {
     public async Task<PagedResult<Purchase>> GetAllPurchasesByCompanyAsync(Guid companyId, int pageNumber, int pageSize,
         CancellationToken ct = default)
-        => await GetAllAsync(p => p.CompanyId == companyId, pageNumber, pageSize, ct);
+        => await GetAllAsync(_ => true, pageNumber, pageSize, ct);
 
     public async Task<Purchase?> GetPurchaseByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
-        => await GetByCondictionsAsync(p => p.Id == id && p.CompanyId == companyId, ct);
+        => await GetByCondictionsAsync(p => p.Id == id, ct);
 
     public async Task<Purchase> AddPurchaseAsync(Purchase purchase, CancellationToken ct = default)
     {

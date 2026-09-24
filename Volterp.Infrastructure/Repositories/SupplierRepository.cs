@@ -10,10 +10,10 @@ public class SupplierRepository(VolterpDbContext context) : RepositoryBase<Suppl
 
     public async Task<PagedResult<Supplier>> GetAllSuppliersByCompanyAsync(Guid companyId, int pageNumber, int pageSize,
         CancellationToken ct = default)
-        => await GetAllAsync(s => s.CompanyId == companyId, pageNumber, pageSize, ct);
+        => await GetAllAsync(_ => true, pageNumber, pageSize, ct);
 
     public async Task<Supplier?> GetSupplierByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
-        => await GetByCondictionsAsync(s => s.Id == id && s.CompanyId == companyId, ct);
+        => await GetByCondictionsAsync(s => s.Id == id, ct);
 
     public async Task<Supplier> AddSupplierAsync(Supplier supplier, CancellationToken ct = default)
     {

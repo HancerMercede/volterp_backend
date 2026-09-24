@@ -13,7 +13,7 @@ public class CategoryRepository(VolterpDbContext context)
         => await GetByCondictionsAsync(c => c.Id == id, ct);
 
     public async Task<PagedResult<Category>> GetAllCategoriesByCompanyAsync(Guid companyId, int pageNumber, int pageSize,
-        CancellationToken ct = default)=>await GetAllAsync(c => c.CompanyId == companyId, pageNumber, pageSize, ct);
+        CancellationToken ct = default)=>await GetAllAsync(_ => true, pageNumber, pageSize, ct);
 
     public async Task<Category> AddCategoryAsync(Category category, CancellationToken ct = default)
     {

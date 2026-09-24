@@ -15,15 +15,15 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
     public async Task<DashboardResponse> GetDashboardDataAsync(Guid companyId, CancellationToken ct = default)
     {
         var ventas = await context.Sales
-            .Where(s => s.CompanyId == companyId && s.Status == SaleStatus.Completed)
+            .Where(s => s.Status == SaleStatus.Completed)
             .SumAsync(s => (decimal?)s.Total, ct) ?? 0;
 
         var compras = await context.Purchases
-            .Where(p => p.CompanyId == companyId && p.Status == EntityStatus.Completed)
+            .Where(p => p.Status == EntityStatus.Completed)
             .SumAsync(p => (decimal?)p.Total, ct) ?? 0;
 
         var totalClientes = await context.Clients
-            .CountAsync(c => c.CompanyId == companyId, ct);
+            .CountAsync(ct);
 
 
         var salesChartTask = await GetSalesChartAsync(companyId, ct);
@@ -56,16 +56,14 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
 
         // Daily sales aggregates for the last 7 days
         var dailySales = await context.Sales
-            .Where(s => s.CompanyId == companyId
-                        && s.Status == SaleStatus.Completed
+            .Where(s => s.Status == SaleStatus.Completed
                         && s.CreatedAt >= sevenDaysAgo)
             .GroupBy(s => s.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Total = g.Sum(s => s.Total) })
             .ToListAsync(ct);
 
         var dailyPurchases = await context.Purchases
-            .Where(p => p.CompanyId == companyId
-                        && p.Status == EntityStatus.Completed
+            .Where(p => p.Status == EntityStatus.Completed
                         && p.CreatedAt >= sevenDaysAgo)
             .GroupBy(p => p.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Total = g.Sum(p => p.Total) })
@@ -91,8 +89,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
     private async Task<List<CategoryDataDto>> GetCategoryDataAsync(Guid companyId, CancellationToken ct)
     {
         var categorySales = await context.SaleItems
-            .Where(si => si.Sale.CompanyId == companyId
-                         && si.Sale.Status == SaleStatus.Completed)
+            .Where(si => si.Sale.Status == SaleStatus.Completed)
             .GroupBy(si => si.ProductCategory)
             .Select(g => new { Category = g.Key ?? "Sin categoría", Total = g.Sum(si => si.Subtotal) })
             .ToListAsync(ct);
@@ -117,8 +114,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
     private async Task<List<TopProductDto>> GetTopProductsAsync(Guid companyId, CancellationToken ct)
     {
         var topProducts = await context.SaleItems
-            .Where(si => si.Sale.CompanyId == companyId
-                         && si.Sale.Status == SaleStatus.Completed)
+            .Where(si => si.Sale.Status == SaleStatus.Completed)
             .GroupBy(si => new { si.ProductName, si.ProductCategory, si.ProductImageUrl })
             .Select(g => new
             {
@@ -148,7 +144,6 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
     private async Task<List<ActivityDto>> GetRecentActivitiesAsync(Guid companyId, CancellationToken ct)
     {
         var recentSales = await context.Sales
-            .Where(s => s.CompanyId == companyId)
             .OrderByDescending(s => s.CreatedAt)
             .Take(5)
             .Select(s => new
@@ -162,7 +157,6 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
             .ToListAsync(ct);
 
         var recentClients = await context.Clients
-            .Where(c => c.CompanyId == companyId)
             .OrderByDescending(c => c.CreatedAt)
             .Take(3)
             .Select(c => new
@@ -174,7 +168,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
             .ToListAsync(ct);
 
         var recentPurchases = await context.Purchases
-            .Where(p => p.CompanyId == companyId && p.Status == EntityStatus.Completed)
+            .Where(p => p.Status == EntityStatus.Completed)
             .OrderByDescending(p => p.CreatedAt)
             .Take(3)
             .Select(p => new
@@ -203,13 +197,13 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
     private async Task<List<ReminderDto>> GetRemindersAsync(Guid companyId, CancellationToken ct)
     {
         var pendingSalesCount = await context.Sales
-            .CountAsync(s => s.CompanyId == companyId && s.Status == SaleStatus.Pending, ct);
+            .CountAsync(s => s.Status == SaleStatus.Pending, ct);
 
         var lowStockCount = await context.Products
-            .CountAsync(p => p.CompanyId == companyId && p.Stock <= 5 && p.IsActive, ct);
+            .CountAsync(p => p.Stock <= 5 && p.IsActive, ct);
 
         var pendingPurchasesCount = await context.Purchases
-            .CountAsync(p => p.CompanyId == companyId && p.Status == EntityStatus.Pending, ct);
+            .CountAsync(p => p.Status == EntityStatus.Pending, ct);
 
         var reminders = new List<ReminderDto>();
 
@@ -231,16 +225,16 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
     private async Task<DashboardStatsDto> GetDashboardStatsAsync(Guid companyId, CancellationToken ct)
     {
         var ordersCompleted = await context.Sales
-            .CountAsync(s => s.CompanyId == companyId && s.Status == SaleStatus.Completed, ct);
+            .CountAsync(s => s.Status == SaleStatus.Completed, ct);
 
         var ordersPending = await context.Sales
-            .CountAsync(s => s.CompanyId == companyId && s.Status == SaleStatus.Pending, ct);
+            .CountAsync(s => s.Status == SaleStatus.Pending, ct);
 
         var activeProducts = await context.Products
-            .CountAsync(p => p.CompanyId == companyId && p.IsActive, ct);
+            .CountAsync(p => p.IsActive, ct);
 
         var activeSuppliers = await context.Suppliers
-            .CountAsync(s => s.CompanyId == companyId && s.IsActive, ct);
+            .CountAsync(s => s.IsActive, ct);
 
         return new DashboardStatsDto(
             OrdersCompleted: ordersCompleted,

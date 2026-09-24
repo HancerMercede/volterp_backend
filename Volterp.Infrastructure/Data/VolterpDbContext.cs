@@ -1,10 +1,16 @@
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
+using Volterp.Application.Abstractions;
 using Volterp.Domain.Entities;
 
 namespace Volterp.Infrastructure.Data;
 
-public class VolterpDbContext(DbContextOptions<VolterpDbContext> options) : DbContext(options)
+public class VolterpDbContext(
+    DbContextOptions<VolterpDbContext> options,
+    ITenantContext? tenantContext = null) : DbContext(options)
 {
+    private readonly ITenantContext _tenantContext = tenantContext ?? new NullTenantContext();
+
     public DbSet<User> Users => Set<User>();
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<Product> Products => Set<Product>();
@@ -21,5 +27,49 @@ public class VolterpDbContext(DbContextOptions<VolterpDbContext> options) : DbCo
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(VolterpDbContext).Assembly);
+        ApplyTenantFilters(modelBuilder);
+    }
+
+    private void ApplyTenantFilters(ModelBuilder modelBuilder)
+    {
+        var tenant = _tenantContext.CompanyId;
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var clrType = entityType.ClrType;
+
+            if (clrType == typeof(SaleItem))
+            {
+                modelBuilder.Entity<SaleItem>()
+                    .HasQueryFilter(e => tenant == null || e.Sale.CompanyId == tenant);
+            }
+            else if (clrType == typeof(PurchaseItem))
+            {
+                modelBuilder.Entity<PurchaseItem>()
+                    .HasQueryFilter(e => tenant == null || e.Purchase.CompanyId == tenant);
+            }
+            else if (clrType == typeof(Company))
+            {
+                continue;
+            }
+            else if (clrType.GetProperty("CompanyId") is not null)
+            {
+                ApplyDirectFilter(modelBuilder, clrType, tenant);
+            }
+        }
+    }
+
+    private void ApplyDirectFilter(ModelBuilder modelBuilder, Type clrType, Guid? tenant)
+    {
+        var method = typeof(VolterpDbContext)
+            .GetMethod(nameof(ApplyDirectFilterGeneric), BindingFlags.Instance | BindingFlags.NonPublic)!
+            .MakeGenericMethod(clrType);
+        method.Invoke(this, [modelBuilder, tenant]);
+    }
+
+    private void ApplyDirectFilterGeneric<TEntity>(ModelBuilder modelBuilder, Guid? tenant) where TEntity : class
+    {
+        modelBuilder.Entity<TEntity>()
+            .HasQueryFilter(e => tenant == null || EF.Property<Guid>(e, "CompanyId") == tenant);
     }
 }

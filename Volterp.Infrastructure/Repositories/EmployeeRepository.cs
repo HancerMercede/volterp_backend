@@ -9,10 +9,10 @@ public class EmployeeRepository(VolterpDbContext context) : RepositoryBase<Emplo
 {
     public async Task<PagedResult<Employee>> GetAllEmployeesByCompanyAsync(Guid companyId, int pageNumber, int pageSize,
         CancellationToken ct = default)
-        => await GetAllAsync(e => e.CompanyId == companyId, pageNumber, pageSize, ct);
+        => await GetAllAsync(_ => true, pageNumber, pageSize, ct);
 
     public async Task<Employee?> GetEmployeeByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
-        => await GetByCondictionsAsync(e => e.Id == id && e.CompanyId == companyId, ct);
+        => await GetByCondictionsAsync(e => e.Id == id, ct);
 
     public async Task<Employee> AddEmployeeAsync(Employee employee, CancellationToken ct = default)
     {

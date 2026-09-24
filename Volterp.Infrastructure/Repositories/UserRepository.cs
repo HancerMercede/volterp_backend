@@ -20,7 +20,7 @@ public class UserRepository(VolterpDbContext context)
 
     public async Task<PagedResult<User>> GetAllByCompanyAsync(Guid companyId, int pageNumber,
         int pageSize, CancellationToken ct = default)
-        => await GetAllAsync(c=>c.CompanyId == companyId,pageNumber, pageSize, ct);
+        => await GetAllAsync(_=>true,pageNumber, pageSize, ct);
 
 
     public async Task<User> AddUserAsync(User user, CancellationToken ct = default)

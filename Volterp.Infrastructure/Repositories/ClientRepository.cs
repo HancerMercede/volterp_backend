@@ -9,10 +9,10 @@ public class ClientRepository(VolterpDbContext context) : RepositoryBase<Client>
 {
     public async Task<PagedResult<Client>> GetAllClientsByCompanyAsync(Guid companyId, int pageNumber, int pageSize,
         CancellationToken ct = default)
-        => await GetAllAsync(c => c.CompanyId == companyId, pageNumber, pageSize, ct);
+        => await GetAllAsync(_ => true, pageNumber, pageSize, ct);
 
     public async Task<Client?> GetClientByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
-        => await GetByCondictionsAsync(c => c.Id == id && c.CompanyId == companyId, ct);
+        => await GetByCondictionsAsync(c => c.Id == id, ct);
 
     public async Task AddClientAsync(Client client, CancellationToken ct = default)
     {

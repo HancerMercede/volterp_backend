@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Volterp.Api.Configuration;
+using Volterp.Api.Http;
+using Volterp.Application.Abstractions;
 using Volterp.Application.Diagnostics;
 using Volterp.Application.Services;
 using Volterp.Infrastructure.Data;
@@ -74,6 +76,9 @@ public static class ServiceExtensions
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
     }
+
+    public static void ConfigureTenantContext(IServiceCollection services)
+        => services.AddScoped<ITenantContext, HttpTenantContext>();
 
     public static void ConfigureRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {

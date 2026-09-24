@@ -27,6 +27,7 @@ ServiceExtensions.ConfigureControllers(builder.Services);
 ServiceExtensions.ConfigureCors(builder.Services);
 ServiceExtensions.ConfigureExceptionLogStore(builder.Services);
 ServiceExtensions.ConfigureCurrentUser(builder.Services);
+ServiceExtensions.ConfigureTenantContext(builder.Services);
 builder.Services.ConfigureForwardedHeaders();
 builder.Services.ConfigureRateLimiting(builder.Configuration);
 builder.Services.ConfigureSwagger();
