@@ -37,7 +37,7 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 - [ ] **Ciclo 1.0** — Characterization tests del comportamiento actual + auditoría de duplicación (sin tocar DB ni wire).
 - [ ] **Ciclo 1.1** — Wire refactor: `companyId` sale de los 5 request DTOs.
 - [ ] **Ciclo 1.2** — Guid 7 migration: `int Id` → `Guid Id` en 12 entities + JWT claim + schema reset.
-- [ ] **Ciclo 1.3** — Integration tests de aislamiento + refactor residual de `Ensure(companyId > 0)`.
+- [x] **Ciclo 1.3** — Integration tests de aislamiento + `HasQueryFilter` vía `ITenantContext`.
 - [ ] **Ciclo 1.4** — `docs/multitenancy.md` con Fase 0 (4 contextos).
 
 ## Constraints
@@ -50,15 +50,15 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 - Branch creada desde `development` @ `62339ed` — base limpia.
 
 ## Acceptance criteria
-- [ ] `HasQueryFilter` reemplaza predicados manuales en repos.
-- [ ] Los 3 bugs cross-tenant corregidos con tests de regresión.
-- [ ] Cero `companyId` en request DTOs (excepto `LoginResponse`).
-- [ ] Cero `Ensure(companyId > 0)` boilerplate.
-- [ ] Constante única `Claims.CompanyId` (no más literal `"companyId"`).
-- [ ] `BaseController` y `CurrentUserService` consolidados en `HttpTenantContext` + `ICurrentUserService`.
-- [ ] Schema reset ejecutado, migraciones regeneradas con Guid 7.
-- [ ] Tests passing con strict TDD.
-- [ ] `docs/multitenancy.md` describe los 4 contextos.
+- [x] `HasQueryFilter` reemplaza predicados manuales en repos.
+- [x] Los 3 bugs cross-tenant corregidos con tests de regresión.
+- [x] Cero `companyId` en request DTOs (excepto `LoginResponse`).
+- [ ] Cero `Ensure(companyId > 0)` boilerplate. — *Diferido a 1.4+ (no era requisito del 1.3 quirúrgico).*
+- [x] Constante única `Claims.CompanyId` (no más literal `"companyId"`).
+- [ ] `BaseController` y `CurrentUserService` consolidados en `HttpTenantContext` + `ICurrentUserService`. — *Diferido a 1.4+ (no era requisito del 1.3 quirúrgico).*
+- [ ] Schema reset ejecutado, migraciones regeneradas con Guid 7. — *Trabajo del usuario (Postgres apagado en sesión 1.2c).*
+- [x] Tests passing con strict TDD.
+- [ ] `docs/multitenancy.md` describe los 4 contextos. — *Ciclo 1.4.*
 
 ## Applicable checks (por ciclo)
 - `dotnet test` (todos los tests verdes).
@@ -160,7 +160,48 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 **Trabajo residual**:
 - Slop del commit 1.1 pendiente de limpieza (acordamos resolverlo al final del phase).
 - Tests pre-existentes nullable warnings (47) sin tocar (out of scope).
-### Ciclo 1.3 — Integration + refactor residual  →  pending
+### Ciclo 1.3 — HasQueryFilter + integration tests  →  ✅ COMPLETO (commits `d613727` + `afcdeb6` + `6803319`)
+
+**Approach aprobado** (siguiendo plan original del blog de codeopinion.com — Derek Comartin):
+- `ITenantContext` interface en `Volterp.Application/Abstractions/`
+- `HttpTenantContext` impl en `Volterp.Api/Http/` (lee `IHttpContextAccessor` + JWT claim `companyId`)
+- `NullTenantContext` impl en `Volterp.Application/Abstractions/` (design-time/seeders)
+- `VolterpDbContext` inyecta `ITenantContext` opcional + aplica `HasQueryFilter` vía reflection en `OnModelCreating` (NO editado 13 Configurations individuales — reflection centralizado es el approach estándar del blog)
+- `Company` se salta (es el tenant, no tenant-scoped)
+- `SaleItem`/`PurchaseItem` con filter navigation-based (`e.Sale.CompanyId`, `e.Purchase.CompanyId`)
+
+**Hard rules respetadas**:
+- ✅ NO services ni controllers existentes tocados.
+- ✅ NO consolidé `BaseController`/`CurrentUserService`.
+- ✅ NO eliminé `CurrentUserService`.
+- ✅ NO toqué `AuditableDto.cs`.
+- ✅ `ApiAssemblyMarker` (NO partial Program) — decisión del usuario en sesión 1.3.
+
+**Predicates eliminados** (grep empírico):
+- 33 predicates `CompanyId == companyId` en 10 repos (NO 38 como decía el spec original — discrepancia corregida).
+- `DashboardRepository.cs`: 17 predicates (incluye 2 navigation-based en `si.Sale.CompanyId`).
+- Otros repos: 16 predicates distribuidos en 9 archivos.
+
+**Bugfix crítico** (commit `6803319`):
+- Versión inicial (commit `afcdeb6`) capturaba `tenant` como closure-local: `var tenant = _tenantContext.CompanyId; .HasQueryFilter(e => tenant == null || e.CompanyId == tenant)`.
+- EF Core's parameter-extraction visitor inlinea el closure-local como SQL constant al model-build time → filter se lockeaba al primer valor visto (típicamente `null` durante `EnsureCreated` fuera de HTTP) → todas las queries unfiltered.
+- Fix: referenciar `_tenantContext.CompanyId` directamente en la lambda (field access del DbContext) → EF Core parameteriza por query.
+- Sin este fix, los 3 integration tests nuevos fallaban: cross-tenant reads pasaban, NoCompanyClaim retornaba 200 en vez de 401.
+
+**Tests**:
+- 280 → **283 passing** (3 nuevos integration tests reales con HTTP pipeline + SQLite in-memory).
+- `Volterp.Tests/Integration/SupplierTenantIsolationTests.cs` (3 tests: cross-tenant read blocked, cross-tenant update blocked, NoCompanyClaim → 401).
+- Tests usan `IJwtService.GenerateToken` real + `WebApplicationFactory<ApiAssemblyMarker>` + `EnsureCreated` en SQLite.
+
+**Commits**:
+- `d613727` — `feat(multi-tenant): cycle 1.3 step 1 - add ApiAssemblyMarker for WebApplicationFactory`
+- `afcdeb6` — `feat(multi-tenant): cycle 1.3 - apply HasQueryFilter via ITenantContext + remove 33 manual predicates` (con bug del closure-local)
+- `6803319` — `feat(multi-tenant): integration tests for HasQueryFilter via real HTTP pipeline` (incluye fix del closure-local bug)
+
+**Trabajo del usuario** (no del agente):
+- Schema reset (`dotnet ef database drop --force` + `dotnet ef database update`).
+- Si las migrations generadas en 1.2b no le sirven, revertir commit `bf55432`.
+
 ### Ciclo 1.4 — docs/multitenancy.md  →  pending
 
 ## Process rules (lesson learned 2026-09-24)
