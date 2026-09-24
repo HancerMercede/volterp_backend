@@ -13,7 +13,7 @@ public class JwtService(IConfiguration configuration) : IJwtService
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
+        
         var claims = new[]
         {
             new Claim(ClaimTypes.Name, username),

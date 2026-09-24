@@ -7,6 +7,9 @@ openspec/
 # Gentle AI / ATL skills
 .atl/
 
+# Engram (local memory state, not shared)
+.engram/
+
 # .NET build artifacts
 bin/
 obj/

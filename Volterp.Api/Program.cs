@@ -1,5 +1,4 @@
 using Volterp.Api.Configuration;
-using Volterp.Api.Helpers;
 using Volterp.Application.Diagnostics;
 using Volterp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -58,6 +57,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+
 app.MapGet("health", async (VolterpDbContext db) =>
 {
     var checks = await HealthCheck.Init(db);
@@ -69,7 +69,9 @@ app.MapGet("health", async (VolterpDbContext db) =>
         checks
     });
 }).DisableRateLimiting();
+
 app.MapGet("/_diagnostics/exceptions", (IExceptionLogStore store) =>
     Results.Ok(store.GetRecent(50)));
+
 app.UseStaticFiles();
 app.Run();

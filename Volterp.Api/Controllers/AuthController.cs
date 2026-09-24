@@ -17,8 +17,9 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
             user =>
             {
                 var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId, user.Id);
-                return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(),
-                    user.CompanyId));
+                var response = new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(), user.CompanyId);
+                
+                return Ok(response);
             });
     }
 
@@ -28,8 +29,7 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
         var userResult = await serviceManager.Users.GetByUsernameAsync(request.Username, ct);
 
         return await userResult.Match<Task<IActionResult>>(
-            _ => 
-                Task.FromResult<IActionResult>(
+            _ => Task.FromResult<IActionResult>(
                 Unauthorized(new ErrorResponse("Invalid credentials", "Check your credentials."))),
             user => HandleValidLogin(user, request, ct));
     }
