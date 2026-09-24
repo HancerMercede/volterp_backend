@@ -32,8 +32,6 @@ public class VolterpDbContext(
 
     private void ApplyTenantFilters(ModelBuilder modelBuilder)
     {
-        var tenant = _tenantContext.CompanyId;
-
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             var clrType = entityType.ClrType;
@@ -41,12 +39,12 @@ public class VolterpDbContext(
             if (clrType == typeof(SaleItem))
             {
                 modelBuilder.Entity<SaleItem>()
-                    .HasQueryFilter(e => tenant == null || e.Sale.CompanyId == tenant);
+                    .HasQueryFilter(e => _tenantContext.CompanyId == null || e.Sale.CompanyId == _tenantContext.CompanyId);
             }
             else if (clrType == typeof(PurchaseItem))
             {
                 modelBuilder.Entity<PurchaseItem>()
-                    .HasQueryFilter(e => tenant == null || e.Purchase.CompanyId == tenant);
+                    .HasQueryFilter(e => _tenantContext.CompanyId == null || e.Purchase.CompanyId == _tenantContext.CompanyId);
             }
             else if (clrType == typeof(Company))
             {
@@ -54,22 +52,22 @@ public class VolterpDbContext(
             }
             else if (clrType.GetProperty("CompanyId") is not null)
             {
-                ApplyDirectFilter(modelBuilder, clrType, tenant);
+                ApplyDirectFilter(modelBuilder, clrType);
             }
         }
     }
 
-    private void ApplyDirectFilter(ModelBuilder modelBuilder, Type clrType, Guid? tenant)
+    private void ApplyDirectFilter(ModelBuilder modelBuilder, Type clrType)
     {
         var method = typeof(VolterpDbContext)
             .GetMethod(nameof(ApplyDirectFilterGeneric), BindingFlags.Instance | BindingFlags.NonPublic)!
             .MakeGenericMethod(clrType);
-        method.Invoke(this, [modelBuilder, tenant]);
+        method.Invoke(this, [modelBuilder]);
     }
 
-    private void ApplyDirectFilterGeneric<TEntity>(ModelBuilder modelBuilder, Guid? tenant) where TEntity : class
+    private void ApplyDirectFilterGeneric<TEntity>(ModelBuilder modelBuilder) where TEntity : class
     {
         modelBuilder.Entity<TEntity>()
-            .HasQueryFilter(e => tenant == null || EF.Property<Guid>(e, "CompanyId") == tenant);
+            .HasQueryFilter(e => _tenantContext.CompanyId == null || EF.Property<Guid>(e, "CompanyId") == _tenantContext.CompanyId);
     }
 }
