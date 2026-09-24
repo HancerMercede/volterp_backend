@@ -202,7 +202,90 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 - Schema reset (`dotnet ef database drop --force` + `dotnet ef database update`).
 - Si las migrations generadas en 1.2b no le sirven, revertir commit `bf55432`.
 
-### Ciclo 1.4 — docs/multitenancy.md  →  pending
+### Ciclo 1.4 — Operational guide → ✅ COMPLETO (incorporado en este plan)
+
+En vez de crear `docs/multitenancy.md` separado (se solapaba con este plan), los pasos prácticos, el patrón de integration tests y los gotchas se incorporaron como la sección **Operational guide** abajo.
+
+## Operational guide
+
+### TL;DR
+
+- New tenant-scoped entity? Add `Guid CompanyId`. `VolterpDbContext.OnModelCreating` picks it up via reflection and applies `HasQueryFilter` automatically.
+- New endpoint? Use `BaseController.GetCurrentUserCompanyId()`. It throws `UnauthorizedException` (401) if the JWT lacks the `companyId` claim.
+- Cross-tenant admin? Wrap in `IsSuperAdminOnly()` (already in `BaseController`) and pair with `IgnoreQueryFilters()` deliberately.
+- Background job? Read tenant from the message envelope — never from `IHttpContextAccessor` (which is null outside an HTTP request).
+
+### How the layers fit
+
+| Layer | Role | File |
+|---|---|---|
+| `ITenantContext` | Read-only access to current `CompanyId` | `Volterp.Application/Abstractions/ITenantContext.cs` |
+| `HttpTenantContext` | Production impl: reads JWT `companyId` claim (Guid in `N` format) | `Volterp.Api/Http/HttpTenantContext.cs` |
+| `NullTenantContext` | No-op for design-time (migrations, seeders) | `Volterp.Application/Abstractions/NullTenantContext.cs` |
+| `VolterpDbContext.OnModelCreating` | Applies `HasQueryFilter` per entity via reflection; `Company` excluded, `SaleItem`/`PurchaseItem` use navigation filters | `Volterp.Infrastructure/Data/VolterpDbContext.cs` |
+| `BaseController.GetCurrentUserCompanyId` | Throws 401 when JWT lacks the claim | `Volterp.Api/Controllers/BaseController.cs` |
+
+### The 4 contexts (status)
+
+| # | Context | Status | Notes |
+|---|---|---|---|
+| 1 | HTTP (JWT, throw 401 si falta claim) | ✅ implemented | `HttpTenantContext` is the registered default. `BaseController` throws before services run. |
+| 2 | Message Handler (envelope explícito) | ❌ not implemented | Implement `ITenantContext` reading tenant from message metadata. Register scoped per handler. Never share across threads. |
+| 3 | Admin Global (cross-tenant explícito) | ❌ not implemented | Implement `ITenantContext` returning a fixed `Guid` paired with `IgnoreQueryFilters()` in admin repos. Wrap in `IsSuperAdminOnly()`. |
+| 4 | Tests / Seeder (explícito o `NullTenantContext`) | ✅ implemented | `NullTenantContext` is the design-time default. Integration tests use `WebApplicationFactory<ApiAssemblyMarker>` + custom tenant context per test. |
+
+### Adding a new tenant-scoped entity
+
+1. Add `Guid CompanyId` to the entity.
+2. Add an EF Configuration in `Volterp.Infrastructure/Data/Configurations/` if one does not exist.
+3. Done — `VolterpDbContext.OnModelCreating` reflection picks up the `CompanyId` property and applies the filter automatically.
+4. Add an integration test that seeds two tenants and verifies cross-tenant blocking for the new entity.
+
+### Integration tests pattern
+
+```csharp
+public class SupplierTenantIsolationTests : IClassFixture<ApiFactory>
+{
+    private readonly ApiFactory _factory;
+    private readonly HttpClient _client;
+
+    public SupplierTenantIsolationTests(ApiFactory factory)
+    {
+        _factory = factory;
+        _client = factory.CreateClient();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+        db.Database.EnsureCreated();
+    }
+
+    [Fact]
+    public async Task CrossTenantRead_IsBlocked()
+    {
+        // 1. Seed a supplier for CompanyA and another for CompanyB.
+        // 2. Mint a JWT for CompanyB via IJwtService.
+        // 3. GET /api/suppliers with CompanyB's JWT.
+        // 4. Assert: only CompanyB's supplier appears.
+    }
+}
+```
+
+The fixture (`Volterp.Tests/Integration/ApiFactory.cs`) wires up `WebApplicationFactory<ApiAssemblyMarker>` with SQLite in-memory, gates `db.Database.Migrate()` on `!app.Environment.IsEnvironment("Testing")`, and registers `HttpTenantContext` per request.
+
+### Observability (not yet wired)
+
+- Log `CompanyId` via Serilog `LogContext.PushProperty("CompanyId", tenant.CompanyId)` in a middleware that sits after authentication.
+- Every log entry produced during a request should carry the tenant scope so cross-tenant tracing is trivial.
+
+### Gotchas
+
+| Pitfall | Why it bites | Fix |
+|---|---|---|
+| Capturing `_tenantContext.CompanyId` as a closure-local inside `HasQueryFilter` | EF Core inlines closure-locals as SQL constants at model-build time. The filter locks to the first value seen (typically `null` during `EnsureCreated` outside HTTP). All queries become unfiltered. | Reference the DbContext field directly in the lambda: `e => _tenantContext.CompanyId == null \|\| EF.Property<Guid>(e, "CompanyId") == _tenantContext.CompanyId`. EF Core parameterizes field access per query. |
+| Forgetting to gate `db.Database.Migrate()` in tests | The startup runs `Migrate()` against the real connection string. In integration tests with SQLite in-memory, this throws because migrations are Postgres-specific. | `Program.cs` already gates with `if (!app.Environment.IsEnvironment("Testing")) db.Database.Migrate();`. Do not remove this gate. |
+| Reading `CompanyId` from `IHttpContextAccessor` in a background job | `HttpContext` is null outside an HTTP request. The implicit tenant context is wrong for background work. | Use a Message-Handler-flavored `ITenantContext` reading from the message envelope. Not implemented yet — see context 2 above. |
+| Returning `Guid.Empty` when the claim is missing | Silent data corruption, not 401. | Always go through `BaseController.GetCurrentUserCompanyId()` so missing claims produce 401. |
+| Calling `IgnoreQueryFilters()` outside admin paths | Bypasses tenant isolation. | If you need it, you are doing admin work. Wrap in `IsSuperAdminOnly()`. |
 
 ## Process rules (lesson learned 2026-09-24)
 
@@ -232,13 +315,15 @@ Hard rules from now on:
 - Commit: pendiente.
 
 ## Next step
-Ejecutar Ciclo 1.0: characterization tests + auditoría de duplicación. Sin tocar DB ni wire.
+Phase 1 cerrada. Ciclos 1.0–1.4 completos (10 commits desde `development @ 62339ed`). Pendiente:
+- **Trabajo del usuario**: schema reset (`dotnet ef database drop --force` + `dotnet ef database update`); revisar migrations de `bf55432`.
+- **Trabajo futuro opcional**: eliminar los 33 `Ensure(companyId != Guid.Empty, ...)` en services (ya redundantes); consolidar `BaseController.GetCurrentUserCompanyId` + `CurrentUserService` en un solo consumer de `HttpTenantContext`; implementar contextos 2 (Message Handler) y 3 (Admin Global); wirear Serilog enricher para `CompanyId`.
 
 ## Relevant Files (paths relativos al repo)
 - Entities: `Volterp.Domain/Entities/{AccountingTransaction,Category,Client,Company,Employee,Product,Purchase,PurchaseItem,Sale,SaleItem,Supplier,User}.cs`
-- Controllers: `Volterp.Api/Controllers/{SalesController,BaseController,AuthController}.cs`
-- Services: `Volterp.Application/Services/SupplierService.cs` (bug confirmado)
-- Helpers: `Volterp.Api/Helpers/{CurrentUserService,Constants}.cs`
-- JwtService: `Volterp.Infrastructure/Services/JwtService.cs:22`
-- DTOs: `Volterp.Application/DTOs/*` (5 con `CompanyId` a quitar)
-- A crear: `Volterp.Domain/Abstractions/ITenantScoped.cs`, `Volterp.Domain/ValueObjects/CompanyId.cs`, `Volterp.Application/Abstractions/ITenantContext.cs`, `Volterp.Api/Http/HttpTenantContext.cs`, `Volterp.Application/Common/Claims.cs`
+- Tenant abstraction: `Volterp.Application/Abstractions/{ITenantContext,NullTenantContext}.cs`, `Volterp.Api/Http/HttpTenantContext.cs`, `Volterp.Application/Common/Claims.cs`
+- DbContext: `Volterp.Infrastructure/Data/VolterpDbContext.cs` (HasQueryFilter via reflection)
+- EF Configurations: `Volterp.Infrastructure/Data/Configurations/*.cs` (13 archivos)
+- Repositories (sin predicates manuales post-1.3): `Volterp.Infrastructure/Repositories/*.cs`
+- Controllers: `Volterp.Api/Controllers/{BaseController,SalesController,SuppliersController,...}.cs`
+- Integration tests: `Volterp.Tests/Integration/{ApiFactory,JwtTestHelper,SupplierTenantIsolationTests}.cs`
