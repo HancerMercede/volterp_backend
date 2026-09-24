@@ -11,18 +11,18 @@ using Xunit;
 namespace Volterp.Tests.Services;
 
 /// <summary>
-/// Cycle 1.0 — Characterization tests for cross-tenant bugs in
-/// <c>Volterp.Application/Services/SupplierService.cs</c>.
+/// Cycle 1.1 — Regression tests for the wire refactor that closes bugs #2 and #3
+/// in <c>SupplierService.cs</c> (create + update paths were persisting
+/// <c>request.CompanyId</c> instead of the JWT-derived companyId).
 ///
-/// Bug #2: <c>CreateSupplierAsync</c> validates the JWT-derived companyId but
-/// persists <c>request.CompanyId</c> via <c>SupplierCreateDto.MapTo()</c>.
-/// Bug #3: <c>UpdateSupplierAsync</c> sets <c>s.CompanyId = request.CompanyId</c>
-/// on line 75 of <c>SupplierService.cs</c>, allowing a client to reassign a
-/// supplier to a different tenant.
+/// Cycle 1.0 documented the BUGGY behavior. Cycle 1.1 inverts:
+///   - Bug #2 (create): <c>SupplierCreateDto</c> no longer has CompanyId;
+///     <c>CreateSupplierAsync</c> persists the JWT-derived param.
+///   - Bug #3 (update): <c>UpdateSupplierRequest</c> (new DTO, no CompanyId) is
+///     the payload; <c>UpdateSupplierAsync</c> ignores any inbound tenant claim
+///     and preserves the existing row's <c>CompanyId</c>.
 ///
-/// Both tests pass today against the broken code. When Cycle 1.1 fixes the
-/// wire contract and these services, the assertions below must be inverted:
-/// the persisted <c>CompanyId</c> must come from the JWT, not from the request.
+/// The wire-contract guards for the DTO shape live in <c>WireContractTests</c>.
 /// </summary>
 public class SupplierServiceTenantLeakTests
 {
@@ -40,14 +40,16 @@ public class SupplierServiceTenantLeakTests
     // ───────── Bug #2: CreateSupplierAsync ─────────
 
     [Fact]
-    public async Task CreateSupplierAsync_PersistsRequestCompanyId_NotJwtCompanyId()
+    public async Task CreateSupplierAsync_PersistsJwtCompanyId_RegardlessOfRequestBody()
     {
-        // ARRANGE
-        // The JWT-derived companyId is JwtCompanyId (100). The request carries CompanyId=200.
-        // The service uses request.CompanyId for persistence — this is bug #2.
-        var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
-
+        // ARRANGE — fixed behavior in Cycle 1.1:
+        //   SupplierCreateDto.MapTo() copies CompanyId from the request today.
+        //   After the wire refactor, SupplierCreateDto no longer has CompanyId.
+        //   The service MUST set supplier.CompanyId = companyId (param) after
+        //   Project() so the persisted row is bound to the JWT-derived tenant.
         Supplier? capturedSupplier = null;
+
+        var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
         mockSuppliersRepo
             .Setup(r => r.AddSupplierAsync(It.IsAny<Supplier>(), It.IsAny<CancellationToken>()))
             .Callback<Supplier, CancellationToken>((s, _) => capturedSupplier = s)
@@ -58,7 +60,8 @@ public class SupplierServiceTenantLeakTests
 
         var request = new SupplierCreateDto
         {
-            CompanyId = RequestCompanyId,
+            // Cycle 1.1: CompanyId property is removed from SupplierCreateDto.
+            // Any inbound attempt to set CompanyId must be ignored.
             Name = "Acme Corp",
             Email = "ops@acme.com",
             Phone = "555-1234",
@@ -71,26 +74,33 @@ public class SupplierServiceTenantLeakTests
         // ACT
         var result = await service.CreateSupplierAsync(request, JwtCompanyId, userId: 7);
 
-        // ASSERT — current behavior (bug).
+        // ASSERT — fixed behavior.
         result.Should().BeOfType<Either<Error, SupplierDto>.Right>();
-        capturedSupplier.Should().NotBeNull("the service persists a Supplier via AddSupplierAsync");
-        capturedSupplier!.CompanyId.Should().Be(RequestCompanyId,
-            "CURRENT BUG: SupplierCreateDto.MapTo() copies CompanyId from the request. " +
-            "After Cycle 1.1 this must become JwtCompanyId (100) and SupplierCreateDto must drop CompanyId.");
+        capturedSupplier.Should().NotBeNull();
+        capturedSupplier!.CompanyId.Should().Be(JwtCompanyId,
+            "Cycle 1.1 fix: SupplierService.CreateSupplierAsync must persist the JWT-derived " +
+            "companyId (param), not anything the client controls. The request DTO no " +
+            "longer carries CompanyId.");
 
-        // The persisted DTO round-trips the leaked CompanyId.
+        // Reflection guard — the wire contract.
+        typeof(SupplierCreateDto)
+            .GetProperty("CompanyId")
+            .Should()
+            .BeNull("SupplierCreateDto is a request-body DTO; tenant scope comes from JWT only.");
+
         var dto = ((Either<Error, SupplierDto>.Right)result).Value;
-        dto.CompanyId.Should().Be(RequestCompanyId,
-            "CURRENT BUG: response DTO echoes the leaked CompanyId. Will flip in Cycle 1.1.");
+        dto.CompanyId.Should().Be(JwtCompanyId,
+            "the persisted tenant must be the JWT-derived one, echoed in the response DTO.");
     }
 
     [Fact]
-    public async Task CreateSupplierAsync_WhenJwtCompanyIdMatchesRequest_CompanyIdIsPersisted()
+    public async Task CreateSupplierAsync_WhenEntityIsPersisted_TheTenantMatchesTheParam()
     {
-        // ARRANGE — control case where the two agree.
-        var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
-
+        // ARRANGE — happy-path control case: the only tenant in the system is the
+        // JWT-derived one because the wire cannot set it.
         Supplier? capturedSupplier = null;
+
+        var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
         mockSuppliersRepo
             .Setup(r => r.AddSupplierAsync(It.IsAny<Supplier>(), It.IsAny<CancellationToken>()))
             .Callback<Supplier, CancellationToken>((s, _) => capturedSupplier = s)
@@ -101,7 +111,6 @@ public class SupplierServiceTenantLeakTests
 
         var request = new SupplierCreateDto
         {
-            CompanyId = JwtCompanyId,
             Name = "Acme Corp",
             Email = "ops@acme.com",
             Phone = "555-1234",
@@ -121,13 +130,13 @@ public class SupplierServiceTenantLeakTests
     // ───────── Bug #3: UpdateSupplierAsync ─────────
 
     [Fact]
-    public async Task UpdateSupplierAsync_ReassignsCompanyIdFromRequest_NotJwtCompanyId()
+    public async Task UpdateSupplierAsync_PreservesExistingTenant_RegardlessOfRequestBody()
     {
-        // ARRANGE
-        // An existing supplier in tenant JwtCompanyId (100). The update request
-        // claims CompanyId=200. The service overwrites CompanyId with the request's value.
-        var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
-
+        // ARRANGE — Cycle 1.1 fix: UpdateSupplierAsync accepts UpdateSupplierRequest,
+        // a NEW request-only DTO that has no CompanyId. Even if a malicious caller
+        // somehow passes a payload with CompanyId (e.g. by reusing SupplierDto in
+        // tests), the service MUST preserve the existing tenant's CompanyId.
+        // Existing tenant: JwtCompanyId (100).
         var existingSupplier = new Supplier
         {
             Id = 5,
@@ -141,6 +150,7 @@ public class SupplierServiceTenantLeakTests
             IsActive = true
         };
 
+        var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
         mockSuppliersRepo
             .Setup(r => r.GetSupplierByIdAsync(5, JwtCompanyId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSupplier);
@@ -150,10 +160,10 @@ public class SupplierServiceTenantLeakTests
 
         var service = new SupplierService(mockUnitOfWork.Object);
 
-        var updatePayload = new SupplierDto
+        // UpdateSupplierRequest — no CompanyId, Id is redundant with route param
+        // but kept for backward compatibility within the wire payload.
+        var updatePayload = new UpdateSupplierRequest
         {
-            Id = 5,
-            CompanyId = RequestCompanyId, // client tries to reassign tenant
             Name = "Updated Name",
             Email = "new@acme.com",
             Phone = "555-9999",
@@ -166,23 +176,26 @@ public class SupplierServiceTenantLeakTests
         // ACT
         var result = await service.UpdateSupplierAsync(5, JwtCompanyId, updatePayload, userId: 7);
 
-        // ASSERT — current behavior (bug).
+        // ASSERT — fixed behavior.
         result.Should().BeOfType<Either<Error, SupplierDto>.Right>();
-        existingSupplier.CompanyId.Should().Be(RequestCompanyId,
-            "CURRENT BUG: line 75 of SupplierService.cs assigns s.CompanyId = request.CompanyId. " +
-            "After Cycle 1.1 this must remain JwtCompanyId (100) regardless of what the client sends.");
+        existingSupplier.CompanyId.Should().Be(JwtCompanyId,
+            "Cycle 1.1 fix: the existing tenant MUST be preserved. The service must not " +
+            "permit a cross-tenant reassignment via the update payload.");
+
+        // Reflection guard — the wire contract.
+        typeof(UpdateSupplierRequest)
+            .GetProperty("CompanyId")
+            .Should()
+            .BeNull("UpdateSupplierRequest is a request-body DTO; tenant scope comes from JWT only.");
 
         var dto = ((Either<Error, SupplierDto>.Right)result).Value;
-        dto.CompanyId.Should().Be(RequestCompanyId,
-            "CURRENT BUG: response DTO reflects the leaked CompanyId. Will flip in Cycle 1.1.");
+        dto.CompanyId.Should().Be(JwtCompanyId);
     }
 
     [Fact]
-    public async Task UpdateSupplierAsync_WhenRequestCompanyIdMatchesJwt_CompanyIdIsPreserved()
+    public async Task UpdateSupplierAsync_PreservesTenant_OnHappyPath()
     {
-        // ARRANGE — control case.
-        var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
-
+        // ARRANGE — happy-path control case: existing tenant equals JWT tenant.
         var existingSupplier = new Supplier
         {
             Id = 5,
@@ -196,6 +209,7 @@ public class SupplierServiceTenantLeakTests
             IsActive = true
         };
 
+        var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
         mockSuppliersRepo
             .Setup(r => r.GetSupplierByIdAsync(5, JwtCompanyId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSupplier);
@@ -205,10 +219,8 @@ public class SupplierServiceTenantLeakTests
 
         var service = new SupplierService(mockUnitOfWork.Object);
 
-        var updatePayload = new SupplierDto
+        var updatePayload = new UpdateSupplierRequest
         {
-            Id = 5,
-            CompanyId = JwtCompanyId,
             Name = "Updated Name",
             Email = "new@acme.com",
             Phone = "555-9999",

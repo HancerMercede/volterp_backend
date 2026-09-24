@@ -76,7 +76,7 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 
 ## Progress
 
-### Ciclo 1.0 — Characterization + audit  →  ✅ COMPLETO
+### Ciclo 1.0 — Characterization + audit  →  ✅ COMPLETO (commit `2b633a0`)
 - **Map verified**: 12 entities con `int Id` confirmados; `Company` no implementa tenant scope; `SaleItem` co-located en `Sale.cs:78-94`.
 - **3 bugs cross-tenant confirmados** con `file:line`:
   - `Volterp.Api/Controllers/SalesController.cs:71-79` — `CreateSale` nunca llama `GetCurrentUserCompanyId()`.
@@ -100,9 +100,28 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
   - `SaleItem` co-located con `Sale` (no archivo separado).
   - `DashboardRepository` con 17 predicados manuales → candidate para strangler-fig en 1.3.
 - **Seam identificado para 1.3**: agregar `public partial class Program {};` a `Program.cs` destraba `WebApplicationFactory<Program>` para integration tests reales.
-- **Commit**: pendiente de decisión del usuario (ver bloque de cierre).
+- **Commit**: `2b633a0` — `feat(multi-tenant): cycle 1.0 - characterization tests + duplication audit` (5 files, 948 insertions).
 
-### Ciclo 1.1 — Wire refactor  →  pending
+### Ciclo 1.1 — Wire refactor  →  ✅ COMPLETO
+- **Wire refactor ejecutado**: `CompanyId` removido de los 5 request DTOs (`CreateSaleRequest`, `CreateCategoryRequest`, `CreateProductDto`, `CreateUserDto`, `SupplierCreateDto`).
+- **`SupplierDto` split** (decisión adoptada del audit): `SupplierDto` queda como response-only con `CompanyId`; nuevo `UpdateSupplierRequest` (request-only, sin `CompanyId`). `SuppliersController.Update` ahora bindea `UpdateSupplierRequest`.
+- **Bugs cerrados**:
+  - `SalesController.CreateSale` ahora llama `GetCurrentUserCompanyId()` y pasa `companyId` a `SaleService.CreateSaleAsync` (firma extendida con `int companyId`).
+  - `SupplierService.CreateSupplierAsync` y `UpdateSupplierAsync` usan `companyId` param (no `request.CompanyId`).
+  - `UserService.CreateAsync` también recibió el mismo ajuste — bug latente detectado (controller parchaba con `with { CompanyId = companyId }` que se volvió dead code al dropear la propiedad).
+  - `AuthController.Register` ajustado para pasar `companyId` explícito.
+- **Defense in depth**: comentarios `// companyId viene del JWT, nunca del request` agregados en `ProductService` y `CategoryService` (create/update paths).
+- **Tests**: 7 characterization tests flipeados (3 SalesController + 4 SupplierService) + 9 wire-contract tests nuevos (6 reflection guards + 3 JSON deserialization guards). **Total: 278 tests passing, 0 failed, 231 ms**. 0 warnings nuevos introducidos.
+- **Diff stat**: 25 files changed, 490 insertions, 192 deletions (net +298). **Bien dentro del budget de 400 lines/PR.**
+- **Decisiones fuera del plan reportadas**:
+  1. `UserService.CreateAsync` también tenía un bug latente (parcheado por controller). Fix obligatorio al wire refactor.
+  2. Dead code `MapToSaleEntity` removido en `SaleService.cs` (era inalcanzable y referenciaba `r.CompanyId`).
+  3. 9 wire-contract tests en lugar de 3 — agregué 6 reflection guards durables además de los 3 JSON que pedía el plan.
+  4. 7 flipped characterization tests cubren happy-paths además de los leak-tests.
+- **Constraints respetados**: ✅ NO DB / NO schema / NO `ITenantContext` / NO `HasQueryFilter` / NO tocados los 30 Ensure ni los 38 predicates / `LoginResponse` intacto.
+- **Commit**: pendiente de decisión del usuario.
+
+### Ciclo 1.2 — Guid 7 migration  →  pending
 ### Ciclo 1.2 — Guid 7 migration  →  pending
 ### Ciclo 1.3 — Integration + refactor residual  →  pending
 ### Ciclo 1.4 — docs/multitenancy.md  →  pending
@@ -113,6 +132,13 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 - `dotnet test`: **269 passed / 0 failed / 246 ms** (baseline 253 + 16 nuevos characterization tests).
 - 4 archivos untracked: 3 tests + 1 audit doc. Branch intacta, 0 commits propios.
 - Audit doc: `odd/tasks/multi-tenant-isolation-audit.md`.
+- Commit: `2b633a0`.
+
+### Ciclo 1.1
+- `dotnet test`: **278 passed / 0 failed / 231 ms** (269 + 7 flipped + 9 wire-contract nuevos).
+- `dotnet build`: succeeded, 0 warnings nuevos.
+- 25 files changed, 490 insertions, 192 deletions.
+- Commit: pendiente.
 
 ## Next step
 Ejecutar Ciclo 1.0: characterization tests + auditoría de duplicación. Sin tocar DB ni wire.

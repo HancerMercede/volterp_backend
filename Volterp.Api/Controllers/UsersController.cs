@@ -39,13 +39,14 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         if ((request.Role == UserRole.Admin || request.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
 
+        // Cycle 1.1 wire refactor: CreateUserDto no longer carries CompanyId, so
+        // the previous `with { CompanyId = companyId }` patch is gone. The
+        // service now receives the explicit JWT-derived companyId parameter.
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
 
-        var userForCreation = request with { CompanyId = companyId };
+        var userResult = await serviceManager.Users.CreateAsync(request, companyId, userId, ct);
 
-        var userResult = await serviceManager.Users.CreateAsync(userForCreation, userId, ct);
-        
         return userResult.Match<ActionResult<UserDto>>(
             error => BadRequest(error.Message),
             value => Ok(value));

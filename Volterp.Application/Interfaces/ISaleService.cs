@@ -11,7 +11,7 @@ public interface ISaleService
     Task<PagedResult<SaleDto>> GetAllSalesAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default);
     Task<PagedResult<SaleDto>> GetSalesByStatusAsync(int companyId, SaleStatus status, int pageNumber, int pageSize, CancellationToken ct = default);
     Task<Either<Error, SaleDto?>> GetSaleByIdAsync(int id, int companyId, CancellationToken ct = default);
-    Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, int? userId, CancellationToken ct = default);
+    Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, int companyId, int? userId, CancellationToken ct = default);
     Task<Either<Error, SaleDto>> UpdateSaleAsync(int id, int companyId, UpdateSaleRequest request, int? userId, CancellationToken ct = default);
     Task<Either<Error, SaleDto>> CompleteSaleAsync(int id, int companyId, int? userId, CancellationToken ct = default);
     Task<Either<Error, Unit>> DeleteSaleAsync(int id, int companyId, CancellationToken ct = default);

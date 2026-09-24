@@ -37,6 +37,11 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
             .Map(r => r.Project())
             .Map(category =>
             {
+                // Cycle 1.1 wire refactor: companyId comes from the JWT, NEVER
+                // from request.CompanyId. CreateCategoryRequest no longer carries
+                // CompanyId. The explicit override here is the wire contract
+                // enforcement at the service boundary; if the DTO ever regains
+                // CompanyId, this line must still be present or the leak returns.
                 category.CompanyId = companyId;
                 if (userId.HasValue) category.SetCreatedBy(userId.Value);
                 return category;

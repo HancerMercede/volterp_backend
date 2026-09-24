@@ -150,7 +150,7 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
         var request = new CreateProductDto(
             Name: "Test", Category: "Category", Description: "Desc",
-            Price: 100, Stock: 10, CategoryId: 999, CompanyId: 1, ImageUrl: null
+            Price: 100, Stock: 10, CategoryId: 999, ImageUrl: null
         );
 
         // ACT
@@ -181,7 +181,7 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
         var request = new CreateProductDto(
             Name: "New Product", Category: "Category", Description: "Description",
-            Price: 150, Stock: 25, CategoryId: null, CompanyId: 1, ImageUrl: null
+            Price: 150, Stock: 25, CategoryId: null, ImageUrl: null
         );
 
         // ACT

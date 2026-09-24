@@ -28,10 +28,10 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", UserRole.Ventas, 1);
+        var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", UserRole.Ventas);
 
         // ACT
-        var result = await service.CreateAsync(request, 42);
+        var result = await service.CreateAsync(request, companyId: 1, userId: 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto>.Left>();
@@ -57,10 +57,10 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas, 1);
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas);
 
         // ACT
-        var result = await service.CreateAsync(request, 42);
+        var result = await service.CreateAsync(request, companyId: 1, userId: 42);
 
         // ASSERT - verify password hasher was called with the plain password
         mockPasswordHasher.Verify(

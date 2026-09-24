@@ -70,8 +70,14 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     [HttpPost]
     public async Task<ActionResult<SaleDto>> CreateSale([FromBody] CreateSaleRequest request, CancellationToken ct = default)
     {
+        // Cycle 1.1 fix (bug #1): the previous version ignored the JWT companyId
+        // and forwarded request.CompanyId directly. CreateSaleRequest no longer
+        // exposes CompanyId, so the service cannot leak cross-tenant. The
+        // companyId parameter is the JWT-derived tenant; it is the only source
+        // of tenant scope at the application layer.
+        var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
-        var result = await serviceManager.Sales.CreateSaleAsync(request, userId, ct);
+        var result = await serviceManager.Sales.CreateSaleAsync(request, companyId, userId, ct);
         return result.Match<ActionResult<SaleDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             sale => CreatedAtAction(nameof(GetSale), new { id = sale.Id }, sale)

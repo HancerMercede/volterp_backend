@@ -10,6 +10,6 @@ public interface ISupplierService
     Task<PagedResult<SupplierDto>> GetAllSuppliersAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default);
     Task<Either<Error, SupplierDto?>> GetSupplierByIdAsync(int id, int companyId, CancellationToken ct = default);
     Task<Either<Error,SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, int companyId, int? userId, CancellationToken ct = default);
-    Task<Either<Error,SupplierDto>> UpdateSupplierAsync(int id, int companyId, SupplierDto request, int? userId, CancellationToken ct = default);
+    Task<Either<Error,SupplierDto>> UpdateSupplierAsync(int id, int companyId, UpdateSupplierRequest request, int? userId, CancellationToken ct = default);
     Task<Either<Error, Unit>> DeleteSupplierAsync(int id, int companyId, CancellationToken ct = default);
 }

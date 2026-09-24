@@ -54,9 +54,13 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
     [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<SupplierDto>> UpdateSupplier(
         int id,
-        [FromBody] SupplierDto request,
+        [FromBody] UpdateSupplierRequest request,
         CancellationToken ct = default)
     {
+        // Cycle 1.1 fix (bug #3): the payload is UpdateSupplierRequest, which has
+        // no CompanyId. Tenant scope is bound exclusively to the JWT-derived
+        // companyId. GetSupplierByIdAsync inside the service rejects requests for
+        // entities owned by another tenant.
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
         var result = await serviceManager

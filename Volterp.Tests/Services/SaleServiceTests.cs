@@ -35,7 +35,7 @@ public class  SaleServiceTests
 
         var service = new SaleService(mockUnitOfWork.Object);
         var request = new CreateSaleRequest(
-            CompanyId: 1, ClienteId: null, ClienteName: "Test Client",
+            ClienteId: null, ClienteName: "Test Client",
             Status: SaleStatus.Pending, Total: 500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
@@ -44,7 +44,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.CreateSaleAsync(request, 42);
+        await service.CreateSaleAsync(request, companyId: 1, userId: 42);
 
         // ASSERT - EF change tracker handles persistence; verify stock was decremented
         product.Stock.Should().Be(5);
@@ -70,7 +70,7 @@ public class  SaleServiceTests
 
         var service = new SaleService(mockUnitOfWork.Object);
         var request = new CreateSaleRequest(
-            CompanyId: 1, ClienteId: null, ClienteName: "Test",
+            ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 1500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
@@ -79,7 +79,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.CreateSaleAsync(request, 42);
+        await service.CreateSaleAsync(request, companyId: 1, userId: 42);
 
         // ASSERT
         product.Stock.Should().Be(5);
@@ -314,7 +314,7 @@ public class  SaleServiceTests
 
         var service = new SaleService(mockUnitOfWork.Object);
         var request = new CreateSaleRequest(
-            CompanyId: 1, ClienteId: null, ClienteName: "Test",
+            ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
@@ -323,7 +323,7 @@ public class  SaleServiceTests
         );
 
         // ACT - should not throw, just doesn't decrement stock for missing products
-        var result = await service.CreateSaleAsync(request, 42);
+        var result = await service.CreateSaleAsync(request, companyId: 1, userId: 42);
 
         // ASSERT - sale created, no stock modification occurred
         result.Should().NotBeNull();
@@ -454,7 +454,7 @@ public class  SaleServiceTests
 
         var service = new SaleService(mockUnitOfWork.Object);
         var request = new CreateSaleRequest(
-            CompanyId: 1, ClienteId: null, ClienteName: "Test",
+            ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 1000, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
@@ -463,7 +463,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        var result = await service.CreateSaleAsync(request, 42);
+        var result = await service.CreateSaleAsync(request, companyId: 1, userId: 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -526,7 +526,7 @@ public class  SaleServiceTests
 
         var service = new SaleService(mockUnitOfWork.Object);
         var request = new CreateSaleRequest(
-            CompanyId: 1, ClienteId: null, ClienteName: "Test",
+            ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
@@ -535,7 +535,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        var result = await service.CreateSaleAsync(request, 42);
+        var result = await service.CreateSaleAsync(request, companyId: 1, userId: 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -570,7 +570,7 @@ public class  SaleServiceTests
 
         var service = new SaleService(mockUnitOfWork.Object);
         var request = new CreateSaleRequest(
-            CompanyId: 1, ClienteId: null, ClienteName: "Bulk Client",
+            ClienteId: null, ClienteName: "Bulk Client",
             Status: SaleStatus.Pending, Total: 3000, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
@@ -581,7 +581,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.CreateSaleAsync(request, 42);
+        await service.CreateSaleAsync(request, companyId: 1, userId: 42);
 
         // ASSERT
         product1.Stock.Should().Be(90);  // 100 - 10
@@ -803,7 +803,7 @@ public class  SaleServiceTests
 
         var service = new SaleService(mockUnitOfWork.Object);
         var request = new CreateSaleRequest(
-            CompanyId: 1, ClienteId: null, ClienteName: "Test",
+            ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
@@ -813,7 +813,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        await service.CreateSaleAsync(request, 42);
+        await service.CreateSaleAsync(request, companyId: 1, userId: 42);
 
         // ASSERT - grouped quantity 3 + 2 = 5 should be decremented
         product.Stock.Should().Be(15); // 20 - 5
@@ -836,7 +836,7 @@ public class  SaleServiceTests
 
         var service = new SaleService(mockUnitOfWork.Object);
         var request = new CreateSaleRequest(
-            CompanyId: 1, ClienteId: null, ClienteName: "Test",
+            ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 100, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
@@ -845,7 +845,7 @@ public class  SaleServiceTests
         );
 
         // ACT
-        var result = await service.CreateSaleAsync(request, 42);
+        var result = await service.CreateSaleAsync(request, companyId: 1, userId: 42);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();

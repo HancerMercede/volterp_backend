@@ -11,29 +11,6 @@ namespace Volterp.Application.Services;
 public class SaleService(IUnitOfWork unitOfWork) : ISaleService
 {
 
-
-    private static Sale MapToSaleEntity(CreateSaleRequest r) => new Sale
-    {
-        CompanyId = r.CompanyId,
-        ClienteId = r.ClienteId,
-        ClienteName = r.ClienteName,
-        Status = r.Status,
-        Total = r.Total,
-        Notes = r.Notes,
-        CreatedAt = DateTime.UtcNow,
-        Items = r.Items.Select(i => new SaleItem
-        {
-            ProductId = i.ProductId,
-            ProductName = i.ProductName,
-            ProductCategory = i.ProductCategory,
-            ProductCode = i.ProductCode,
-            ProductImageUrl = i.ProductImageUrl,
-            Quantity = i.Quantity,
-            UnitPrice = i.UnitPrice,
-            Subtotal = i.Subtotal
-        }).ToList()
-    };
-
     private static List<SaleItem> MapToSaleItems(List<CreateSaleItemRequest> items) => items
         .Select(i => new SaleItem
         {
@@ -71,14 +48,18 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Run();
     }
 
-    public async Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, int companyId, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateSaleRequest>
             .FromRight(request)
             .Ensure(r => r.Items.Count > 0, new Error("Sale must have at least one item."))
+            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
             .FlatMap(async req =>
             {
                 var sale = req.Project();
+                // Cycle 1.1: companyId comes from the controller (JWT-derived), not
+                // from the request body. The request DTO no longer carries CompanyId.
+                sale.CompanyId = companyId;
                 if (userId.HasValue) sale.SetCreatedBy(userId.Value);
 
                 // Batch query: single SELECT for all products (avoids N+1)

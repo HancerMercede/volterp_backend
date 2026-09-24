@@ -59,8 +59,14 @@ public record SaleItemDto(
     decimal Subtotal
 );
 
+/// <summary>
+/// Cycle 1.1 wire refactor — request-only DTO for sales. Deliberately excludes
+/// <c>CompanyId</c>: tenant scope is decided by the JWT-derived <c>companyId</c>
+/// the controller passes to <c>SaleService.CreateSaleAsync</c>.
+///
+/// Wire-contract guard lives in <c>WireContractTests</c>.
+/// </summary>
 public record CreateSaleRequest(
-    int CompanyId,
     int? ClienteId,
     string? ClienteName,
     SaleStatus Status,
@@ -71,9 +77,11 @@ public record CreateSaleRequest(
 {
     public Sale MapTo()
     {
+        // CompanyId is NOT copied here — it is set by SaleService.CreateSaleAsync
+        // from the companyId parameter (which the controller reads from the JWT).
+        // If you see this method writing CompanyId, that is a regression.
         return new Sale
         {
-           CompanyId = CompanyId,
            ClienteId = ClienteId,
            ClienteName = ClienteName,
            Status = Status,

@@ -29,17 +29,23 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Run();
     }
 
-    public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, int companyId, int? userId, CancellationToken ct = default)
     {
         return await EitherAsync
             .Try(async() => await unitOfWork.Users.GetByUsernameAsync(request.Username, ct))
             .MapLeft(ex => new Error(ex.Message))
             .Ensure(user => user is null, new Error("username already exists"))
+            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
             .Ensure(_ => request.Role != UserRole.SuperAdmin || currentUserService.IsSuperAdmin(),
                 _ => new Error("Only SuperAdmin can create SuperAdmin users"))
             .Map(_ => request.Project())
             .FlatMap(async user =>
             {
+                // Cycle 1.1: tenant scope now flows through the explicit companyId
+                // parameter (JWT-derived). Previously the controller used a `with`
+                // expression to overwrite; that patch is gone now. Setting it here
+                // is the canonical place.
+                user.CompanyId = companyId;
                 user.PasswordHash = passwordHasher.Hash(request.Password);
                 if (userId.HasValue) user.SetCreatedBy(userId.Value);
                 await unitOfWork.Users.AddUserAsync(user, ct);
