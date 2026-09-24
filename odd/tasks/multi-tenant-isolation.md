@@ -119,7 +119,7 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
   3. 9 wire-contract tests en lugar de 3 — agregué 6 reflection guards durables además de los 3 JSON que pedía el plan.
   4. 7 flipped characterization tests cubren happy-paths además de los leak-tests.
 - **Constraints respetados**: ✅ NO DB / NO schema / NO `ITenantContext` / NO `HasQueryFilter` / NO tocados los 30 Ensure ni los 38 predicates / `LoginResponse` intacto.
-- **Commit**: pendiente de decisión del usuario.
+- **Commit**: `2384a8a` — `feat(multi-tenant): cycle 1.1 - wire refactor closes 3 cross-tenant bugs` (25 files, 517 insertions, 193 deletions).
 
 ### Ciclo 1.2 — Guid 7 migration  →  pending
 ### Ciclo 1.2 — Guid 7 migration  →  pending

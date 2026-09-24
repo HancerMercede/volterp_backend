@@ -5,10 +5,10 @@ namespace Volterp.Domain.Entities;
 
 public class Sale : AuditEntity
 {
-    public int Id { get; set; }
-    public int CompanyId { get; set; }
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
     
-    public int? ClienteId { get; set; }
+    public Guid? ClienteId { get; set; }
     public string? ClienteName { get; set; }
     
     public SaleStatus Status { get; set; } = SaleStatus.Pending;
@@ -41,7 +41,7 @@ public class Sale : AuditEntity
         Status = SaleStatus.Cancelled;
     }
 
-    public void AddItem(int productId, string? productName, int quantity, decimal unitPrice)
+    public void AddItem(Guid productId, string? productName, int quantity, decimal unitPrice)
     {
         if (quantity <= 0)
             throw new ArgumentException("Quantity must be positive.", nameof(quantity));
@@ -63,7 +63,7 @@ public class Sale : AuditEntity
         Total += subtotal;
     }
 
-    public void RemoveItem(int productId)
+    public void RemoveItem(Guid productId)
     {
         var item = Items.FirstOrDefault(i => i.ProductId == productId);
         if (item is null)
@@ -77,10 +77,10 @@ public class Sale : AuditEntity
 
 public class SaleItem
 {
-    public int Id { get; set; }
-    public int SaleId { get; set; }
+    public Guid Id { get; set; }
+    public Guid SaleId { get; set; }
     
-    public int ProductId { get; set; }
+    public Guid ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string? ProductCategory { get; set; }
     public string? ProductCode { get; set; }

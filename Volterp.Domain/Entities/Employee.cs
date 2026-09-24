@@ -5,8 +5,8 @@ namespace Volterp.Domain.Entities;
 
 public class Employee : AuditEntity
 {
-    public int Id { get; set; }
-    public int CompanyId { get; set; }
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
@@ -16,7 +16,7 @@ public class Employee : AuditEntity
     public DateTime HireDate { get; set; }
     public decimal Salary { get; set; }
     public EntityStatus Status { get; set; } = EntityStatus.Active;
-    public int? DirectManagerId { get; set; }
+    public Guid? DirectManagerId { get; set; }
     public string WorkSchedule { get; set; } = string.Empty;
     public string? AFP { get; set; }
     public string? ARS { get; set; }
