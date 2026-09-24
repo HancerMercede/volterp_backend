@@ -1,9 +1,10 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
 using Volterp.Domain.ValueObjects;
 using Xunit;
+using Volterp.Tests.TestHelpers;
 
 namespace Volterp.Tests.Domain;
 
@@ -200,7 +201,7 @@ public class UserBehaviorTests
     {
         return new User
         {
-            Id = 1,
+            Id = Guid7TestValues.UserA,
             Username = "testuser",
             Email = "test@example.com",
             FullName = "Test User",

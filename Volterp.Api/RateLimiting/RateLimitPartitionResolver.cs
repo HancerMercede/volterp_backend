@@ -1,5 +1,6 @@
 using System.Net;
 using System.Security.Claims;
+using Volterp.Application.Common;
 
 namespace Volterp.Api.RateLimiting;
 
@@ -29,7 +30,7 @@ public sealed class RateLimitPartitionResolver
         if (user?.Identity?.IsAuthenticated != true)
             return null;
 
-        var userId = user.FindFirstValue("userId");
+        var userId = user.FindFirstValue(Claims.UserId);
         if (!string.IsNullOrWhiteSpace(userId))
             return userId.Trim();
 

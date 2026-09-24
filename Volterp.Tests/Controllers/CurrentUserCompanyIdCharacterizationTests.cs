@@ -4,36 +4,20 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Volterp.Api.Controllers;
+using Volterp.Api.Exceptions;
 using Volterp.Api.Helpers;
+using Volterp.Application.Common;
+using Volterp.Tests.TestHelpers;
 using Xunit;
 
 namespace Volterp.Tests.Controllers;
 
-/// <summary>
-/// Cycle 1.0 — Characterization tests for the two parallel implementations of
-/// "current user companyId resolution":
-///
-/// 1. <c>BaseController.GetCurrentUserCompanyId()</c> — used by every controller
-///    action via inheritance.
-/// 2. <c>CurrentUserService.GetCompanyId()</c> — the registered
-///    <c>ICurrentUserService</c> implementation (currently bypassed by all
-///    controllers but consumed by <c>UserService</c> and <c>ServiceManager</c>).
-///
-/// Both implementations share the same flaw: when the <c>companyId</c> claim is
-/// missing, they return <c>0</c> silently. The plan calls for a 401 in that
-/// case (Phase 1 acceptance criteria). These tests document the current
-/// behavior so the fix in Cycle 1.3 is enforced by regression.
-/// </summary>
 public class CurrentUserCompanyIdCharacterizationTests
 {
-    /// <summary>
-    /// Concrete subclass that exposes the protected helper for direct testing
-    /// without spinning up the full MVC pipeline.
-    /// </summary>
     private sealed class TestableBaseController : BaseController
     {
-        public int InvokeGetCurrentUserCompanyId() => GetCurrentUserCompanyId();
-        public int? InvokeGetCurrentUserId() => GetCurrentUserId();
+        public Guid InvokeGetCurrentUserCompanyId() => GetCurrentUserCompanyId();
+        public Guid? InvokeGetCurrentUserId() => GetCurrentUserId();
     }
 
     private static TController BuildWithUser<TController>(TController controller, params Claim[] claims)
@@ -50,162 +34,140 @@ public class CurrentUserCompanyIdCharacterizationTests
     // ───────── BaseController.GetCurrentUserCompanyId ─────────
 
     [Fact]
-    public void BaseController_GetCurrentUserCompanyId_WhenCompanyIdClaimMissing_ReturnsZero()
+    public void BaseController_GetCurrentUserCompanyId_WhenCompanyIdClaimMissing_ThrowsUnauthorized()
     {
-        // ARRANGE — User has no companyId claim at all.
-        var sut = BuildWithUser(new TestableBaseController(), new Claim("userId", "7"));
+        var sut = BuildWithUser(new TestableBaseController(),
+            new Claim(Claims.UserId, "0192b9c7b6a37def8c5e1f2a3b4c5d70"));
 
-        // ACT
-        var result = sut.InvokeGetCurrentUserCompanyId();
-
-        // ASSERT — current behavior (silent failure).
-        result.Should().Be(0,
-            "CURRENT BEHAVIOR: when the companyId claim is missing, the helper returns 0 silently. " +
-            "Cycle 1.3 will flip this to throw 401 Unauthorized.");
-    }
-
-    [Fact]
-    public void BaseController_GetCurrentUserCompanyId_WhenCompanyIdClaimPresent_ReturnsParsedValue()
-    {
-        // ARRANGE
-        var sut = BuildWithUser(new TestableBaseController(), new Claim("companyId", "555"));
-
-        // ACT
-        var result = sut.InvokeGetCurrentUserCompanyId();
-
-        // ASSERT
-        result.Should().Be(555);
-    }
-
-    [Fact]
-    public void BaseController_GetCurrentUserCompanyId_WhenClaimValueIsMalformed_Throws()
-    {
-        // ARRANGE — claim value cannot be parsed as int.
-        var sut = BuildWithUser(new TestableBaseController(), new Claim("companyId", "not-a-number"));
-
-        // ACT
         Action act = () => sut.InvokeGetCurrentUserCompanyId();
 
-        // ASSERT — current behavior: int.Parse throws FormatException.
-        act.Should().Throw<FormatException>(
-            "CURRENT BEHAVIOR: int.Parse on a malformed claim bubbles up uncaught. " +
-            "Cycle 1.3 should validate the claim and return 401 instead.");
+        act.Should().Throw<UnauthorizedException>(
+            "a missing companyId claim MUST surface as 401 — silent zero-fallback is the " +
+            "latent bug the Guid 7 migration closes.");
     }
 
     [Fact]
-    public void BaseController_GetCurrentUserCompanyId_WhenUserIsAnonymous_ReturnsZero()
+    public void BaseController_GetCurrentUserCompanyId_WhenCompanyIdClaimPresent_ReturnsParsedGuid()
     {
-        // ARRANGE — no authenticated user at all.
+        var sut = BuildWithUser(new TestableBaseController(),
+            new Claim(Claims.CompanyId, "0192b9c7b6a37def8c5e1f2a3b4c5d6e"));
+
+        sut.InvokeGetCurrentUserCompanyId().Should().Be(Guid7TestValues.CompanyA);
+    }
+
+    [Fact]
+    public void BaseController_GetCurrentUserCompanyId_WhenClaimValueIsMalformed_ThrowsUnauthorized()
+    {
+        var sut = BuildWithUser(new TestableBaseController(),
+            new Claim(Claims.CompanyId, "not-a-guid"));
+
+        Action act = () => sut.InvokeGetCurrentUserCompanyId();
+
+        act.Should().Throw<UnauthorizedException>(
+            "a malformed claim MUST surface as 401 — both missing and malformed paths now " +
+            "produce the same error contract.");
+    }
+
+    [Fact]
+    public void BaseController_GetCurrentUserCompanyId_WhenUserIsAnonymous_ThrowsUnauthorized()
+    {
         var sut = new TestableBaseController
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
 
-        // ACT
-        var result = sut.InvokeGetCurrentUserCompanyId();
+        Action act = () => sut.InvokeGetCurrentUserCompanyId();
 
-        // ASSERT
-        result.Should().Be(0);
+        act.Should().Throw<UnauthorizedException>();
     }
 
     // ───────── CurrentUserService.GetCompanyId ─────────
 
     [Fact]
-    public void CurrentUserService_GetCompanyId_WhenCompanyIdClaimMissing_ReturnsZero()
+    public void CurrentUserService_GetCompanyId_WhenCompanyIdClaimMissing_ThrowsUnauthorized()
     {
-        // ARRANGE
         var accessor = new Mock<IHttpContextAccessor>();
         accessor.Setup(a => a.HttpContext).Returns(new DefaultHttpContext
         {
-            User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("userId", "1") }, "TestAuth"))
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                new[] { new Claim(Claims.UserId, "0192b9c7b6a37def8c5e1f2a3b4c5d70") }, "TestAuth"))
         });
         var sut = new CurrentUserService(accessor.Object);
 
-        // ACT
-        var result = sut.GetCompanyId();
-
-        // ASSERT — mirrors BaseController behavior.
-        result.Should().Be(0,
-            "CURRENT BEHAVIOR: CurrentUserService silently returns 0 when the claim is missing. " +
-            "Same fix as BaseController applies in Cycle 1.3.");
-    }
-
-    [Fact]
-    public void CurrentUserService_GetCompanyId_WhenCompanyIdClaimPresent_ReturnsParsedValue()
-    {
-        // ARRANGE
-        var accessor = new Mock<IHttpContextAccessor>();
-        accessor.Setup(a => a.HttpContext).Returns(new DefaultHttpContext
-        {
-            User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("companyId", "777") }, "TestAuth"))
-        });
-        var sut = new CurrentUserService(accessor.Object);
-
-        // ACT
-        var result = sut.GetCompanyId();
-
-        // ASSERT
-        result.Should().Be(777);
-    }
-
-    [Fact]
-    public void CurrentUserService_GetCompanyId_WhenClaimValueIsMalformed_Throws()
-    {
-        // ARRANGE
-        var accessor = new Mock<IHttpContextAccessor>();
-        accessor.Setup(a => a.HttpContext).Returns(new DefaultHttpContext
-        {
-            User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim("companyId", "abc") }, "TestAuth"))
-        });
-        var sut = new CurrentUserService(accessor.Object);
-
-        // ACT
         Action act = () => sut.GetCompanyId();
 
-        // ASSERT
-        act.Should().Throw<FormatException>(
-            "CURRENT BEHAVIOR: CurrentUserService uses int.Parse without TryParse, same as BaseController. " +
-            "Cycle 1.3 should consolidate both implementations behind ITenantContext and validate.");
+        act.Should().Throw<UnauthorizedException>(
+            "mirrors BaseController: missing claim MUST surface as 401.");
     }
 
     [Fact]
-    public void CurrentUserService_GetCompanyId_WhenHttpContextIsNull_ReturnsZero()
+    public void CurrentUserService_GetCompanyId_WhenCompanyIdClaimPresent_ReturnsParsedHashCode()
     {
-        // ARRANGE — accessor returns null HttpContext (e.g. outside a request).
+        var accessor = new Mock<IHttpContextAccessor>();
+        accessor.Setup(a => a.HttpContext).Returns(new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                new[] { new Claim(Claims.CompanyId, "0192b9c7b6a37def8c5e1f2a3b4c5d6e") }, "TestAuth"))
+        });
+        var sut = new CurrentUserService(accessor.Object);
+
+        sut.GetCompanyId().Should().Be(Guid7TestValues.CompanyA.GetHashCode(),
+            "the interface contract returns int; the implementation parses the Guid and " +
+            "casts via GetHashCode() because Guid → int has no meaningful mapping.");
+    }
+
+    [Fact]
+    public void CurrentUserService_GetCompanyId_WhenClaimValueIsMalformed_ThrowsUnauthorized()
+    {
+        var accessor = new Mock<IHttpContextAccessor>();
+        accessor.Setup(a => a.HttpContext).Returns(new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                new[] { new Claim(Claims.CompanyId, "abc") }, "TestAuth"))
+        });
+        var sut = new CurrentUserService(accessor.Object);
+
+        Action act = () => sut.GetCompanyId();
+
+        act.Should().Throw<UnauthorizedException>(
+            "both implementations now produce a consistent 401 on malformed claims.");
+    }
+
+    [Fact]
+    public void CurrentUserService_GetCompanyId_WhenHttpContextIsNull_ThrowsUnauthorized()
+    {
         var accessor = new Mock<IHttpContextAccessor>();
         accessor.Setup(a => a.HttpContext).Returns((HttpContext?)null);
         var sut = new CurrentUserService(accessor.Object);
 
-        // ACT
-        var result = sut.GetCompanyId();
+        Action act = () => sut.GetCompanyId();
 
-        // ASSERT
-        result.Should().Be(0);
+        act.Should().Throw<UnauthorizedException>(
+            "no HttpContext means no claim; missing claim MUST surface as 401.");
     }
 
-    // ───────── Both implementations must agree ─────────
+    // ───────── Both implementations must agree on missing claim ─────────
 
     [Fact]
-    public void BothImplementations_ReturnSameValueForSameClaim()
+    public void BothImplementations_ThrowUnauthorizedOnMissingClaim()
     {
-        // ARRANGE
-        var companyId = "12345";
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(
-            new[] { new Claim("companyId", companyId) }, "TestAuth"));
-
-        var baseController = BuildWithUser(new TestableBaseController(), new Claim("companyId", companyId));
+        var baseController = BuildWithUser(new TestableBaseController(),
+            new Claim(Claims.UserId, "0192b9c7b6a37def8c5e1f2a3b4c5d70"));
 
         var accessor = new Mock<IHttpContextAccessor>();
-        accessor.Setup(a => a.HttpContext).Returns(new DefaultHttpContext { User = principal });
-        var service = new CurrentUserService(accessor.Object);
+        accessor.Setup(a => a.HttpContext).Returns(new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity(
+                new[] { new Claim(Claims.UserId, "0192b9c7b6a37def8c5e1f2a3b4c5d70") }, "TestAuth"))
+        });
+        var currentUserService = new CurrentUserService(accessor.Object);
 
-        // ACT
-        var fromBase = baseController.InvokeGetCurrentUserCompanyId();
-        var fromService = service.GetCompanyId();
+        Action fromBase = () => baseController.InvokeGetCurrentUserCompanyId();
+        Action fromService = () => currentUserService.GetCompanyId();
 
-        // ASSERT — both return the same value when the claim is present.
-        // Cycle 1.3 will consolidate these two behind ITenantContext.
-        fromBase.Should().Be(fromService);
-        fromBase.Should().Be(12345);
+        fromBase.Should().Throw<UnauthorizedException>();
+        fromService.Should().Throw<UnauthorizedException>(
+            "the missing-claim invariant is shared by both implementations; both surface 401 " +
+            "with the same exception type so no caller can accidentally fall back to zero.");
     }
 }

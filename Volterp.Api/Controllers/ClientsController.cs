@@ -12,28 +12,27 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-         
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager
             .Clients
-            .GetAllClientsAsync(companyId,pagination.PageNumber, pagination.PageSize, ct);
-        
+            .GetAllClientsAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+
         return Ok(result);
     }
-    
+
     [HttpGet("{id}")]
-    public async Task<ActionResult<ClientDto>> GetClient(int id, CancellationToken ct = default)
+    public async Task<ActionResult<ClientDto>> GetClient(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var client = await serviceManager
             .Clients
             .GetClientByIdAsync(id, companyId, ct);
- 
+
         return client.Match<ActionResult<ClientDto>>(
             error => NotFound(error.Message),
-            result=> Ok(result));
+            result => Ok(result));
     }
-    
+
     [HttpPost]
     [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<ClientDto>> CreateClient([FromBody] CreateClientDto request, CancellationToken ct = default)
@@ -46,30 +45,30 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
 
         return client.Match<ActionResult<ClientDto>>(
             error => BadRequest(error.Message),
-            result => CreatedAtAction(nameof(GetClient), 
+            result => CreatedAtAction(nameof(GetClient),
                 new { id = result.Id }, result));
     }
-    
+
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<ClientDto>> UpdateClient(int id, [FromBody] UpdateClientDto request, CancellationToken ct = default)
+    public async Task<ActionResult<ClientDto>> UpdateClient(Guid id, [FromBody] UpdateClientDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
         var client = await serviceManager.Clients.UpdateClientAsync(id, companyId, request, userId, ct);
-        
+
         return client.Match<ActionResult<ClientDto>>(
             error => BadRequest(error.Message),
             result => Ok(result));
     }
-    
+
     [HttpDelete("{id}")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult> DeleteClient(int id, CancellationToken ct = default)
+    public async Task<ActionResult> DeleteClient(Guid id, CancellationToken ct = default)
     {
-        if(!IsAdmin())
+        if (!IsAdmin())
             return Forbid();
-        
+
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Clients.DeleteClientAsync(id, companyId, ct);
 

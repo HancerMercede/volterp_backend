@@ -3,6 +3,7 @@ using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Volterp.Api.RateLimiting;
+using Volterp.Application.Common;
 using Xunit;
 
 namespace Volterp.Tests.RateLimiting;
@@ -30,8 +31,8 @@ public class RateLimitPartitionResolverTests
     public void Authenticated_UserIdClaim_TakesPriorityOverName()
     {
         var ctx = NewContext(ip: "203.0.113.7",
-            user: NewUser(("userId", "42"), (ClaimTypes.Name, "alice")));
-        _sut.GetGlobalPartitionKey(ctx).Should().Be("user:42");
+            user: NewUser((Claims.UserId, "0192b9c7b6a37def8c5e1f2a3b4c5d70"), (ClaimTypes.Name, "alice")));
+        _sut.GetGlobalPartitionKey(ctx).Should().Be("user:0192b9c7b6a37def8c5e1f2a3b4c5d70");
     }
 
     [Fact]

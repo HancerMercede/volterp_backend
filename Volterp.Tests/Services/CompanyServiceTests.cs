@@ -1,4 +1,4 @@
-using EitherWay;
+﻿using EitherWay;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Moq;
@@ -10,6 +10,7 @@ using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
 using Volterp.Domain.Entities;
 using Xunit;
+using Volterp.Tests.TestHelpers;
 
 namespace Volterp.Tests.Services;
 
@@ -27,14 +28,14 @@ public class CompanyServiceTests
             Items = new List<Company>
             {
                 new() { 
-                    Id = 1,
+                    Id = Guid7TestValues.CompanyA,
                     Name = "Company A",
                     TaxId = "123", 
                     Address = "Address A", 
                     LegalName = "Legal A", 
                     Phone = "123", 
                     Email = "a@test.com" },
-                new() { Id = 2,
+                new() { Id = Guid.NewGuid(),
                     Name = "Company B",
                     TaxId = "456",
                     Address = "Address B",
@@ -48,8 +49,8 @@ public class CompanyServiceTests
             PageCount = 1
         };
 
-        mockCompaniesRepo.Setup(r => 
-                r.GetAllCompaniesAsync(1, 10, 
+        mockCompaniesRepo.Setup(r =>
+                r.GetAllCompaniesAsync(1, 10,
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(companies);
         mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
@@ -73,18 +74,18 @@ public class CompanyServiceTests
 
         var company = new Company
         {
-            Id = 1, Name = "Company A", TaxId = "123", Address = "Address A",
+            Id = Guid7TestValues.CompanyA, Name = "Company A", TaxId = "123", Address = "Address A",
             LegalName = "Legal A", Phone = "123", Email = "a@test.com", IsActive = true
         };
 
-        mockCompaniesRepo.Setup(r => r.GetCompanyByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockCompaniesRepo.Setup(r => r.GetCompanyByIdAsync(Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(company);
         mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
 
         var service = new CompanyService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetCompanyByIdAsync(1);
+        var result = await service.GetCompanyByIdAsync(Guid7TestValues.CompanyA);
         
         // ASSERT
         result.Should().BeOfType<Either<Error, CompanyDto?>.Right>();
@@ -100,14 +101,14 @@ public class CompanyServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockCompaniesRepo = new Mock<ICompanyRepository>();
 
-        mockCompaniesRepo.Setup(r => r.GetCompanyByIdAsync(999, It.IsAny<CancellationToken>()))
+        mockCompaniesRepo.Setup(r => r.GetCompanyByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Company?)null);
         mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
 
         var service = new CompanyService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetCompanyByIdAsync(999);
+        var result = await service.GetCompanyByIdAsync(Guid.NewGuid());
 
         // ASSERT
         result.Should().BeOfType<Either<Error, CompanyDto?>.Left>();
@@ -121,7 +122,7 @@ public class CompanyServiceTests
         var mockCompaniesRepo = new Mock<ICompanyRepository>();
 
         mockCompaniesRepo.Setup(r => r.AddCompanyAsync(It.IsAny<Company>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Company c, CancellationToken ct) => { c.Id = 1; return c; });
+            .ReturnsAsync((Company c, CancellationToken ct) => { c.Id = Guid7TestValues.CompanyA; return c; });
         mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
@@ -133,7 +134,7 @@ public class CompanyServiceTests
         );
 
         // ACT
-        var result = await service.AddCompanyAsync(request, 42);
+        var result = await service.AddCompanyAsync(request, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, CompanyDto?>.Right>();
@@ -151,11 +152,11 @@ public class CompanyServiceTests
 
         var company = new Company
         {
-            Id = 1, Name = "Old Name", TaxId = "123", Address = "Old Address",
+            Id = Guid7TestValues.CompanyA, Name = "Old Name", TaxId = "123", Address = "Old Address",
             LegalName = "Old Legal", Phone = "000", Email = "old@test.com", IsActive = true
         };
 
-        mockCompaniesRepo.Setup(r => r.GetCompanyByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockCompaniesRepo.Setup(r => r.GetCompanyByIdAsync(Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(company);
         mockCompaniesRepo.Setup(r => r.UpdateCompanyAsync(It.IsAny<Company>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Company c, CancellationToken ct) => c);
@@ -170,7 +171,7 @@ public class CompanyServiceTests
         );
 
         // ACT
-        var result = await service.UpdateCompanyAsync(1, request, 42);
+        var result = await service.UpdateCompanyAsync(Guid7TestValues.CompanyA, request, Guid7TestValues.UserA);
 
         // ASSERT
         company.Name.Should().Be("Updated Name");
@@ -185,7 +186,7 @@ public class CompanyServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockCompaniesRepo = new Mock<ICompanyRepository>();
 
-        mockCompaniesRepo.Setup(r => r.DeleteCompanyAsync(1, It.IsAny<CancellationToken>()))
+        mockCompaniesRepo.Setup(r => r.DeleteCompanyAsync(Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
@@ -193,10 +194,10 @@ public class CompanyServiceTests
         var service = new CompanyService(mockUnitOfWork.Object);
 
         // ACT
-        await service.DeleteCompanyAsync(1);
+        await service.DeleteCompanyAsync(Guid7TestValues.CompanyA);
 
         // ASSERT
-        mockCompaniesRepo.Verify(r => r.DeleteCompanyAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+        mockCompaniesRepo.Verify(r => r.DeleteCompanyAsync(Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -206,14 +207,14 @@ public class CompanyServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockCompaniesRepo = new Mock<ICompanyRepository>();
 
-        mockCompaniesRepo.Setup(r => r.ExistsAsync(c => c.Id == 1, It.IsAny<CancellationToken>()))
+        mockCompaniesRepo.Setup(r => r.ExistsAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Volterp.Domain.Entities.Company, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
 
         var service = new CompanyService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.ExistsCompanyAsync(1);
+        var result = await service.ExistsCompanyAsync(Guid7TestValues.CompanyA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, bool>.Right>();
@@ -228,14 +229,14 @@ public class CompanyServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockCompaniesRepo = new Mock<ICompanyRepository>();
 
-        mockCompaniesRepo.Setup(r => r.ExistsAsync(c => c.Id == 999, It.IsAny<CancellationToken>()))
+        mockCompaniesRepo.Setup(r => r.ExistsAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Volterp.Domain.Entities.Company, bool>>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
 
         var service = new CompanyService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.ExistsCompanyAsync(999);
+        var result = await service.ExistsCompanyAsync(Guid.NewGuid());
 
         // ASSERT
         result.Should().BeOfType<Either<Error, bool>.Left>();

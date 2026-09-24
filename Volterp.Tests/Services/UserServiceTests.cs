@@ -1,4 +1,4 @@
-using EitherWay;
+﻿using EitherWay;
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
@@ -9,6 +9,7 @@ using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
+using Volterp.Tests.TestHelpers;
 using Xunit;
 
 namespace Volterp.Tests.Services;
@@ -24,14 +25,14 @@ public class UserServiceTests
         var mockPasswordHasher = new Mock<Volterp.Application.Interfaces.IPasswordHasher>();
 
         mockUsersRepo.Setup(r => r.GetByUsernameAsync("existinguser", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new User { Id = 1, Username = "existinguser" });
+            .ReturnsAsync(new User { Id = Guid7TestValues.UserA, Username = "existinguser" });
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
         var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", UserRole.Ventas);
 
         // ACT
-        var result = await service.CreateAsync(request, companyId: 1, userId: 42);
+        var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto>.Left>();
@@ -60,7 +61,7 @@ public class UserServiceTests
         var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas);
 
         // ACT
-        var result = await service.CreateAsync(request, companyId: 1, userId: 42);
+        var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT - verify password hasher was called with the plain password
         mockPasswordHasher.Verify(
@@ -79,8 +80,8 @@ public class UserServiceTests
         {
             Items = new List<User>
             {
-                new() { Id = 1, Username = "user1", Email = "user1@test.com", FullName = "User One", Role = UserRole.Ventas, CompanyId = 1, IsActive = true },
-                new() { Id = 2, Username = "user2", Email = "user2@test.com", FullName = "User Two", Role = UserRole.Inventario, CompanyId = 1, IsActive = true }
+                new() { Id = Guid7TestValues.UserA, Username = "user1", Email = "user1@test.com", FullName = "User One", Role = UserRole.Ventas, CompanyId = Guid7TestValues.CompanyA, IsActive = true },
+                new() { Id = Guid.NewGuid(), Username = "user2", Email = "user2@test.com", FullName = "User Two", Role = UserRole.Inventario, CompanyId = Guid7TestValues.CompanyA, IsActive = true }
             },
             PageNumber = 1,
             PageSize = 10,
@@ -88,14 +89,14 @@ public class UserServiceTests
             PageCount = 1
         };
 
-        mockUsersRepo.Setup(r => r.GetAllByCompanyAsync(1, 1, 10, It.IsAny<CancellationToken>()))
+        mockUsersRepo.Setup(r => r.GetAllByCompanyAsync(Guid7TestValues.CompanyA, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(users);
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>(), Mock.Of<ICurrentUserService>());
 
         // ACT
-        var result = await service.GetAllAsync(1, 1, 10);
+        var result = await service.GetAllAsync(Guid7TestValues.CompanyA, 1, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(2);
@@ -111,19 +112,19 @@ public class UserServiceTests
 
         var user = new User
         {
-            Id = 1, Username = "testuser", Email = "test@test.com",
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "test@test.com",
             FullName = "Test User", Role = UserRole.Ventas,
-            CompanyId = 1, IsActive = true
+            CompanyId = Guid7TestValues.CompanyA, IsActive = true
         };
 
-        mockUsersRepo.Setup(r => r.GetUserByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockUsersRepo.Setup(r => r.GetUserByIdAsync(Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>(), Mock.Of<ICurrentUserService>());
 
         // ACT
-        var result = await service.GetByIdAsync(1);
+        var result = await service.GetByIdAsync(Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto?>.Right>();
@@ -138,14 +139,14 @@ public class UserServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockUsersRepo = new Mock<IUserRepository>();
 
-        mockUsersRepo.Setup(r => r.GetUserByIdAsync(999, It.IsAny<CancellationToken>()))
+        mockUsersRepo.Setup(r => r.GetUserByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>(), Mock.Of<ICurrentUserService>());
 
         // ACT
-        var result = await service.GetByIdAsync(999);
+        var result = await service.GetByIdAsync(Guid.NewGuid());
 
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto?>.Left>();
@@ -160,20 +161,20 @@ public class UserServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockUsersRepo = new Mock<IUserRepository>();
 
-        mockUsersRepo.Setup(r => r.GetUserByIdAsync(999, It.IsAny<CancellationToken>()))
+        mockUsersRepo.Setup(r => r.GetUserByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>(), Mock.Of<ICurrentUserService>());
         var request = new UserWithPasswordHashDto
         {
-            Id = 999, Username = "updated", Email = "updated@test.com",
+            Id = Guid.NewGuid(), Username = "updated", Email = "updated@test.com",
             FullName = "Updated User", Role = UserRole.Ventas,
-            IsActive = true, CompanyId = 1, PasswordHash = "hash"
+            IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = "hash"
         };
 
         // ACT
-        var result = await service.UpdateAsync(999, request, 42);
+        var result = await service.UpdateAsync(Guid.NewGuid(), request, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto>.Left>();
@@ -190,12 +191,12 @@ public class UserServiceTests
 
         var user = new User
         {
-            Id = 1, Username = "testuser", Email = "old@test.com",
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "old@test.com",
             FullName = "Old Name", Role = UserRole.Ventas,
-            CompanyId = 1, IsActive = true
+            CompanyId = Guid7TestValues.CompanyA, IsActive = true
         };
 
-        mockUsersRepo.Setup(r => r.GetUserByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockUsersRepo.Setup(r => r.GetUserByIdAsync(Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
         mockUsersRepo.Setup(r => r.UpdateUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -205,13 +206,13 @@ public class UserServiceTests
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>(), Mock.Of<ICurrentUserService>());
         var request = new UserWithPasswordHashDto
         {
-            Id = 1, Username = "testuser", Email = "new@test.com",
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "new@test.com",
             FullName = "New Name", Role = UserRole.Admin,
-            IsActive = true, CompanyId = 1, PasswordHash = user.PasswordHash
+            IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = user.PasswordHash
         };
 
         // ACT
-        var result = await service.UpdateAsync(1, request, 42);
+        var result = await service.UpdateAsync(Guid7TestValues.UserA, request, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, UserDto>.Right>();
@@ -227,14 +228,14 @@ public class UserServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockUsersRepo = new Mock<IUserRepository>();
 
-        mockUsersRepo.Setup(r => r.GetUserByIdAsync(999, It.IsAny<CancellationToken>()))
+        mockUsersRepo.Setup(r => r.GetUserByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>(), Mock.Of<ICurrentUserService>());
 
         // ACT
-        var result = await service.DeleteAsync(999);
+        var result = await service.DeleteAsync(Guid.NewGuid());
 
         // ASSERT
         result.Should().BeOfType<Either<Error, Unit>.Left>();
@@ -251,14 +252,14 @@ public class UserServiceTests
 
         var user = new User
         {
-            Id = 1, Username = "testuser", Email = "test@test.com",
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "test@test.com",
             FullName = "Test User", Role = UserRole.Ventas,
-            CompanyId = 1, IsActive = true
+            CompanyId = Guid7TestValues.CompanyA, IsActive = true
         };
 
-        mockUsersRepo.Setup(r => r.GetUserByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockUsersRepo.Setup(r => r.GetUserByIdAsync(Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(user);
-        mockUsersRepo.Setup(r => r.DeleteUserAsync(1, It.IsAny<CancellationToken>()))
+        mockUsersRepo.Setup(r => r.DeleteUserAsync(Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
@@ -266,11 +267,11 @@ public class UserServiceTests
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>(), Mock.Of<ICurrentUserService>());
 
         // ACT
-        var result = await service.DeleteAsync(1);
+        var result = await service.DeleteAsync(Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, Unit>.Right>();
-        mockUsersRepo.Verify(r => r.DeleteUserAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+        mockUsersRepo.Verify(r => r.DeleteUserAsync(Guid7TestValues.UserA, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -282,9 +283,9 @@ public class UserServiceTests
 
         var user = new User
         {
-            Id = 1, Username = "testuser", Email = "test@test.com",
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "test@test.com",
             FullName = "Test User", Role = UserRole.Ventas,
-            CompanyId = 1, IsActive = true
+            CompanyId = Guid7TestValues.CompanyA, IsActive = true
         };
 
         mockUsersRepo.Setup(r => r.GetByUserByEmailAsync("test@test.com", It.IsAny<CancellationToken>()))
@@ -333,9 +334,9 @@ public class UserServiceTests
 
         var user = new User
         {
-            Id = 1, Username = "testuser", Email = "test@test.com",
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "test@test.com",
             FullName = "Test User", Role = UserRole.Ventas,
-            CompanyId = 1, IsActive = true, PasswordHash = "somehash"
+            CompanyId = Guid7TestValues.CompanyA, IsActive = true, PasswordHash = "somehash"
         };
 
         mockUsersRepo.Setup(r => r.GetByUsernameAsync("testuser", It.IsAny<CancellationToken>()))

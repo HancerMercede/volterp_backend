@@ -1,8 +1,9 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
 using Xunit;
+using Volterp.Tests.TestHelpers;
 
 namespace Volterp.Tests.Domain;
 
@@ -92,10 +93,10 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        sale.AddItem(productId: 1, productName: "Product A", quantity: 2, unitPrice: 100);
+        sale.AddItem(productId: Guid7TestValues.ProductA, productName: "Product A", quantity: 2, unitPrice: 100);
 
         sale.Items.Should().HaveCount(1);
-        sale.Items.First().ProductId.Should().Be(1);
+        sale.Items.First().ProductId.Should().Be(Guid7TestValues.ProductA);
         sale.Items.First().Quantity.Should().Be(2);
         sale.Items.First().UnitPrice.Should().Be(100);
         sale.Items.First().Subtotal.Should().Be(200);
@@ -106,7 +107,7 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        sale.AddItem(productId: 1, productName: "Product A", quantity: 3, unitPrice: 50);
+        sale.AddItem(productId: Guid7TestValues.ProductA, productName: "Product A", quantity: 3, unitPrice: 50);
 
         sale.Items.First().Subtotal.Should().Be(150);
     }
@@ -116,10 +117,10 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items:
         [
-            new SaleItem { ProductId = 1, ProductName = "A", Quantity = 1, UnitPrice = 10, Subtotal = 10 }
+            new SaleItem { ProductId = Guid7TestValues.ProductA, ProductName = "A", Quantity = 1, UnitPrice = 10, Subtotal = 10 }
         ]);
 
-        sale.AddItem(productId: 2, productName: "Product B", quantity: 3, unitPrice: 50);
+        sale.AddItem(productId: Guid.NewGuid(), productName: "Product B", quantity: 3, unitPrice: 50);
 
         sale.Items.Should().HaveCount(2);
     }
@@ -129,7 +130,7 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        var act = () => sale.AddItem(productId: 1, productName: null, quantity: 1, unitPrice: 100);
+        var act = () => sale.AddItem(productId: Guid7TestValues.ProductA, productName: null, quantity: 1, unitPrice: 100);
 
         act.Should().NotThrow();
     }
@@ -139,7 +140,7 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        var act = () => sale.AddItem(productId: 1, productName: "P", quantity: 0, unitPrice: 100);
+        var act = () => sale.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: 0, unitPrice: 100);
 
         act.Should().Throw<ArgumentException>()
             .WithMessage("*quantity*");
@@ -150,7 +151,7 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        var act = () => sale.AddItem(productId: 1, productName: "P", quantity: 1, unitPrice: -50);
+        var act = () => sale.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: 1, unitPrice: -50);
 
         act.Should().Throw<ArgumentException>()
             .WithMessage("*price*");
@@ -163,10 +164,10 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items:
         [
-            new SaleItem { ProductId = 1, ProductName = "A", Quantity = 2, UnitPrice = 100, Subtotal = 200 }
+            new SaleItem { ProductId = Guid7TestValues.ProductA, ProductName = "A", Quantity = 2, UnitPrice = 100, Subtotal = 200 }
         ]);
 
-        sale.RemoveItem(1);
+        sale.RemoveItem(Guid7TestValues.ProductA);
 
         sale.Items.Should().HaveCount(0);
     }
@@ -176,10 +177,10 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items:
         [
-            new SaleItem { ProductId = 1, ProductName = "A", Quantity = 1, UnitPrice = 10, Subtotal = 10 }
+            new SaleItem { ProductId = Guid7TestValues.ProductA, ProductName = "A", Quantity = 1, UnitPrice = 10, Subtotal = 10 }
         ]);
 
-        var act = () => sale.RemoveItem(99);
+        var act = () => sale.RemoveItem(Guid.NewGuid());
 
         act.Should().NotThrow();
         sale.Items.Should().HaveCount(1);
@@ -191,7 +192,7 @@ public class SaleBehaviorTests
     {
         return new Sale
         {
-            Id = 1,
+            Id = Guid7TestValues.SaleA,
             Status = status,
             Items = items ?? [CreateSaleItem()]
         };
@@ -201,7 +202,7 @@ public class SaleBehaviorTests
     {
         return new SaleItem
         {
-            ProductId = 1,
+            ProductId = Guid7TestValues.SaleA,
             ProductName = "Test Product",
             Quantity = 1,
             UnitPrice = 100,

@@ -3,7 +3,7 @@ namespace Volterp.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [EnableRateLimiting(RateLimiterPolicies.Authentication)]
-public class AuthController(IServiceManager serviceManager, IJwtService jwtService, IPasswordHasher passwordHasher) 
+public class AuthController(IServiceManager serviceManager, IJwtService jwtService, IPasswordHasher passwordHasher)
     : BaseController
 {
     [HttpPost("register")]

@@ -1,4 +1,4 @@
-using EitherWay;
+﻿using EitherWay;
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
@@ -11,6 +11,7 @@ using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Domain.ValueObjects;
 using Xunit;
+using Volterp.Tests.TestHelpers;
 
 namespace Volterp.Tests.Services;
 
@@ -24,9 +25,9 @@ public class ProductServiceTests
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
 
-        var productInCompany1 = new Product { Id = 1, Name = "Test", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS) };
+        var productInCompany1 = new Product { Id = Guid7TestValues.ProductA, Name = "Test", CompanyId = Guid7TestValues.CompanyA, Stock = 10, Price = new Money(100, Currency.ARS) };
 
-        mockProductsRepo.Setup(r => r.GetProductByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(productInCompany1);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
@@ -34,7 +35,7 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT - Request product from company 2
-        var result = await service.GetByIdAsync(1, companyId: 2);
+        var result = await service.GetByIdAsync(Guid7TestValues.ProductA, companyId: Guid7TestValues.CompanyB);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto?>.Left>();
@@ -53,8 +54,8 @@ public class ProductServiceTests
         {
             Items = new List<Product>
             {
-                new() { Id = 1, Name = "Product A", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS), Category = "Category A" },
-                new() { Id = 2, Name = "Product B", CompanyId = 1, Stock = 20, Price = new Money(200, Currency.ARS), Category = "Category B" }
+                new() { Id = Guid7TestValues.ProductA, Name = "Product A", CompanyId = Guid7TestValues.CompanyA, Stock = 10, Price = new Money(100, Currency.ARS), Category = "Category A" },
+                new() { Id = Guid.NewGuid(), Name = "Product B", CompanyId = Guid7TestValues.CompanyA, Stock = 20, Price = new Money(200, Currency.ARS), Category = "Category B" }
             },
             PageNumber = 1,
             PageSize = 10,
@@ -62,14 +63,14 @@ public class ProductServiceTests
             PageCount = 1
         };
 
-        mockProductsRepo.Setup(r => r.GetAllProductsByCompanyAsync(1, 1, 10, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetAllProductsByCompanyAsync(Guid7TestValues.CompanyA, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetAllAsync(1, 1, 10);
+        var result = await service.GetAllAsync(Guid7TestValues.CompanyA, 1, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(2);
@@ -86,15 +87,15 @@ public class ProductServiceTests
 
         var product = new Product
         {
-            Id = 1, Name = "Test Product", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS),
-            CategoryId = 1, Category = "Category A", Description = "Description", IsActive = true
+            Id = Guid7TestValues.ProductA, Name = "Test Product", CompanyId = Guid7TestValues.CompanyA, Stock = 10, Price = new Money(100, Currency.ARS),
+            CategoryId = Guid7TestValues.CategoryA, Category = "Category A", Description = "Description", IsActive = true
         };
 
-        var category = new Category { Id = 1, Name = "Category A" };
+        var category = new Category { Id = Guid7TestValues.CategoryA, Name = "Category A" };
 
-        mockProductsRepo.Setup(r => r.GetProductByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        mockCategoriesRepo.Setup(r => r.GetCategoryByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockCategoriesRepo.Setup(r => r.GetCategoryByIdAsync(Guid7TestValues.CategoryA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(category);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
@@ -102,7 +103,7 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetByIdAsync(1, companyId: 1);
+        var result = await service.GetByIdAsync(Guid7TestValues.ProductA, companyId: Guid7TestValues.CompanyA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto?>.Right>();
@@ -119,14 +120,14 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        mockProductsRepo.Setup(r => r.GetProductByIdAsync(999, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Product?)null);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetByIdAsync(999, companyId: 1);
+        var result = await service.GetByIdAsync(Guid.NewGuid(), companyId: Guid7TestValues.CompanyA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto?>.Left>();
@@ -142,7 +143,7 @@ public class ProductServiceTests
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
 
-        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(999, It.IsAny<CancellationToken>()))
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
@@ -150,11 +151,11 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
         var request = new CreateProductDto(
             Name: "Test", Category: "Category", Description: "Desc",
-            Price: 100, Stock: 10, CategoryId: 999, ImageUrl: null
+            Price: 100, Stock: 10, CategoryId: Guid.NewGuid(), ImageUrl: null
         );
 
         // ACT
-        var result = await service.CreateAsync(request, 1, 42);
+        var result = await service.CreateAsync(request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto>.Left>();
@@ -170,7 +171,7 @@ public class ProductServiceTests
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
 
-        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         mockProductsRepo.Setup(r => r.AddProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Product p, CancellationToken ct) => p);
@@ -185,7 +186,7 @@ public class ProductServiceTests
         );
 
         // ACT
-        var result = await service.CreateAsync(request, 1, 42);
+        var result = await service.CreateAsync(request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto>.Right>();
@@ -203,7 +204,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        mockProductsRepo.Setup(r => r.GetProductByIdAsync(999, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Product?)null);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
@@ -214,7 +215,7 @@ public class ProductServiceTests
         );
 
         // ACT
-        var result = await service.UpdateAsync(999, request, 1, 42);
+        var result = await service.UpdateAsync(Guid.NewGuid(), request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto>.Left>();
@@ -230,11 +231,11 @@ public class ProductServiceTests
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
 
-        var product = new Product { Id = 1, Name = "Test", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS) };
+        var product = new Product { Id = Guid7TestValues.ProductA, Name = "Test", CompanyId = Guid7TestValues.CompanyA, Stock = 10, Price = new Money(100, Currency.ARS) };
 
-        mockProductsRepo.Setup(r => r.GetProductByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(999, It.IsAny<CancellationToken>()))
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
@@ -242,11 +243,11 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
         var request = new UpdateProductDto(
             Name: "Updated", Category: "Category", Description: "Desc",
-            Price: 100, Stock: 10, CategoryId: 999, IsActive: true, ImageUrl: null
+            Price: 100, Stock: 10, CategoryId: Guid.NewGuid(), IsActive: true, ImageUrl: null
         );
 
         // ACT
-        var result = await service.UpdateAsync(1, request, 1, 42);
+        var result = await service.UpdateAsync(Guid7TestValues.ProductA, request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto>.Left>();
@@ -262,11 +263,11 @@ public class ProductServiceTests
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
 
-        var product = new Product { Id = 1, Name = "Old Name", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS), Category = "Old Category" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Name = "Old Name", CompanyId = Guid7TestValues.CompanyA, Stock = 10, Price = new Money(100, Currency.ARS), Category = "Old Category" };
 
-        mockProductsRepo.Setup(r => r.GetProductByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
         mockProductsRepo.Setup(r => r.UpdateProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -281,7 +282,7 @@ public class ProductServiceTests
         );
 
         // ACT
-        var result = await service.UpdateAsync(1, request, 1, 42);
+        var result = await service.UpdateAsync(Guid7TestValues.ProductA, request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().NotBeNull();
@@ -297,14 +298,14 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        mockProductsRepo.Setup(r => r.GetProductByIdAsync(999, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Product?)null);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.DeleteAsync(999, 1);
+        var result = await service.DeleteAsync(Guid.NewGuid(), Guid7TestValues.CompanyA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, Unit>.Left>();
@@ -319,11 +320,11 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Name = "Test", CompanyId = 1, Stock = 10, Price = new Money(100, Currency.ARS) };
+        var product = new Product { Id = Guid7TestValues.ProductA, Name = "Test", CompanyId = Guid7TestValues.CompanyA, Stock = 10, Price = new Money(100, Currency.ARS) };
 
-        mockProductsRepo.Setup(r => r.GetProductByIdAsync(1, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        mockProductsRepo.Setup(r => r.DeleteProductAsync(1, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.DeleteProductAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
@@ -331,9 +332,9 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        await service.DeleteAsync(1, 1);
+        await service.DeleteAsync(Guid7TestValues.ProductA, Guid7TestValues.CompanyA);
 
         // ASSERT
-        mockProductsRepo.Verify(r => r.DeleteProductAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+        mockProductsRepo.Verify(r => r.DeleteProductAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

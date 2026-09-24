@@ -21,7 +21,7 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<EmployeeDto>> GetEmployee(int id, CancellationToken ct = default)
+    public async Task<ActionResult<EmployeeDto>> GetEmployee(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Employees.GetEmployeeByIdAsync(id, companyId, ct);
@@ -36,7 +36,7 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
     public async Task<ActionResult<EmployeeDto>> CreateEmployee([FromBody] CreateEmployeeDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var userId = GetCurrentUserId() ?? 0;
+        var userId = GetCurrentUserId() ?? Guid.Empty;
         var result = await serviceManager.Employees.CreateEmployeeAsync(request, companyId, userId, ct);
         return result.Match<ActionResult<EmployeeDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
@@ -46,10 +46,10 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<EmployeeDto>> UpdateEmployee(int id, [FromBody] UpdateEmployeeDto request, CancellationToken ct = default)
+    public async Task<ActionResult<EmployeeDto>> UpdateEmployee(Guid id, [FromBody] UpdateEmployeeDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var userId = GetCurrentUserId() ?? 0;
+        var userId = GetCurrentUserId() ?? Guid.Empty;
         var result = await serviceManager.Employees.UpdateEmployeeAsync(id, companyId, request, userId, ct);
         return result.Match<ActionResult<EmployeeDto>>(
             error => NotFound(new { message = error.Message }),
@@ -59,7 +59,7 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult> DeleteEmployee(int id, CancellationToken ct = default)
+    public async Task<ActionResult> DeleteEmployee(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Employees.DeleteEmployeeAsync(id, companyId, ct);

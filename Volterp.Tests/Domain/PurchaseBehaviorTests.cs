@@ -1,8 +1,9 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
 using Xunit;
+using Volterp.Tests.TestHelpers;
 
 namespace Volterp.Tests.Domain;
 
@@ -92,10 +93,10 @@ public class PurchaseBehaviorTests
     {
         var purchase = CreatePurchase(items: []);
 
-        purchase.AddItem(productId: 1, productName: "Product A", quantity: 5, unitPrice: 200);
+        purchase.AddItem(productId: Guid7TestValues.ProductA, productName: "Product A", quantity: 5, unitPrice: 200);
 
         purchase.Items.Should().HaveCount(1);
-        purchase.Items.First().ProductId.Should().Be(1);
+        purchase.Items.First().ProductId.Should().Be(Guid7TestValues.ProductA);
         purchase.Items.First().Quantity.Should().Be(5);
         purchase.Items.First().UnitPrice.Should().Be(200);
         purchase.Items.First().Subtotal.Should().Be(1000);
@@ -106,7 +107,7 @@ public class PurchaseBehaviorTests
     {
         var purchase = CreatePurchase(items: []);
 
-        purchase.AddItem(productId: 1, productName: "P", quantity: 3, unitPrice: 150);
+        purchase.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: 3, unitPrice: 150);
 
         purchase.Items.First().Subtotal.Should().Be(450);
     }
@@ -116,7 +117,7 @@ public class PurchaseBehaviorTests
     {
         var purchase = CreatePurchase(items: []);
 
-        purchase.AddItem(productId: 1, productName: "P", quantity: 2, unitPrice: 100);
+        purchase.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: 2, unitPrice: 100);
 
         purchase.Total.Should().Be(200);
     }
@@ -126,7 +127,7 @@ public class PurchaseBehaviorTests
     {
         var purchase = CreatePurchase(items: []);
 
-        var act = () => purchase.AddItem(productId: 1, productName: "P", quantity: 0, unitPrice: 100);
+        var act = () => purchase.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: 0, unitPrice: 100);
 
         act.Should().Throw<ArgumentException>()
             .WithMessage("*quantity*");
@@ -137,7 +138,7 @@ public class PurchaseBehaviorTests
     {
         var purchase = CreatePurchase(items: []);
 
-        var act = () => purchase.AddItem(productId: 1, productName: "P", quantity: -1, unitPrice: 100);
+        var act = () => purchase.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: -1, unitPrice: 100);
 
         act.Should().Throw<ArgumentException>()
             .WithMessage("*quantity*");
@@ -150,10 +151,10 @@ public class PurchaseBehaviorTests
     {
         var purchase = CreatePurchase(items:
         [
-            new PurchaseItem { ProductId = 1, ProductName = "A", Quantity = 2, UnitPrice = 100, Subtotal = 200 }
+            new PurchaseItem { ProductId = Guid7TestValues.ProductA, ProductName = "A", Quantity = 2, UnitPrice = 100, Subtotal = 200 }
         ]);
 
-        purchase.RemoveItem(1);
+        purchase.RemoveItem(Guid7TestValues.ProductA);
 
         purchase.Items.Should().HaveCount(0);
     }
@@ -163,12 +164,12 @@ public class PurchaseBehaviorTests
     {
         var purchase = CreatePurchase(items:
         [
-            new PurchaseItem { ProductId = 1, ProductName = "A", Quantity = 2, UnitPrice = 100, Subtotal = 200 },
-            new PurchaseItem { ProductId = 2, ProductName = "B", Quantity = 1, UnitPrice = 50, Subtotal = 50 }
+            new PurchaseItem { ProductId = Guid7TestValues.ProductA, ProductName = "A", Quantity = 2, UnitPrice = 100, Subtotal = 200 },
+            new PurchaseItem { ProductId = Guid.NewGuid(), ProductName = "B", Quantity = 1, UnitPrice = 50, Subtotal = 50 }
         ]);
         purchase.Total = 250;
 
-        purchase.RemoveItem(1);
+        purchase.RemoveItem(Guid7TestValues.ProductA);
 
         purchase.Total.Should().Be(50);
     }
@@ -178,10 +179,10 @@ public class PurchaseBehaviorTests
     {
         var purchase = CreatePurchase(items:
         [
-            new PurchaseItem { ProductId = 1, ProductName = "A", Quantity = 1, UnitPrice = 10, Subtotal = 10 }
+            new PurchaseItem { ProductId = Guid7TestValues.ProductA, ProductName = "A", Quantity = 1, UnitPrice = 10, Subtotal = 10 }
         ]);
 
-        var act = () => purchase.RemoveItem(99);
+        var act = () => purchase.RemoveItem(Guid.NewGuid());
 
         act.Should().NotThrow();
         purchase.Items.Should().HaveCount(1);
@@ -193,7 +194,7 @@ public class PurchaseBehaviorTests
     {
         return new Purchase
         {
-            Id = 1,
+            Id = Guid7TestValues.PurchaseA,
             Status = status,
             Items = items ?? [CreatePurchaseItem()]
         };
@@ -203,7 +204,7 @@ public class PurchaseBehaviorTests
     {
         return new PurchaseItem
         {
-            ProductId = 1,
+            ProductId = Guid7TestValues.ProductA,
             ProductName = "Test Product",
             Quantity = 1,
             UnitPrice = 100,

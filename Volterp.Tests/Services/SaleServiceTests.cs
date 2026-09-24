@@ -1,4 +1,4 @@
-using EitherWay;
+﻿using EitherWay;
 using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs;
@@ -9,6 +9,7 @@ using Volterp.Application.Services;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Xunit;
+using Volterp.Tests.TestHelpers;
 
 namespace Volterp.Tests.Services;
 
@@ -22,10 +23,10 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 10, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
         // Batch query: GetProductsByIdsAsync instead of individual GetProductByIdAsync
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale s, CancellationToken ct) => s);
@@ -39,12 +40,12 @@ public class  SaleServiceTests
             Status: SaleStatus.Pending, Total: 500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test Product", null, null, null, 5, 100, 500)
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 5, 100, 500)
             }
         );
 
         // ACT
-        await service.CreateSaleAsync(request, companyId: 1, userId: 42);
+        await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT - EF change tracker handles persistence; verify stock was decremented
         product.Stock.Should().Be(5);
@@ -58,9 +59,9 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 20, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 20, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale s, CancellationToken ct) => s);
@@ -74,12 +75,12 @@ public class  SaleServiceTests
             Status: SaleStatus.Pending, Total: 1500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test", null, null, null, 15, 100, 1500)
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 15, 100, 1500)
             }
         );
 
         // ACT
-        await service.CreateSaleAsync(request, companyId: 1, userId: 42);
+        await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT
         product.Stock.Should().Be(5);
@@ -93,22 +94,22 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 10, CompanyId = 1, Name = "Test" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
 
         var sale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { ProductId = 1, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -117,7 +118,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(1, 1, 42);
+        var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         sale.Status.Should().Be(SaleStatus.Completed);
@@ -132,23 +133,23 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 10, CompanyId = 1, Name = "Test" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
 
         var existingSale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { Id = 1, ProductId = 1, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         // Batch query: GetProductsByIdsAsync returns products for both old and new items
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -160,12 +161,12 @@ public class  SaleServiceTests
             Total: 800, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test", null, null, null, 8, 100, 800) // Changed from 5 to 8
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 8, 100, 800) // Changed from 5 to 8
             }
         );
 
         // ACT
-        await service.UpdateSaleAsync(1, 1, updateRequest, 42);
+        await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
 
         // ASSERT - Expected: old qty (5) returned, new qty (8) deducted
         // So stock should be: 10 + 5 - 8 = 7
@@ -183,8 +184,8 @@ public class  SaleServiceTests
         {
             Items = new List<Sale>
             {
-                new() { Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500, ClienteName = "Client A" },
-                new() { Id = 2, CompanyId = 1, Status = SaleStatus.Completed, Total = 300, ClienteName = "Client B" }
+                new() { Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500, ClienteName = "Client A" },
+                new() { Id = Guid.NewGuid(), CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Completed, Total = 300, ClienteName = "Client B" }
             },
             PageNumber = 1,
             PageSize = 10,
@@ -192,14 +193,14 @@ public class  SaleServiceTests
             PageCount = 1
         };
 
-        mockSalesRepo.Setup(r => r.GetAllSalesByCompanyAsync(1, 1, 10, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetAllSalesByCompanyAsync(Guid7TestValues.CompanyA, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sales);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetAllSalesAsync(1, 1, 10);
+        var result = await service.GetAllSalesAsync(Guid7TestValues.CompanyA, 1, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(2);
@@ -217,7 +218,7 @@ public class  SaleServiceTests
         {
             Items = new List<Sale>
             {
-                new() { Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500, ClienteName = "Client A" }
+                new() { Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500, ClienteName = "Client A" }
             },
             PageNumber = 1,
             PageSize = 10,
@@ -225,14 +226,14 @@ public class  SaleServiceTests
             PageCount = 1
         };
 
-        mockSalesRepo.Setup(r => r.GetSalesByStatusAsync(1, SaleStatus.Pending, 1, 10, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSalesByStatusAsync(Guid7TestValues.CompanyA, SaleStatus.Pending, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sales);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetSalesByStatusAsync(1, SaleStatus.Pending, 1, 10);
+        var result = await service.GetSalesByStatusAsync(Guid7TestValues.CompanyA, SaleStatus.Pending, 1, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(1);
@@ -248,28 +249,28 @@ public class  SaleServiceTests
 
         var sale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             ClienteName = "Test Client",
             Items = new List<SaleItem>
             {
-                new() { Id = 1, ProductId = 1, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetSaleByIdAsync(1, 1);
+        var result = await service.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto?>.Right>();
         var dto = ((Either<Error, SaleDto?>.Right)result).Value;
         dto.Should().NotBeNull();
-        dto!.Id.Should().Be(1);
+        dto!.Id.Should().Be(Guid7TestValues.SaleA);
         dto.ClienteName.Should().Be("Test Client");
     }
 
@@ -280,14 +281,14 @@ public class  SaleServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(999, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetSaleByIdAsync(999, 1);
+        var result = await service.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto?>.Right>();
@@ -304,7 +305,7 @@ public class  SaleServiceTests
         var mockProductsRepo = new Mock<IProductRepository>();
 
         // Product not found in batch query
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product>());
         mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale s, CancellationToken ct) => s);
@@ -318,12 +319,12 @@ public class  SaleServiceTests
             Status: SaleStatus.Pending, Total: 500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(999, "NonExistent", null, null, null, 5, 100, 500) // product doesn't exist
+                new(Guid.NewGuid(), "NonExistent", null, null, null, 5, 100, 500) // product doesn't exist
             }
         );
 
         // ACT - should not throw, just doesn't decrement stock for missing products
-        var result = await service.CreateSaleAsync(request, companyId: 1, userId: 42);
+        var result = await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT - sale created, no stock modification occurred
         result.Should().NotBeNull();
@@ -337,7 +338,7 @@ public class  SaleServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(999, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
@@ -347,12 +348,12 @@ public class  SaleServiceTests
             Total: 800, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test", null, null, null, 5, 100, 500)
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 5, 100, 500)
             }
         );
 
         // ACT
-        var result = await service.UpdateSaleAsync(999, 1, updateRequest, 42);
+        var result = await service.UpdateSaleAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -367,14 +368,14 @@ public class  SaleServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(999, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(999, 1, 42);
+        var result = await service.CompleteSaleAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -389,14 +390,14 @@ public class  SaleServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(999, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.DeleteSaleAsync(999, 1);
+        var result = await service.DeleteSaleAsync(Guid.NewGuid(), Guid7TestValues.CompanyA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, Unit>.Left>();
@@ -414,15 +415,15 @@ public class  SaleServiceTests
 
         var sale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>()
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
-        mockSalesRepo.Setup(r => r.DeleteSaleAsync(1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product>());
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -431,10 +432,10 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        await service.DeleteSaleAsync(1, 1);
+        await service.DeleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
 
         // ASSERT
-        mockSalesRepo.Verify(r => r.DeleteSaleAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+        mockSalesRepo.Verify(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -445,9 +446,9 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 5, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 5, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -458,12 +459,12 @@ public class  SaleServiceTests
             Status: SaleStatus.Pending, Total: 1000, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test Product", null, null, null, 10, 100, 1000) // 10 > 5 available
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 10, 100, 1000) // 10 > 5 available
             }
         );
 
         // ACT
-        var result = await service.CreateSaleAsync(request, companyId: 1, userId: 42);
+        var result = await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -483,7 +484,7 @@ public class  SaleServiceTests
         {
             Items = new List<Sale>
             {
-                new() { Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500, ClienteName = "Client" }
+                new() { Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500, ClienteName = "Client" }
             },
             PageNumber = 0,
             PageSize = 10,
@@ -491,14 +492,14 @@ public class  SaleServiceTests
             PageCount = 1
         };
 
-        mockSalesRepo.Setup(r => r.GetAllSalesByCompanyAsync(1, 0, 10, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetAllSalesByCompanyAsync(Guid7TestValues.CompanyA, 0, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sales);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetAllSalesAsync(1, 0, 10);
+        var result = await service.GetAllSalesAsync(Guid7TestValues.CompanyA, 0, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(1);
@@ -513,9 +514,9 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 10, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale s, CancellationToken ct) => s);
@@ -530,12 +531,12 @@ public class  SaleServiceTests
             Status: SaleStatus.Pending, Total: 500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test", null, null, null, 5, 100, 500)
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 5, 100, 500)
             }
         );
 
         // ACT
-        var result = await service.CreateSaleAsync(request, companyId: 1, userId: 42);
+        var result = await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -556,11 +557,13 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product1 = new Product { Id = 1, Stock = 100, CompanyId = 1, Name = "Product A" };
-        var product2 = new Product { Id = 2, Stock = 50, CompanyId = 1, Name = "Product B" };
-        var product3 = new Product { Id = 3, Stock = 25, CompanyId = 1, Name = "Product C" };
+        var product1 = new Product { Id = Guid7TestValues.ProductA, Stock = 100, CompanyId = Guid7TestValues.CompanyA, Name = "Product A" };
+        var product2Id = Guid.NewGuid();
+        var product3Id = Guid.NewGuid();
+        var product2 = new Product { Id = product2Id, Stock = 50, CompanyId = Guid7TestValues.CompanyA, Name = "Product B" };
+        var product3 = new Product { Id = product3Id, Stock = 25, CompanyId = Guid7TestValues.CompanyA, Name = "Product C" };
 
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product1, product2, product3 });
         mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale s, CancellationToken ct) => s);
@@ -574,14 +577,14 @@ public class  SaleServiceTests
             Status: SaleStatus.Pending, Total: 3000, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Product A", null, null, null, 10, 100, 1000),
-                new(2, "Product B", null, null, null, 20, 50, 1000),
-                new(3, "Product C", null, null, null, 5, 200, 1000)
+                new(Guid7TestValues.ProductA, "Product A", null, null, null, 10, 100, 1000),
+                new(product2Id, "Product B", null, null, null, 20, 50, 1000),
+                new(product3Id, "Product C", null, null, null, 5, 200, 1000)
             }
         );
 
         // ACT
-        await service.CreateSaleAsync(request, companyId: 1, userId: 42);
+        await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT
         product1.Stock.Should().Be(90);  // 100 - 10
@@ -597,20 +600,20 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 10, CompanyId = 1, Name = "Test" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
 
         var existingSale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { Id = 1, ProductId = 1, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -623,12 +626,12 @@ public class  SaleServiceTests
             Total: 800, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test", null, null, null, 8, 100, 800)
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 8, 100, 800)
             }
         );
 
         // ACT
-        var result = await service.UpdateSaleAsync(1, 1, updateRequest, 42);
+        var result = await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -648,20 +651,20 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 5, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 5, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
         var existingSale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 400,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 400,
             Items = new List<SaleItem>
             {
-                new() { Id = 1, ProductId = 1, ProductName = "Test Product", Quantity = 4, UnitPrice = 100, Subtotal = 400 }
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 4, UnitPrice = 100, Subtotal = 400 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -673,12 +676,12 @@ public class  SaleServiceTests
             Total: 1000, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test Product", null, null, null, 10, 100, 1000) // 10 > 9 available after return
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 10, 100, 1000) // 10 > 9 available after return
             }
         );
 
 // ACT
-        var result = await service.UpdateSaleAsync(1, 1, updateRequest, 42);
+        var result = await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -698,20 +701,20 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 20, CompanyId = 1, Name = "Test" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 20, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
 
         var existingSale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { Id = 1, ProductId = 1, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -723,12 +726,12 @@ public class  SaleServiceTests
             Total: 300, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test", null, null, null, 3, 100, 300)
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 3, 100, 300)
             }
         );
 
         // ACT
-        await service.UpdateSaleAsync(1, 1, updateRequest, 42);
+        await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
 
         // ASSERT: 20 + 5 (return old) - 3 (deduct new) = 22
         product.Stock.Should().Be(22);
@@ -742,23 +745,23 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var existingProduct = new Product { Id = 1, Stock = 20, CompanyId = 1, Name = "Existing Product" };
+        var existingProduct = new Product { Id = Guid7TestValues.ProductA, Stock = 20, CompanyId = Guid7TestValues.CompanyA, Name = "Existing Product" };
 
         var existingSale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { Id = 1, ProductId = 1, ProductName = "Existing Product", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Existing Product", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         // Only return existing product, not the non-existent one (id=999)
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { existingProduct });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -770,13 +773,13 @@ public class  SaleServiceTests
             Total: 800, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Existing Product", null, null, null, 3, 100, 300),
-                new(999, "NonExistent", null, null, null, 5, 100, 500) // Product not in DB
+                new(Guid7TestValues.ProductA, "Existing Product", null, null, null, 3, 100, 300),
+                new(Guid.NewGuid(), "NonExistent", null, null, null, 5, 100, 500) // Product not in DB
             }
         );
 
         // ACT - should not throw, just skip the non-existent product
-        var result = await service.UpdateSaleAsync(1, 1, updateRequest, 42);
+        var result = await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
 
         // ASSERT - stock of existing product should change correctly
         existingProduct.Stock.Should().Be(22); // 20 + 5 (return) - 3 (deduct)
@@ -791,9 +794,9 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 20, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 20, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale s, CancellationToken ct) => s);
@@ -807,13 +810,13 @@ public class  SaleServiceTests
             Status: SaleStatus.Pending, Total: 500, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test Product", null, null, null, 3, 100, 300),
-                new(1, "Test Product", null, null, null, 2, 100, 200) // Same ProductId, should group to 5
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 3, 100, 300),
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 2, 100, 200) // Same ProductId, should group to 5
             }
         );
 
         // ACT
-        await service.CreateSaleAsync(request, companyId: 1, userId: 42);
+        await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT - grouped quantity 3 + 2 = 5 should be decremented
         product.Stock.Should().Be(15); // 20 - 5
@@ -827,9 +830,9 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 0, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 0, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -840,12 +843,12 @@ public class  SaleServiceTests
             Status: SaleStatus.Pending, Total: 100, Notes: null,
             Items: new List<CreateSaleItemRequest>
             {
-                new(1, "Test Product", null, null, null, 1, 100, 100)
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 1, 100, 100)
             }
         );
 
         // ACT
-        var result = await service.CreateSaleAsync(request, companyId: 1, userId: 42);
+        var result = await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -870,14 +873,14 @@ public class  SaleServiceTests
             PageCount = 0
         };
 
-        mockSalesRepo.Setup(r => r.GetSalesByStatusAsync(1, SaleStatus.Completed, 1, 10, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSalesByStatusAsync(Guid7TestValues.CompanyA, SaleStatus.Completed, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyResult);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetSalesByStatusAsync(1, SaleStatus.Completed, 1, 10);
+        var result = await service.GetSalesByStatusAsync(Guid7TestValues.CompanyA, SaleStatus.Completed, 1, 10);
 
         // ASSERT
         result.Items.Should().BeEmpty();
@@ -892,22 +895,22 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 10, CompanyId = 1, Name = "Test" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
 
         var sale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Completed, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Completed, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { ProductId = 1, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -916,7 +919,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(1, 1, 42);
+        var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -932,22 +935,22 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 5, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 5, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
         var sale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { ProductId = 1, ProductName = "Test Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
-        mockSalesRepo.Setup(r => r.DeleteSaleAsync(1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -956,11 +959,11 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        await service.DeleteSaleAsync(1, 1);
+        await service.DeleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
 
         // ASSERT - stock should be restored: 5 + 10 = 15
         product.Stock.Should().Be(15);
-        mockSalesRepo.Verify(r => r.DeleteSaleAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+        mockSalesRepo.Verify(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -971,20 +974,20 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 3, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 3, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
         var sale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 1000,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 1000,
             Items = new List<SaleItem>
             {
-                new() { ProductId = 1, ProductName = "Test Product", Quantity = 10, UnitPrice = 100, Subtotal = 1000 }
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 10, UnitPrice = 100, Subtotal = 1000 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -992,7 +995,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(1, 1, 42);
+        var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Left>();
@@ -1008,22 +1011,22 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 20, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 20, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
         var sale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { ProductId = 1, ProductName = "Test Product", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -1032,7 +1035,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.CompleteSaleAsync(1, 1, 42);
+        var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
         sale.Status.Should().Be(SaleStatus.Completed);
@@ -1052,19 +1055,19 @@ public class  SaleServiceTests
 
         var sale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { ProductId = 999, ProductName = "Deleted Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
+                new() { ProductId = Guid.NewGuid(), ProductName = "Deleted Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
-        mockSalesRepo.Setup(r => r.DeleteSaleAsync(1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         // Product not found in batch query
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product>());
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -1073,11 +1076,11 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT - should not throw, just skip gracefully
-        var act = () => service.DeleteSaleAsync(1, 1);
+        var act = () => service.DeleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
 
         // ASSERT
         await act.Should().NotThrowAsync();
-        mockSalesRepo.Verify(r => r.DeleteSaleAsync(1, It.IsAny<CancellationToken>()), Times.Once);
+        mockSalesRepo.Verify(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -1088,22 +1091,22 @@ public class  SaleServiceTests
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
-        var product = new Product { Id = 1, Stock = 5, CompanyId = 1, Name = "Test Product" };
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 5, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
         var sale = new Sale
         {
-            Id = 1, CompanyId = 1, Status = SaleStatus.Pending, Total = 500,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
             Items = new List<SaleItem>
             {
-                new() { ProductId = 1, ProductName = "Test Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(1, 1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
-        mockSalesRepo.Setup(r => r.DeleteSaleAsync(1, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
-        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<int>>(), It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
@@ -1113,7 +1116,7 @@ public class  SaleServiceTests
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.DeleteSaleAsync(1, 1);
+        var result = await service.DeleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, Unit>.Left>();

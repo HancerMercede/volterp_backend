@@ -21,7 +21,7 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<SupplierDto>> GetSupplier(int id, CancellationToken ct = default)
+    public async Task<ActionResult<SupplierDto>> GetSupplier(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager
@@ -53,7 +53,7 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<SupplierDto>> UpdateSupplier(
-        int id,
+        Guid id,
         [FromBody] UpdateSupplierRequest request,
         CancellationToken ct = default)
     {
@@ -74,7 +74,7 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<IActionResult> DeleteSupplier(int id, CancellationToken ct = default)
+    public async Task<IActionResult> DeleteSupplier(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager

@@ -10,7 +10,7 @@ public class DashboardController(IServiceManager serviceManager) : BaseControlle
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Dashboard.GetDashboardDataAsync(companyId, ct);
-        
+
         return result.Match<ActionResult<DashboardResponse>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             data => Ok(data)

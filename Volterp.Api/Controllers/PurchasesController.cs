@@ -19,7 +19,7 @@ public class PurchasesController(IServiceManager serviceManager) : BaseControlle
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<PurchaseDto>> GetPurchase(int id, CancellationToken ct = default)
+    public async Task<ActionResult<PurchaseDto>> GetPurchase(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Purchases.GetPurchaseByIdAsync(id, companyId, ct);
@@ -44,7 +44,7 @@ public class PurchasesController(IServiceManager serviceManager) : BaseControlle
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<PurchaseDto>> UpdatePurchase(int id, [FromBody] PurchaseDto request, CancellationToken ct = default)
+    public async Task<ActionResult<PurchaseDto>> UpdatePurchase(Guid id, [FromBody] PurchaseDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
@@ -57,7 +57,7 @@ public class PurchasesController(IServiceManager serviceManager) : BaseControlle
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult> DeletePurchase(int id, CancellationToken ct = default)
+    public async Task<ActionResult> DeletePurchase(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Purchases.DeletePurchaseAsync(id, companyId, ct);

@@ -25,8 +25,8 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         if (!IsAdmin()) return Forbid();
 
         var users = await serviceManager.Users
-            .GetAllAsync(GetCurrentUserCompanyId(),pagination.PageNumber, pagination.PageSize, ct);
-        
+            .GetAllAsync(GetCurrentUserCompanyId(), pagination.PageNumber, pagination.PageSize, ct);
+
         return Ok(users);
     }
 
@@ -35,7 +35,6 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     {
         if (!IsAdmin()) return Forbid();
 
-        // Only SuperAdmin can create Admin or SuperAdmin users
         if ((request.Role == UserRole.Admin || request.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
 
@@ -53,20 +52,19 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
     }
 
-[HttpPut("{id}/role")]
-    public async Task<ActionResult<UserDto>> UpdateUserRole(int id, [FromBody] UpdateUserRoleDto request, CancellationToken ct)
+    [HttpPut("{id}/role")]
+    public async Task<ActionResult<UserDto>> UpdateUserRole(Guid id, [FromBody] UpdateUserRoleDto request, CancellationToken ct)
     {
         if (!IsAdmin()) return Forbid();
 
         var userId = GetCurrentUserId();
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
 
-        
         var user = ((Either<Error, UserDto>.Right)userResult!).Value;
 
         if (!CanManageUser(user.Role, request.Role))
             return Forbid();
-        
+
         var userForUpdate = new UserWithPasswordHashDto
         {
             Id = user.Id,
@@ -80,17 +78,17 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         return updateResult.Match<ActionResult<UserDto>>(
             error => BadRequest(error.Message),
-            value =>  Ok(value));
+            value => Ok(value));
     }
 
     [HttpPut("{id}/status")]
-    public async Task<ActionResult<UserDto>> UpdateUserStatus(int id, [FromBody] UpdateUserStatusDto request, CancellationToken ct)
+    public async Task<ActionResult<UserDto>> UpdateUserStatus(Guid id, [FromBody] UpdateUserStatusDto request, CancellationToken ct)
     {
         if (!IsAdmin()) return Forbid();
 
         var userId = GetCurrentUserId();
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
-        
+
         var user = ((Either<Error, UserDto>.Right)userResult!).Value;
 
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
@@ -110,26 +108,26 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
 
         return updateResult.Match<ActionResult<UserDto>>(
             error => BadRequest(error.Message),
-            value =>  Ok(value));
+            value => Ok(value));
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUser(int id, CancellationToken ct)
+    public async Task<IActionResult> DeleteUser(Guid id, CancellationToken ct)
     {
         if (!IsAdmin()) return Forbid();
 
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
-        
+
         var user = ((Either<Error, UserDto>.Right)userResult!).Value;
 
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
             return Forbid();
 
         var deleteResult = await serviceManager.Users.DeleteAsync(id, ct);
-        
+
         return deleteResult.Match<IActionResult>(
-                error => BadRequest(error.Message), 
-                _=> NoContent() );
-        
+                error => BadRequest(error.Message),
+                _ => NoContent());
+
     }
 }

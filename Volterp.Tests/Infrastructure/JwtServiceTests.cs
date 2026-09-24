@@ -2,7 +2,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Volterp.Application.Common;
 using Volterp.Infrastructure.Services;
+using Volterp.Tests.TestHelpers;
 using Xunit;
 
 namespace Volterp.Tests.Infrastructure;
@@ -24,27 +26,32 @@ public class JwtServiceTests
     public void GenerateToken_EmitsUserIdClaim()
     {
         var sut = BuildSut();
-        var token = sut.GenerateToken("alice", "alice@test.com", "Admin", companyId: 7, userId: 42);
+        var token = sut.GenerateToken("alice", "alice@test.com", "Admin",
+            Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
-        jwt.Claims.Should().Contain(c => c.Type == "userId" && c.Value == "42");
+        jwt.Claims.Should().Contain(c =>
+            c.Type == Claims.UserId && c.Value == Guid7TestValues.UserA.ToString("N"));
     }
 
     [Fact]
     public void GenerateToken_EmitsCompanyIdClaim()
     {
         var sut = BuildSut();
-        var token = sut.GenerateToken("alice", "alice@test.com", "Admin", companyId: 7, userId: 42);
+        var token = sut.GenerateToken("alice", "alice@test.com", "Admin",
+            Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
-        jwt.Claims.Should().Contain(c => c.Type == "companyId" && c.Value == "7");
+        jwt.Claims.Should().Contain(c =>
+            c.Type == Claims.CompanyId && c.Value == Guid7TestValues.CompanyA.ToString("N"));
     }
 
     [Fact]
     public void GenerateToken_PreservesIssuerAndAudience()
     {
         var sut = BuildSut();
-        var token = sut.GenerateToken("alice", "alice@test.com", "Admin", companyId: 7, userId: 42);
+        var token = sut.GenerateToken("alice", "alice@test.com", "Admin",
+            Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
         jwt.Issuer.Should().Be("test-issuer");
@@ -55,13 +62,14 @@ public class JwtServiceTests
     public void GenerateToken_EmitsExpectedCoreClaims()
     {
         var sut = BuildSut();
-        var token = sut.GenerateToken("alice", "alice@test.com", "Admin", companyId: 7, userId: 42);
+        var token = sut.GenerateToken("alice", "alice@test.com", "Admin",
+            Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
         var claimTypes = jwt.Claims.Select(c => c.Type).ToList();
 
-        claimTypes.Should().Contain("userId");
-        claimTypes.Should().Contain("companyId");
+        claimTypes.Should().Contain(Claims.UserId);
+        claimTypes.Should().Contain(Claims.CompanyId);
         claimTypes.Should().Contain(ClaimTypes.Name);
         claimTypes.Should().Contain(ClaimTypes.Email);
         claimTypes.Should().Contain(ClaimTypes.Role);

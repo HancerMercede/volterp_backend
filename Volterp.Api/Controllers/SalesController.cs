@@ -23,10 +23,10 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         var result = await serviceManager
             .Sales
             .GetAllSalesAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
-        
+
         return Ok(result);
     }
-    
+
     [HttpGet("status/{status}")]
     public async Task<ActionResult<PagedResult<SaleDto>>> GetSalesByStatus(
         SaleStatus status,
@@ -37,10 +37,10 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         var result = await serviceManager
             .Sales
             .GetSalesByStatusAsync(companyId, status, pagination.PageNumber, pagination.PageSize, ct);
-        
+
         return Ok(result);
     }
-    
+
     [HttpGet("pending")]
     public async Task<ActionResult<PagedResult<SaleDto>>> GetPendingSales(
         [FromQuery] PaginationParameters pagination,
@@ -50,23 +50,23 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         var result = await serviceManager
             .Sales
             .GetSalesByStatusAsync(companyId, SaleStatus.Pending, pagination.PageNumber, pagination.PageSize, ct);
-        
+
         return Ok(result);
     }
-    
+
     [HttpGet("{id}")]
-    public async Task<ActionResult<SaleDto>> GetSale(int id, CancellationToken ct = default)
+    public async Task<ActionResult<SaleDto>> GetSale(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Sales.GetSaleByIdAsync(id, companyId, ct);
-        
+
         return result.Match<ActionResult<SaleDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
-            sale => sale is null 
-                ? NotFound(new { message = "Not Found any sale." }) 
+            sale => sale is null
+                ? NotFound(new { message = "Not Found any sale." })
                    : Ok(sale));
     }
-    
+
     [HttpPost]
     public async Task<ActionResult<SaleDto>> CreateSale([FromBody] CreateSaleRequest request, CancellationToken ct = default)
     {
@@ -83,9 +83,9 @@ public class SalesController(IServiceManager serviceManager) : BaseController
             sale => CreatedAtAction(nameof(GetSale), new { id = sale.Id }, sale)
         );
     }
-    
+
     [HttpPut("{id}")]
-    public async Task<ActionResult<SaleDto>> UpdateSale(int id, [FromBody] UpdateSaleRequest request, CancellationToken ct = default)
+    public async Task<ActionResult<SaleDto>> UpdateSale(Guid id, [FromBody] UpdateSaleRequest request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
@@ -95,9 +95,9 @@ public class SalesController(IServiceManager serviceManager) : BaseController
             sale => Ok(sale)
         );
     }
-    
+
     [HttpPut("{id}/complete")]
-    public async Task<ActionResult<SaleDto>> CompleteSale(int id, CancellationToken ct = default)
+    public async Task<ActionResult<SaleDto>> CompleteSale(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
@@ -107,9 +107,9 @@ public class SalesController(IServiceManager serviceManager) : BaseController
             sale => Ok(sale)
         );
     }
-    
+
     [HttpDelete("{id}")]
-    public async Task<ActionResult> DeleteSale(int id, CancellationToken ct = default)
+    public async Task<ActionResult> DeleteSale(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Sales.DeleteSaleAsync(id, companyId, ct);

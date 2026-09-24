@@ -7,7 +7,6 @@ namespace Volterp.Api.Controllers;
 [Authorize]
 public class CategoriesController(IServiceManager services) : BaseController
 {
-    
     [HttpGet]
     public async Task<ActionResult<PagedResult<CategoryDto>>> GetCategories(
         [FromQuery] PaginationParameters pagination,
@@ -19,7 +18,7 @@ public class CategoriesController(IServiceManager services) : BaseController
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<CategoryDto>> GetCategory(int id, CancellationToken ct)
+    public async Task<ActionResult<CategoryDto>> GetCategory(Guid id, CancellationToken ct)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await services.Categories.GetByIdAsync(id, companyId, ct);
@@ -47,7 +46,7 @@ public class CategoriesController(IServiceManager services) : BaseController
 
     [HttpPut("{id}")]
     public async Task<ActionResult<CategoryDto>> UpdateCategory(
-        int id, [FromBody] UpdateCategoryRequest request, CancellationToken ct)
+        Guid id, [FromBody] UpdateCategoryRequest request, CancellationToken ct)
     {
         if (!IsAdmin())
             return Forbid();
@@ -62,7 +61,7 @@ public class CategoriesController(IServiceManager services) : BaseController
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteCategory(int id, CancellationToken ct)
+    public async Task<IActionResult> DeleteCategory(Guid id, CancellationToken ct)
     {
         if (!IsAdmin())
             return Forbid();

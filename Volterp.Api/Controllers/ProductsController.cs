@@ -18,7 +18,7 @@ public class ProductsController(IServiceManager services) : BaseController
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductDto>> GetProduct(int id, CancellationToken ct)
+    public async Task<ActionResult<ProductDto>> GetProduct(Guid id, CancellationToken ct)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await services.Products.GetByIdAsync(id, companyId, ct);
@@ -46,7 +46,7 @@ public class ProductsController(IServiceManager services) : BaseController
 
     [HttpPut("{id}")]
     public async Task<ActionResult<ProductDto>> UpdateProduct(
-        int id, [FromBody] UpdateProductDto request, CancellationToken ct)
+        Guid id, [FromBody] UpdateProductDto request, CancellationToken ct)
     {
         if (!IsAdmin())
             return Forbid();
@@ -61,7 +61,7 @@ public class ProductsController(IServiceManager services) : BaseController
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProduct(int id, CancellationToken ct)
+    public async Task<IActionResult> DeleteProduct(Guid id, CancellationToken ct)
     {
         if (!IsAdmin())
             return Forbid();

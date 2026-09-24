@@ -1,6 +1,7 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Volterp.Domain.Entities;
 using Xunit;
+using Volterp.Tests.TestHelpers;
 
 namespace Volterp.Tests.Domain;
 
@@ -79,9 +80,9 @@ public class AuditEntityTests
     {
         var entity = new TestEntity();
 
-        entity.SetCreatedBy(42);
+        entity.SetCreatedBy(Guid7TestValues.UserA);
 
-        entity.CreatedBy.Should().Be(42);
+        entity.CreatedBy.Should().Be(Guid7TestValues.UserA);
     }
 
     [Fact]
@@ -89,9 +90,9 @@ public class AuditEntityTests
     {
         var entity = new TestEntity();
 
-        entity.SetUpdatedBy(7);
+        entity.SetUpdatedBy(Guid7TestValues.UserA);
 
-        entity.UpdatedBy.Should().Be(7);
+        entity.UpdatedBy.Should().Be(Guid7TestValues.UserA);
     }
 }
 

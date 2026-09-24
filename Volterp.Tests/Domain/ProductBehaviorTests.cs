@@ -1,9 +1,10 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
 using Volterp.Domain.ValueObjects;
 using Xunit;
+using Volterp.Tests.TestHelpers;
 
 namespace Volterp.Tests.Domain;
 
@@ -198,7 +199,7 @@ public class ProductBehaviorTests
     {
         return new Product
         {
-            Id = 1,
+            Id = Guid7TestValues.ProductA,
             Name = "Test Product",
             Price = new Money(100, Currency.ARS),
             Stock = stock,

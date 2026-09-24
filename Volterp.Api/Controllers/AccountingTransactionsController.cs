@@ -19,15 +19,15 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<AccountingTransactionDto>> GetTransaction(int id, CancellationToken ct = default)
+    public async Task<ActionResult<AccountingTransactionDto>> GetTransaction(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.AccountingTransactions.GetByIdAsync(id, companyId, ct);
-        
+
         return result.Match<ActionResult<AccountingTransactionDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
-            transaction => transaction is null 
-                ? NotFound(new { message = "Transaccion contable no encontrada" }) 
+            transaction => transaction is null
+                ? NotFound(new { message = "Transaccion contable no encontrada" })
                    : Ok(transaction)
         );
     }
@@ -37,7 +37,7 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
     public async Task<ActionResult<AccountingTransactionDto>> CreateTransaction([FromBody] AccountingTransactionDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var userId = GetCurrentUserId() ?? 0;
+        var userId = GetCurrentUserId() ?? Guid.Empty;
         var result = await serviceManager.AccountingTransactions.CreateAsync(request, companyId, userId, ct);
         return result.Match<ActionResult<AccountingTransactionDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
@@ -47,10 +47,10 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin,SuperAdmin")]
-    public async Task<ActionResult<AccountingTransactionDto>> UpdateTransaction(int id, [FromBody] AccountingTransactionDto request, CancellationToken ct = default)
+    public async Task<ActionResult<AccountingTransactionDto>> UpdateTransaction(Guid id, [FromBody] AccountingTransactionDto request, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var userId = GetCurrentUserId() ?? 0;
+        var userId = GetCurrentUserId() ?? Guid.Empty;
         var result = await serviceManager.AccountingTransactions.UpdateAsync(id, companyId, request, userId, ct);
         return result.Match<ActionResult<AccountingTransactionDto>>(
             error => NotFound(new { message = error.Message }),
@@ -60,7 +60,7 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult> DeleteTransaction(int id, CancellationToken ct = default)
+    public async Task<ActionResult> DeleteTransaction(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.AccountingTransactions.DeleteAsync(id, companyId, ct);
