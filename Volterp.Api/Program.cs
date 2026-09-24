@@ -75,5 +75,3 @@ app.MapGet("/_diagnostics/exceptions", (IExceptionLogStore store) =>
 
 app.UseStaticFiles();
 app.Run();
-
-public partial class Program;
