@@ -57,8 +57,6 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .FlatMap(async req =>
             {
                 var sale = req.Project();
-                // Cycle 1.1: companyId comes from the controller (JWT-derived), not
-                // from the request body. The request DTO no longer carries CompanyId.
                 sale.CompanyId = companyId;
                 if (userId.HasValue) sale.SetCreatedBy(userId.Value);
 

@@ -47,12 +47,6 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
                 }
 
                 var product = req.Project();
-                // Cycle 1.1 wire refactor: companyId comes from the JWT (controller
-                // reads it via GetCurrentUserCompanyId), NEVER from request.CompanyId.
-                // CreateProductDto no longer carries CompanyId. The explicit
-                // override here is the wire contract enforcement at the service
-                // boundary; if the DTO ever regains CompanyId, this line must
-                // still be present or the leak returns.
                 product.CompanyId = companyId;
                 if (userId.HasValue) product.SetCreatedBy(userId.Value);
                 product.SetPrice(new Money(req.Price, Currency.ARS));

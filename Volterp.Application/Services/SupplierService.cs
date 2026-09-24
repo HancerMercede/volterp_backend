@@ -44,10 +44,6 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Map(_ => request.Project())
             .Map(supplier =>
             {
-                // Cycle 1.1 fix (bug #2): SupplierCreateDto.MapTo() no longer copies
-                // CompanyId from the request body (it doesn't exist anymore). The
-                // service assigns the JWT-derived companyId parameter here. Any
-                // attempt to set CompanyId before this point is ignored.
                 supplier.CompanyId = companyId;
                 if (userId.HasValue) supplier.SetCreatedBy(userId.Value);
                 return supplier;
@@ -77,11 +73,6 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
                     s.Category = request.Category!;
                     s.Name = request.Name!;
                     s.Email = request.Email!;
-                    // Cycle 1.1 fix (bug #3): the existing tenant is preserved by
-                    // construction. UpdateSupplierRequest no longer carries CompanyId
-                    // so there is no inbound value to copy. The GetSupplierByIdAsync
-                    // call above already enforces tenant scope (returns null for
-                    // wrong tenants), so 's.CompanyId' is the trusted tenant.
                     s.ImageUrl = request.ImageUrl;
                     s.ContactPerson = request.ContactPerson!;
                     s.UpdatedAt = DateTime.Now;

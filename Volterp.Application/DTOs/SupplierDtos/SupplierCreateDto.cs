@@ -2,12 +2,6 @@ using Volterp.Domain.Entities;
 
 namespace Volterp.Application.DTOs.SupplierDtos;
 
-/// <summary>
-/// Cycle 1.1 wire refactor — request-only DTO for supplier creation. Deliberately
-/// excludes <c>CompanyId</c>: tenant scope is decided by the JWT-derived
-/// <c>companyId</c> the controller passes to <c>SupplierService.CreateSupplierAsync</c>.
-/// Wire-contract guard lives in <c>WireContractTests</c>.
-/// </summary>
 public record SupplierCreateDto:IMapTo<Supplier>
 {
     public string? Name { get; set; }

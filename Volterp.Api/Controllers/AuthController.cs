@@ -10,11 +10,6 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
     public async Task<IActionResult> Register([FromBody] CreateUserDto request, CancellationToken ct)
     {
         var userId = GetCurrentUserId();
-        // Cycle 1.1: CreateUserDto no longer carries CompanyId. The /auth/register
-        // endpoint MUST read the companyId from the JWT (the admin who is creating
-        // the user) — the new user is created inside that admin's tenant. This
-        // differs from /api/users (UsersController.CreateUser), which behaves
-        // identically. Both must pass the explicit companyId parameter.
         var companyId = GetCurrentUserCompanyId();
         var userResult = await serviceManager.Users.CreateAsync(request, companyId, userId, ct);
 

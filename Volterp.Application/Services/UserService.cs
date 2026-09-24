@@ -41,10 +41,6 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Map(_ => request.Project())
             .FlatMap(async user =>
             {
-                // Cycle 1.1: tenant scope now flows through the explicit companyId
-                // parameter (JWT-derived). Previously the controller used a `with`
-                // expression to overwrite; that patch is gone now. Setting it here
-                // is the canonical place.
                 user.CompanyId = companyId;
                 user.PasswordHash = passwordHasher.Hash(request.Password);
                 if (userId.HasValue) user.SetCreatedBy(userId.Value);

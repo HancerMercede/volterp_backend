@@ -140,8 +140,26 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
   - `int quantity`/`Stock` en Product/Sale NO son FKs — no se migraron.
 - **Deuda para 1.2b**: ~50 errors en services + ~30 errors en DTOs + 1 EitherAsync inference + 6 HashSet mismatches.
 
-#### 1.2b — Infrastructure + Application (Infra + App interfaces + DTOs + JwtService + EF configs + migrations)  →  pending
-#### 1.2c — Api + tests (controllers + BaseController + CurrentUserService + 278 tests adapted + tests nuevos + verification + schema reset)  →  pending
+#### 1.2b — Infrastructure + Application (Infra + App interfaces + DTOs + JwtService + EF configs + migrations)  →  ✅ COMPLETO (commit `bf55432`)
+#### 1.2c — Api + tests (controllers + BaseController + CurrentUserService + 278 tests adapted + tests nuevos + verification + schema reset)  →  ✅ COMPLETO (commit `187b069`)
+
+**Cierres clave de 1.2c**:
+- BaseController/CurrentUserService: `int.Parse` → `Guid.TryParse` con throw `UnauthorizedException` (401) en missing/malformed claim. **Cierra el bug latente del audit 1.0**.
+- 9 characterization tests flipeados (silent-zero → throws 401).
+- 2 nuevos tests: claim missing + claim malformed → 401.
+- `JwtService` emite claims en formato `Guid:N` (32 chars hex, sin guiones) — verificado por tests en `JwtServiceTests.cs`.
+- `AuditableDto.cs` revertido (no se usa en ningún lado — única referencia es su propia definición).
+- Slop menor corregido: test de JwtService N-format en `BaseControllerAuthorizationTests.cs` era duplicado de `GenerateToken_EmitsCompanyIdClaim` en `JwtServiceTests.cs` — eliminado.
+
+**Estado final post 1.2c**:
+- ✅ Domain / Application / Infrastructure / Api / Tests compilan.
+- ✅ 280/280 tests passing (281 - 1 duplicado eliminado).
+- ⚠️ Schema reset (DB drop + update) **NO ejecutado** — Postgres no estaba corriendo, queda para el usuario.
+- ⚠️ Migraciones: `InitialGuid7` generada en 1.2b (`bf55432`). Las futuras migraciones son trabajo del usuario (decisión explícita).
+
+**Trabajo residual**:
+- Slop del commit 1.1 pendiente de limpieza (acordamos resolverlo al final del phase).
+- Tests pre-existentes nullable warnings (47) sin tocar (out of scope).
 ### Ciclo 1.3 — Integration + refactor residual  →  pending
 ### Ciclo 1.4 — docs/multitenancy.md  →  pending
 

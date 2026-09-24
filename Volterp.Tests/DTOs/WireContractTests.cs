@@ -10,25 +10,6 @@ using Xunit;
 
 namespace Volterp.Tests.DTOs;
 
-/// <summary>
-/// Cycle 1.1 — Wire-contract regression tests.
-///
-/// These tests pin the architectural rule that NO request-body DTO exposes
-/// <c>CompanyId</c> to the client. Tenant scope is decided exclusively by the
-/// JWT-derived <c>companyId</c> the controller passes to the application
-/// service. Future cycles must not re-introduce <c>CompanyId</c> on any
-/// *request* DTO without removing this guard and the corresponding defense
-/// in the service layer.
-///
-/// The wire-contract is enforced through reflection AND JSON deserialization,
-/// because both lenses catch different regressions:
-///
-///   - Reflection (<see cref="AssertRequestDtoHasNoCompanyIdProperty"/>) catches
-///     a C# property being re-introduced at compile time of THIS test project.
-///   - JSON deserialization (<see cref="JsonSerializer.Deserialize{T}"/>) catches
-///     a stray JSON field silently being honored if the framework's strictness
-///     ever changes.
-/// </summary>
 public class WireContractTests
 {
     [Fact]
@@ -161,6 +142,6 @@ public class WireContractTests
             $"the request-body DTO '{t.Name}' MUST NOT expose CompanyId. " +
             "Tenant scope is decided exclusively by the JWT-derived companyId " +
             "the controller passes to the application service. Adding CompanyId " +
-            "back here would re-open the cross-tenant bugs closed in Cycle 1.1.");
+            "back here would re-open the cross-tenant bugs closed by the wire refactor.");
     }
 }
