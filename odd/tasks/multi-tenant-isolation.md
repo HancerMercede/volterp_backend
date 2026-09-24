@@ -23,11 +23,10 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 - **Domain-centric**: `ITenantScoped` en `Volterp.Domain/Abstractions`; `ITenantContext` (interface) en `Volterp.Application/Abstractions`; impl HTTP en `Volterp.Api/Http/HttpTenantContext.cs`; `HasQueryFilter` en Infrastructure. Domain no depende de EF ni HTTP.
 - **Guid 7** (`Guid.CreateVersion7()`): timestamp en primeros bits → locality en B-tree de Postgres → menos page splits que UUIDv4. Disponible en .NET 10 con monotonicidad intra-millisecond. **Formato `N`** (32 chars sin guiones) en JWT claims.
 - **Greenfield migration**: schema reset (`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`) + `dotnet ef database update`. Seeders usan Guid 7 con valores fijos (tests deterministas).
-- **Derek Comartin — 4 contextos**:
+- **Tenant contexts** (3 aplicables; el contexto Message Handler del blog de Derek Comartin NO aplica — Volterp es ERP síncrono, no event-driven, sin message broker):
   1. HTTP (implícito vía JWT, throw 401 si falta claim).
-  2. Message Handler (explícito en envelope del mensaje).
-  3. Admin Global (explícito, provider dedicado para SuperAdmin cross-tenant).
-  4. Tests/Seeder (explícito o `NullTenantContext`).
+  2. Admin Global (explícito, provider dedicado para SuperAdmin cross-tenant).
+  3. Tests/Seeder (explícito o `NullTenantContext`).
   - Loggear `CompanyId` vía Serilog enricher.
   - Whitelist cerrada de `IgnoreQueryFilters()`.
 - **Wire refactor**: `companyId` sale de todos los request DTOs. `AuthController.Login` sigue devolviendo `companyId` en `LoginResponse`.
@@ -213,7 +212,7 @@ En vez de crear `docs/multitenancy.md` separado (se solapaba con este plan), los
 - New tenant-scoped entity? Add `Guid CompanyId`. `VolterpDbContext.OnModelCreating` picks it up via reflection and applies `HasQueryFilter` automatically.
 - New endpoint? Use `BaseController.GetCurrentUserCompanyId()`. It throws `UnauthorizedException` (401) if the JWT lacks the `companyId` claim.
 - Cross-tenant admin? Wrap in `IsSuperAdminOnly()` (already in `BaseController`) and pair with `IgnoreQueryFilters()` deliberately.
-- Background job? Read tenant from the message envelope — never from `IHttpContextAccessor` (which is null outside an HTTP request).
+- Background job? N/A — Volterp is sync ERP, no async jobs.
 
 ### How the layers fit
 
@@ -225,14 +224,13 @@ En vez de crear `docs/multitenancy.md` separado (se solapaba con este plan), los
 | `VolterpDbContext.OnModelCreating` | Applies `HasQueryFilter` per entity via reflection; `Company` excluded, `SaleItem`/`PurchaseItem` use navigation filters | `Volterp.Infrastructure/Data/VolterpDbContext.cs` |
 | `BaseController.GetCurrentUserCompanyId` | Throws 401 when JWT lacks the claim | `Volterp.Api/Controllers/BaseController.cs` |
 
-### The 4 contexts (status)
+### The 3 contexts (status)
 
 | # | Context | Status | Notes |
 |---|---|---|---|
 | 1 | HTTP (JWT, throw 401 si falta claim) | ✅ implemented | `HttpTenantContext` is the registered default. `BaseController` throws before services run. |
-| 2 | Message Handler (envelope explícito) | ❌ not implemented | Implement `ITenantContext` reading tenant from message metadata. Register scoped per handler. Never share across threads. |
-| 3 | Admin Global (cross-tenant explícito) | ❌ not implemented | Implement `ITenantContext` returning a fixed `Guid` paired with `IgnoreQueryFilters()` in admin repos. Wrap in `IsSuperAdminOnly()`. |
-| 4 | Tests / Seeder (explícito o `NullTenantContext`) | ✅ implemented | `NullTenantContext` is the design-time default. Integration tests use `WebApplicationFactory<ApiAssemblyMarker>` + custom tenant context per test. |
+| 2 | Admin Global (cross-tenant explícito) | ❌ not implemented | Implement `ITenantContext` returning a fixed `Guid` paired with `IgnoreQueryFilters()` in admin repos. Wrap in `IsSuperAdminOnly()`. Blocked: no admin endpoints exist yet. |
+| 3 | Tests / Seeder (explícito o `NullTenantContext`) | ✅ implemented | `NullTenantContext` is the design-time default. Integration tests use `WebApplicationFactory<ApiAssemblyMarker>` + custom tenant context per test. |
 
 ### Adding a new tenant-scoped entity
 
@@ -317,7 +315,7 @@ Hard rules from now on:
 ## Next step
 Phase 1 cerrada. Ciclos 1.0–1.4 completos (10 commits desde `development @ 62339ed`). Pendiente:
 - **Trabajo del usuario**: schema reset (`dotnet ef database drop --force` + `dotnet ef database update`); revisar migrations de `bf55432`.
-- **Trabajo futuro opcional**: eliminar los 33 `Ensure(companyId != Guid.Empty, ...)` en services (ya redundantes); consolidar `BaseController.GetCurrentUserCompanyId` + `CurrentUserService` en un solo consumer de `HttpTenantContext`; implementar contextos 2 (Message Handler) y 3 (Admin Global); wirear Serilog enricher para `CompanyId`.
+- **Trabajo futuro opcional**: eliminar los 33 `Ensure(companyId != Guid.Empty, ...)` en services; consolidar `BaseController.GetCurrentUserCompanyId` + `CurrentUserService` en un solo consumer de `HttpTenantContext`; implementar contexto 2 (Admin Global); wirear Serilog enricher para `CompanyId`.
 
 ## Relevant Files (paths relativos al repo)
 - Entities: `Volterp.Domain/Entities/{AccountingTransaction,Category,Client,Company,Employee,Product,Purchase,PurchaseItem,Sale,SaleItem,Supplier,User}.cs`
