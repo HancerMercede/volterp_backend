@@ -9,25 +9,25 @@ namespace Volterp.Application.Services;
 
 public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
 {
-    public async Task<PagedResult<PurchaseDto>> GetAllPurchasesAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<PurchaseDto>> GetAllPurchasesAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var purchases = await unitOfWork.Purchases.GetAllPurchasesByCompanyAsync(companyId, pageNumber, pageSize, ct);
         return purchases.MapTo<Purchase, PurchaseDto>();
     }
 
-    public async Task<Either<Error, PurchaseDto?>> GetPurchaseByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, PurchaseDto?>> GetPurchaseByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
                 ex => new Error(ex.Message))
             .Map(purchase => purchase is null ? null : purchase.MapTo<Purchase, PurchaseDto>())
             .Run();
     }
 
-    public async Task<Either<Error, PurchaseDto>> CreatePurchaseAsync(PurchaseDto request, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, PurchaseDto>> CreatePurchaseAsync(PurchaseDto request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, PurchaseDto>
             .FromRight(request)
@@ -84,12 +84,12 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
             .Run();
     }
 
-    public async Task<Either<Error, PurchaseDto>> UpdatePurchaseAsync(int id, int companyId, PurchaseDto request, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, PurchaseDto>> UpdatePurchaseAsync(Guid id, Guid companyId, PurchaseDto request, Guid? userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(purchase => purchase is not null, new Error("Purchase not found."))
@@ -148,12 +148,12 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
             .Run();
     }
 
-    public async Task<Either<Error, Unit>> DeletePurchaseAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, Unit>> DeletePurchaseAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(purchase => purchase is not null, new Error("Purchase not found."))

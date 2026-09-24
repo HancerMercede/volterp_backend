@@ -24,36 +24,36 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             Subtotal = i.Subtotal
         }).ToList();
 
-    public async Task<PagedResult<SaleDto>> GetAllSalesAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<SaleDto>> GetAllSalesAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var sales = await unitOfWork.Sales.GetAllSalesByCompanyAsync(companyId, pageNumber, pageSize, ct);
         return sales.MapTo<Sale, SaleDto>();
     }
 
-    public async Task<PagedResult<SaleDto>> GetSalesByStatusAsync(int companyId, SaleStatus status, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<SaleDto>> GetSalesByStatusAsync(Guid companyId, SaleStatus status, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var sales = await unitOfWork.Sales.GetSalesByStatusAsync(companyId, status, pageNumber, pageSize, ct);
         return sales.MapTo<Sale, SaleDto>();
     }
 
-    public async Task<Either<Error, SaleDto?>> GetSaleByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, SaleDto?>> GetSaleByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, companyId, ct),
                 ex => new Error(ex.Message))
             .Map(sale => sale?.MapTo<Sale, SaleDto>())
             .Run();
     }
 
-    public async Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateSaleRequest>
             .FromRight(request)
             .Ensure(r => r.Items.Count > 0, new Error("Sale must have at least one item."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async req =>
             {
                 var sale = req.Project();
@@ -86,12 +86,12 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Run();
     }
 
-    public async Task<Either<Error, SaleDto>> UpdateSaleAsync(int id, int companyId, UpdateSaleRequest request, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, SaleDto>> UpdateSaleAsync(Guid id, Guid companyId, UpdateSaleRequest request, Guid? userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(sale => sale is not null, new Error("Sale not found."))
@@ -128,7 +128,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
 
                     product.DeductStock(quantity);
                 }
-                
+
                 var newItems = MapToSaleItems(request.Items);
 
                 sale.Apply(s =>
@@ -151,12 +151,12 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Run();
     }
 
-    public async Task<Either<Error, SaleDto>> CompleteSaleAsync(int id, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, SaleDto>> CompleteSaleAsync(Guid id, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(sale => sale is not null, new Error("Sale not found."))
@@ -193,12 +193,12 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Run();
     }
 
-    public async Task<Either<Error, Unit>> DeleteSaleAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, Unit>> DeleteSaleAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(sale => sale is not null, new Error("Sale not found."))

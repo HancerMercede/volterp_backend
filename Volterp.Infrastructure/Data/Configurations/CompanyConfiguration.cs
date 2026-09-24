@@ -20,7 +20,7 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
 
         entity.HasData(new Company
         {
-            Id = 1,
+            Id = new Guid("00000001-0000-0000-0000-000000000001"),
             Name = "HM Software Solutions",
             TaxId = "HM123456789",
             IsActive = true,

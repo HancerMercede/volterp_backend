@@ -10,12 +10,12 @@ namespace Volterp.Application.Interfaces;
 public interface ICompanyService
 {
     Task<PagedResult<CompanyDto>>  GetAllCompaniesAsync(int pageNumber, int pageSize, CancellationToken ct = default);
-    Task<Either<Error,CompanyDto?>> GetCompanyByIdAsync(int id, CancellationToken ct = default);
-    Task<Either<Error,CompanyDto?>> AddCompanyAsync(CreateCompanyDto company, int? userId, CancellationToken ct = default);
+    Task<Either<Error,CompanyDto?>> GetCompanyByIdAsync(Guid id, CancellationToken ct = default);
+    Task<Either<Error,CompanyDto?>> AddCompanyAsync(CreateCompanyDto company, Guid? userId, CancellationToken ct = default);
 
-    Task<Either<Error,CompanyDto?>> UpdateCompanyAsync(int companyId, UpdateCompanyDto company, int? userId, CancellationToken ct = default);
-    
-    Task<Either<Error,Unit>> DeleteCompanyAsync(int id, CancellationToken ct = default);
-    
-    Task<Either<Error,bool>> ExistsCompanyAsync(int id, CancellationToken ct = default);
+    Task<Either<Error,CompanyDto?>> UpdateCompanyAsync(Guid companyId, UpdateCompanyDto company, Guid? userId, CancellationToken ct = default);
+
+    Task<Either<Error,Unit>> DeleteCompanyAsync(Guid id, CancellationToken ct = default);
+
+    Task<Either<Error,bool>> ExistsCompanyAsync(Guid id, CancellationToken ct = default);
 }

@@ -5,9 +5,9 @@ namespace Volterp.Application.Interfaces;
 
 public interface ISupplierRepository
 {
-    Task<PagedResult<Supplier>> GetAllSuppliersByCompanyAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default);
-    Task<Supplier?> GetSupplierByIdAsync(int id, int companyId, CancellationToken ct = default);
+    Task<PagedResult<Supplier>> GetAllSuppliersByCompanyAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<Supplier?> GetSupplierByIdAsync(Guid id, Guid companyId, CancellationToken ct = default);
     Task<Supplier> AddSupplierAsync(Supplier supplier, CancellationToken ct = default);
     Task UpdateSupplierAsync(Supplier supplier, CancellationToken ct = default);
-    Task DeleteSupplierAsync(int id, CancellationToken ct = default);
+    Task DeleteSupplierAsync(Guid id, CancellationToken ct = default);
 }

@@ -9,26 +9,26 @@ namespace Volterp.Application.Services;
 
 public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
 {
-    public async Task<PagedResult<SupplierDto>> GetAllSuppliersAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<SupplierDto>> GetAllSuppliersAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var suppliers = await unitOfWork.Suppliers.GetAllSuppliersByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
         return suppliers.MapTo<Supplier, SupplierDto>();
     }
 
-    public async Task<Either<Error,SupplierDto?>> GetSupplierByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error,SupplierDto?>> GetSupplierByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("The id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("The companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("The id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("The companyId must not be empty."))
             .FlatMap(async (s) => await unitOfWork.Suppliers.GetSupplierByIdAsync(s, companyId, ct),
                 exception => new Error($"Error: {exception.Message}"))
             .Map(supplier => supplier?.MapTo<Supplier, SupplierDto>())
             .Run();
     }
 
-    public async Task<Either<Error, SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, SupplierCreateDto>
             .FromRight(request)
@@ -39,8 +39,8 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Ensure(x => !string.IsNullOrEmpty(x.Email),
                 new Error("The email must be specified."))
             .Ensure(_=> request.Email.IsValidEmail(), _=> new Error("The email is not valid"))
-            .Ensure(_=> companyId > 0,
-                new Error("The companyId must be greater than zero."))
+            .Ensure(_=> companyId != Guid.Empty,
+                new Error("The companyId must not be empty."))
             .Map(_ => request.Project())
             .Map(supplier =>
             {
@@ -57,12 +57,12 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Map(supplier => supplier.MapTo<Supplier, SupplierDto>())
             .Run();
     }
-    
-    public async Task<Either<Error,SupplierDto>> UpdateSupplierAsync(int id, int companyId, UpdateSupplierRequest request, int? userId, CancellationToken ct = default)
+
+    public async Task<Either<Error,SupplierDto>> UpdateSupplierAsync(Guid id, Guid companyId, UpdateSupplierRequest request, Guid? userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>.FromRight(id)
-            .Ensure(s => s > 0, new Error("The id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("The companyId must be greater than zero."))
+        return await EitherAsync<Error, Guid>.FromRight(id)
+            .Ensure(s => s != Guid.Empty, new Error("The id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("The companyId must not be empty."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Name), new Error("The name must be specified."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Address), new Error("The address must be specified."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Email), new Error("The email must be specified."))
@@ -97,13 +97,13 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Map(s => s?.MapTo<Supplier, SupplierDto>())
             .Run();
     }
-    
-    public async Task<Either<Error, Unit>> DeleteSupplierAsync(int id, int companyId, CancellationToken ct = default)
+
+    public async Task<Either<Error, Unit>> DeleteSupplierAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
 
-        return await EitherAsync<Error, int>.FromRight(id)
-            .Ensure(s => s > 0, new Error("the id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("the companyId must be greater than zero."))
+        return await EitherAsync<Error, Guid>.FromRight(id)
+            .Ensure(s => s != Guid.Empty, new Error("the id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("the companyId must not be empty."))
             .FlatMap(async supplierId =>
             {
                 var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(supplierId, companyId, ct);

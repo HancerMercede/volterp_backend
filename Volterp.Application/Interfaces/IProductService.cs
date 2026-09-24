@@ -8,9 +8,9 @@ namespace Volterp.Application.Interfaces;
 
 public interface IProductService
 {
-    Task<PagedResult<ProductDto>> GetAllAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default);
-    Task<Either<Error, ProductDto?>> GetByIdAsync(int id, int companyId, CancellationToken ct = default);
-    Task<Either<Error, ProductDto>> CreateAsync(CreateProductDto request, int companyId, int? userId, CancellationToken ct = default);
-    Task<Either<Error, ProductDto>> UpdateAsync(int id, UpdateProductDto request, int companyId, int? userId, CancellationToken ct = default);
-    Task<Either<Error, Unit>> DeleteAsync(int id, int companyId, CancellationToken ct = default);
+    Task<PagedResult<ProductDto>> GetAllAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<Either<Error, ProductDto?>> GetByIdAsync(Guid id, Guid companyId, CancellationToken ct = default);
+    Task<Either<Error, ProductDto>> CreateAsync(CreateProductDto request, Guid companyId, Guid? userId, CancellationToken ct = default);
+    Task<Either<Error, ProductDto>> UpdateAsync(Guid id, UpdateProductDto request, Guid companyId, Guid? userId, CancellationToken ct = default);
+    Task<Either<Error, Unit>> DeleteAsync(Guid id, Guid companyId, CancellationToken ct = default);
 }

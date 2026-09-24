@@ -10,7 +10,7 @@ public record UpdateProductDto(
     string? Description,
     decimal Price,
     int Stock,
-    int? CategoryId,
+    Guid? CategoryId,
     bool IsActive,
     string? ImageUrl = null
 ):IMapTo<Product>

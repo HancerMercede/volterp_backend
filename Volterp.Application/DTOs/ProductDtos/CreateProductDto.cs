@@ -16,7 +16,7 @@ public record CreateProductDto(
     string? Description,
     decimal Price,
     int Stock,
-    int? CategoryId,
+    Guid? CategoryId,
     string? ImageUrl = null
 ):IMapTo<Product>
 {

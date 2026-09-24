@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 
@@ -6,9 +5,9 @@ namespace Volterp.Application.DTOs;
 
 public record SaleDto:IMapFrom<Sale>
 {
-    public int Id { get; set; }
-    public int CompanyId { get; set; }
-    public int? ClienteId { get; set; }
+    public Guid Id { get; set; }
+    public Guid CompanyId { get; set; }
+    public Guid? ClienteId { get; set; }
     public string? ClienteName { get; set; }
     public SaleStatus Status { get; set; }
     public decimal Total { get; set; }
@@ -33,10 +32,10 @@ public record SaleDto:IMapFrom<Sale>
 
     private List<SaleItemDto> MapToSaleItemDto(List<SaleItem> sources)
     {
-        return sources.Map(x => 
+        return sources.Map(x =>
             new SaleItemDto(
                 x.Id,
-                x.ProductId, 
+                x.ProductId,
                 x.ProductName,
                 x.ProductCategory,
                 x.ProductCode,
@@ -48,8 +47,8 @@ public record SaleDto:IMapFrom<Sale>
 }
 
 public record SaleItemDto(
-    int Id,
-    int ProductId,
+    Guid Id,
+    Guid ProductId,
     string ProductName,
     string? ProductCategory,
     string? ProductCode,
@@ -67,7 +66,7 @@ public record SaleItemDto(
 /// Wire-contract guard lives in <c>WireContractTests</c>.
 /// </summary>
 public record CreateSaleRequest(
-    int? ClienteId,
+    Guid? ClienteId,
     string? ClienteName,
     SaleStatus Status,
     decimal Total,
@@ -103,7 +102,7 @@ public record CreateSaleRequest(
 }
 
 public record CreateSaleItemRequest(
-    int ProductId,
+    Guid ProductId,
     string ProductName,
     string? ProductCategory,
     string? ProductCode,
@@ -114,7 +113,7 @@ public record CreateSaleItemRequest(
 );
 
 public record UpdateSaleRequest(
-    int? ClienteId,
+    Guid? ClienteId,
     string? ClienteName,
     SaleStatus Status,
     decimal Total,

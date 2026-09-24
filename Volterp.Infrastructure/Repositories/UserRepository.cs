@@ -1,4 +1,3 @@
-
 using Microsoft.VisualBasic;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
@@ -16,13 +15,13 @@ public class UserRepository(VolterpDbContext context)
     public async Task<User?> GetByUserByEmailAsync(string email, CancellationToken ct = default)
         =>  await GetByCondictionsAsync(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase), ct);
 
-    public new async Task<User?> GetUserByIdAsync(int id, CancellationToken ct = default)
+    public new async Task<User?> GetUserByIdAsync(Guid id, CancellationToken ct = default)
         => await GetByIdAsync(id, ct);
 
-    public async Task<PagedResult<User>> GetAllByCompanyAsync(int companyId, int pageNumber, 
+    public async Task<PagedResult<User>> GetAllByCompanyAsync(Guid companyId, int pageNumber,
         int pageSize, CancellationToken ct = default)
         => await GetAllAsync(c=>c.CompanyId == companyId,pageNumber, pageSize, ct);
-        
+
 
     public async Task<User> AddUserAsync(User user, CancellationToken ct = default)
     {
@@ -33,7 +32,7 @@ public class UserRepository(VolterpDbContext context)
     public async Task UpdateUserAsync(User user, CancellationToken ct = default)
         => await UpdateAsync(user, ct);
 
-    public async Task DeleteUserAsync(int id, CancellationToken ct = default)
+    public async Task DeleteUserAsync(Guid id, CancellationToken ct = default)
     {
         var user = await GetByIdAsync(id, ct);
         if (user is not null)

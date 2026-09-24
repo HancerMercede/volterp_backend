@@ -1,4 +1,5 @@
 using EitherWay;
+using Volterp.Application.DTOs;
 using Volterp.Application.DTOs.CompanyDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
@@ -14,11 +15,11 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
         return companies.MapTo<Company, CompanyDto>();
     }
 
-    public async Task<Either<Error,CompanyDto?>> GetCompanyByIdAsync(int id, CancellationToken ct = default)
+    public async Task<Either<Error,CompanyDto?>> GetCompanyByIdAsync(Guid id, CancellationToken ct = default)
     {
-         return await EitherAsync<Error, int>
+         return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero"))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty"))
             .FlatMap(async companyId => await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct),
                 error => new Error(error.Message))
             .Ensure(company => company is not null, new Error("company not found"))
@@ -26,7 +27,7 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Run();
     }
 
-    public async Task<Either<Error,CompanyDto?>> AddCompanyAsync(CreateCompanyDto company, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error,CompanyDto?>> AddCompanyAsync(CreateCompanyDto company, Guid? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateCompanyDto>
             .FromRight(company)
@@ -50,12 +51,12 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Run();
     }
 
-    public async Task<Either<Error,CompanyDto?>> UpdateCompanyAsync(int companyId, UpdateCompanyDto company, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error,CompanyDto?>> UpdateCompanyAsync(Guid companyId, UpdateCompanyDto company, Guid? userId, CancellationToken ct = default)
     {
 
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(companyId)
-            .Ensure(x => x > 0, new Error("id must be greater than zero"))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty"))
             .Ensure(_ => !string.IsNullOrWhiteSpace(company.Name), new Error("name can't be null or empty."))
             .Ensure(_ => !string.IsNullOrWhiteSpace(company.Email), new Error("email can't be null or empty."))
             .Ensure(_ => !string.IsNullOrWhiteSpace(company.Phone), new Error("phone can't be null or empty."))
@@ -88,9 +89,9 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Run();
     }
 
-    public async Task<Either<Error, Unit>> DeleteCompanyAsync(int id, CancellationToken ct = default)
-        => await EitherAsync<Error, int>.FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
+    public async Task<Either<Error, Unit>> DeleteCompanyAsync(Guid id, CancellationToken ct = default)
+        => await EitherAsync<Error, Guid>.FromRight(id)
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async _ =>
             {
                 await unitOfWork.Companies.DeleteCompanyAsync(id, ct);
@@ -100,9 +101,9 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Run();
 
 
-    public async Task<Either<Error, bool>> ExistsCompanyAsync(int id, CancellationToken ct = default)
-        => await EitherAsync<Error, int>.FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
+    public async Task<Either<Error, bool>> ExistsCompanyAsync(Guid id, CancellationToken ct = default)
+        => await EitherAsync<Error, Guid>.FromRight(id)
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async companyId => await unitOfWork.Companies.ExistsAsync(c => c.Id == companyId, ct)
              ,ex => new Error(ex.Message))
             .Ensure(companyExist => companyExist is not false, new Error("company not found"))

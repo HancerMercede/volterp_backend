@@ -4,14 +4,14 @@ namespace Volterp.Application.DTOs.SupplierDtos;
 
 public record SupplierDto:IMapFrom<Supplier>
 {
-    public int Id { get; set; }
-    
-    public int CompanyId { get; set; }
-    public string? Name { get; set; } 
-    public string? Email { get; set; } 
-    public string? Phone { get; set; } 
+    public Guid Id { get; set; }
+
+    public Guid CompanyId { get; set; }
+    public string? Name { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
     public string? Address { get; set; }
-    public string? Category { get; set; } 
+    public string? Category { get; set; }
     public string? ContactPerson { get; set; }
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;

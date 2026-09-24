@@ -14,7 +14,7 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
         t.TransactionDate, t.Category, t.Notes, t.Status
     );
 
-    public async Task<PagedResult<AccountingTransactionDto>> GetAllByCompanyAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<AccountingTransactionDto>> GetAllByCompanyAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var transactions = await unitOfWork
             .AccountingTransactions
@@ -23,24 +23,24 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
         return transactions.Map(MapToDto);
     }
 
-    public async Task<Either<Error, AccountingTransactionDto?>> GetByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, AccountingTransactionDto?>> GetByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async transactionId => await unitOfWork.AccountingTransactions.GetByIdAsync(transactionId, companyId, ct),
                 ex => new Error(ex.Message))
             .Map(transaction => transaction is null ? null : MapToDto(transaction))
             .Run();
     }
 
-    public async Task<Either<Error, AccountingTransactionDto>> CreateAsync(AccountingTransactionDto request, int companyId, int userId, CancellationToken ct = default)
+    public async Task<Either<Error, AccountingTransactionDto>> CreateAsync(AccountingTransactionDto request, Guid companyId, Guid userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, AccountingTransactionDto>
             .FromRight(request)
             .Ensure(r => !string.IsNullOrWhiteSpace(r.Description), new Error("The description is required."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async req =>
             {
                 var transaction = new AccountingTransaction
@@ -57,7 +57,7 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = userId
                 };
-            
+
                 await unitOfWork.AccountingTransactions.AddTransactionAsync(transaction, ct);
                 await unitOfWork.CommitAsync(ct);
                 return transaction;
@@ -66,12 +66,12 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
             .Run();
     }
 
-    public async Task<Either<Error, AccountingTransactionDto>> UpdateAsync(int id, int companyId, AccountingTransactionDto request, int userId, CancellationToken ct = default)
+    public async Task<Either<Error, AccountingTransactionDto>> UpdateAsync(Guid id, Guid companyId, AccountingTransactionDto request, Guid userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async transactionId => await unitOfWork.AccountingTransactions.GetByIdAsync(transactionId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(transaction => transaction is not null, new Error("Accounting transaction not found."))
@@ -102,12 +102,12 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
             .Run();
     }
 
-    public async Task<Either<Error, Unit>> DeleteAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, Unit>> DeleteAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async transactionId => await unitOfWork.AccountingTransactions.GetByIdAsync(transactionId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(transaction => transaction is not null, new Error("Accounting transaction not found."))

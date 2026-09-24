@@ -16,7 +16,7 @@ public class CompanyRepository(VolterpDbContext context)
         return companies;
     }
 
-    public async Task<Company?> GetCompanyByIdAsync(int companyId, CancellationToken ct = default)
+    public async Task<Company?> GetCompanyByIdAsync(Guid companyId, CancellationToken ct = default)
         => await GetByCondictionsAsync(c => c.Id == companyId, ct);
 
     public async Task<Company> AddCompanyAsync(Company company, CancellationToken ct = default)
@@ -31,12 +31,12 @@ public class CompanyRepository(VolterpDbContext context)
         return company;
     }
 
-    public async Task DeleteCompanyAsync(int companyId, CancellationToken ct = default)
+    public async Task DeleteCompanyAsync(Guid companyId, CancellationToken ct = default)
     {
         var company = await GetByIdAsync(companyId, ct);
         await DeleteAsync(company, ct);
     }
-    
-    public async Task<bool> ExistsCompanyAsync(int companyId, CancellationToken ct = default)
+
+    public async Task<bool> ExistsCompanyAsync(Guid companyId, CancellationToken ct = default)
         => await ExistsAsync(c => c.Id == companyId, ct);
 }

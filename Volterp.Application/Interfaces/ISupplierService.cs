@@ -7,9 +7,9 @@ namespace Volterp.Application.Interfaces;
 
 public interface ISupplierService
 {
-    Task<PagedResult<SupplierDto>> GetAllSuppliersAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default);
-    Task<Either<Error, SupplierDto?>> GetSupplierByIdAsync(int id, int companyId, CancellationToken ct = default);
-    Task<Either<Error,SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, int companyId, int? userId, CancellationToken ct = default);
-    Task<Either<Error,SupplierDto>> UpdateSupplierAsync(int id, int companyId, UpdateSupplierRequest request, int? userId, CancellationToken ct = default);
-    Task<Either<Error, Unit>> DeleteSupplierAsync(int id, int companyId, CancellationToken ct = default);
+    Task<PagedResult<SupplierDto>> GetAllSuppliersAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<Either<Error, SupplierDto?>> GetSupplierByIdAsync(Guid id, Guid companyId, CancellationToken ct = default);
+    Task<Either<Error,SupplierDto>> CreateSupplierAsync(SupplierCreateDto request, Guid companyId, Guid? userId, CancellationToken ct = default);
+    Task<Either<Error,SupplierDto>> UpdateSupplierAsync(Guid id, Guid companyId, UpdateSupplierRequest request, Guid? userId, CancellationToken ct = default);
+    Task<Either<Error, Unit>> DeleteSupplierAsync(Guid id, Guid companyId, CancellationToken ct = default);
 }

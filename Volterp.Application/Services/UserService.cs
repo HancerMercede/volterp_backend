@@ -10,18 +10,18 @@ namespace Volterp.Application.Services;
 
 public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, ICurrentUserService currentUserService) : IUserService
 {
-    public async Task<PagedResult<UserDto>> GetAllAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<UserDto>> GetAllAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var users = await unitOfWork.Users.GetAllByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
         return users.MapTo<User, UserDto>();
     }
 
-    public async Task<Either<Error, UserDto?>> GetByIdAsync(int id, CancellationToken ct = default)
+    public async Task<Either<Error, UserDto?>> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
                 ex => new Error(ex.Message))
             .Ensure(user => user is not null, new Error("user not found"))
@@ -29,13 +29,13 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Run();
     }
 
-    public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
         return await EitherAsync
             .Try(async() => await unitOfWork.Users.GetByUsernameAsync(request.Username, ct))
             .MapLeft(ex => new Error(ex.Message))
             .Ensure(user => user is null, new Error("username already exists"))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .Ensure(_ => request.Role != UserRole.SuperAdmin || currentUserService.IsSuperAdmin(),
                 _ => new Error("Only SuperAdmin can create SuperAdmin users"))
             .Map(_ => request.Project())
@@ -56,11 +56,11 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Run();
     }
 
-    public async Task<Either<Error, UserDto>> UpdateAsync(int id, UserWithPasswordHashDto request, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, UserDto>> UpdateAsync(Guid id, UserWithPasswordHashDto request, Guid? userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x=> x > 0 , new Error("id must be greater than zero."))
+            .Ensure(x=> x != Guid.Empty , new Error("id must not be empty."))
             .Ensure(_=> request.Email.IsValidEmail(),
                 _ => new Error("the email address is not valid"))
             .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
@@ -88,11 +88,11 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Run();
     }
 
-    public async Task<Either<Error, Unit>> DeleteAsync(int id, CancellationToken ct = default)
+    public async Task<Either<Error, Unit>> DeleteAsync(Guid id, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x=> x > 0, new Error("id must be greater than zero."))
+            .Ensure(x=> x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
                 ex => new Error(ex.Message))
             .Ensure(user => user is not null, new Error("user not found"))

@@ -12,18 +12,18 @@ namespace Volterp.Application.Services;
 
 public class ProductService(IUnitOfWork unitOfWork) : IProductService
 {
-    public async Task<PagedResult<ProductDto>> GetAllAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<ProductDto>> GetAllAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var products = await unitOfWork.Products.GetAllProductsByCompanyAsync(companyId, pageNumber, pageSize, ct);
         return products.MapTo<Product, ProductDto>();
     }
 
-    public async Task<Either<Error, ProductDto?>> GetByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, ProductDto?>> GetByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async productId => await unitOfWork.Products.GetProductByIdAsync(productId, ct),
                 ex => new Error(ex.Message))
             .Ensure(product => product is not null && product.CompanyId == companyId,
@@ -32,7 +32,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             .Run();
     }
 
-    public async Task<Either<Error, ProductDto>> CreateAsync(CreateProductDto request, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, ProductDto>> CreateAsync(CreateProductDto request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateProductDto>
             .FromRight(request)
@@ -65,12 +65,12 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             .Run();
     }
 
-    public async Task<Either<Error, ProductDto>> UpdateAsync(int id, UpdateProductDto request, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, ProductDto>> UpdateAsync(Guid id, UpdateProductDto request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async productId => await unitOfWork.Products.GetProductByIdAsync(productId, ct),
                 ex => new Error(ex.Message))
             .Ensure(product => product is not null && product.CompanyId == companyId,
@@ -106,12 +106,12 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             .Run();
     }
 
-    public async Task<Either<Error, Unit>> DeleteAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, Unit>> DeleteAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async productId => await unitOfWork.Products.GetProductByIdAsync(productId, ct),
                 ex => new Error(ex.Message))
             .Ensure(product => product is not null && product.CompanyId == companyId,

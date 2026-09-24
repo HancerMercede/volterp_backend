@@ -3,7 +3,7 @@ using Volterp.Domain.Enums;
 namespace Volterp.Application.DTOs;
 
 public record AccountingTransactionDto(
-    int Id,
+    Guid Id,
     TransactionType TransactionType,
     decimal Amount,
     string Description,

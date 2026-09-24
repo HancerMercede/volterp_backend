@@ -10,30 +10,30 @@ namespace Volterp.Application.Services;
 
 public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
 {
-    public async Task<PagedResult<CategoryDto>> GetAllAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<CategoryDto>> GetAllAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var categories = await unitOfWork.Categories.GetAllCategoriesByCompanyAsync(companyId, pageNumber, pageSize, ct);
         return categories.MapTo<Category, CategoryDto>();
     }
 
-    public async Task<Either<Error, CategoryDto?>> GetByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, CategoryDto?>> GetByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async categoryId => await unitOfWork.Categories.GetCategoryByIdAsync(categoryId, ct),
                 ex => new Error(ex.Message))
             .Map(category => category is null || category.CompanyId != companyId ? null : category.MapTo<Category, CategoryDto>())
             .Run();
     }
 
-    public async Task<Either<Error, CategoryDto>> CreateAsync(CreateCategoryRequest request, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, CategoryDto>> CreateAsync(CreateCategoryRequest request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateCategoryRequest>
             .FromRight(request)
             .Ensure(r => !string.IsNullOrWhiteSpace(r.Name), new Error("The name is required."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .Map(r => r.Project())
             .Map(category =>
             {
@@ -56,12 +56,12 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
             .Run();
     }
 
-    public async Task<Either<Error, CategoryDto>> UpdateAsync(int id, UpdateCategoryRequest request, int companyId, int? userId, CancellationToken ct = default)
+    public async Task<Either<Error, CategoryDto>> UpdateAsync(Guid id, UpdateCategoryRequest request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async categoryId => await unitOfWork.Categories.GetCategoryByIdAsync(categoryId, ct),
                 ex => new Error(ex.Message))
             .Ensure(category => category is not null && category.CompanyId == companyId,
@@ -88,12 +88,12 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
             .Run();
     }
 
-    public async Task<Either<Error, Unit>> DeleteAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, Unit>> DeleteAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async categoryId => await unitOfWork.Categories.GetCategoryByIdAsync(categoryId, ct),
                 ex => new Error(ex.Message))
             .Ensure(category => category is not null && category.CompanyId == companyId,
@@ -107,7 +107,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
             .Run();
     }
 
-    public async Task<bool> ExistsAsync(int id, CancellationToken ct = default)
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken ct = default)
     {
         return await unitOfWork.Categories.ExistsCategoryAsync(id, ct);
     }

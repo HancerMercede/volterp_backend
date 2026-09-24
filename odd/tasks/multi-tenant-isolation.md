@@ -121,10 +121,42 @@ El usuario quiere arquitectura limpia donde el **dominio declara membresía** y 
 - **Constraints respetados**: ✅ NO DB / NO schema / NO `ITenantContext` / NO `HasQueryFilter` / NO tocados los 30 Ensure ni los 38 predicates / `LoginResponse` intacto.
 - **Commit**: `2384a8a` — `feat(multi-tenant): cycle 1.1 - wire refactor closes 3 cross-tenant bugs` (25 files, 517 insertions, 193 deletions).
 
-### Ciclo 1.2 — Guid 7 migration  →  pending
-### Ciclo 1.2 — Guid 7 migration  →  pending
+### Ciclo 1.2 — Guid 7 migration  →  EN PROGRESO (split 3 PRs)
+
+#### 1.2a — Domain + Claims constant  →  ✅ COMPLETO (commit `d5eac9e`)
+- **Scope ejecutado**: 12 entities + AuditEntity a `Guid`; `Claims.cs` constant creado.
+- **Cambios**: 14 files, +45/-38. Bien dentro del budget de 400/PR.
+- **Verificación**:
+  - `int Id|CompanyId|...|EmployeeId` en Domain/Entities: **0** ✓ (era 24).
+  - `Guid Id|...` en Domain/Entities: **24** ✓.
+  - `dotnet build`: 176 errors, todos en Volterp.Application — **esperado y correcto** (estado de deuda para 1.2b).
+- **Surprises nuevas detectadas** (no estaban en el audit original):
+  - `Employee.DirectManagerId` (self-FK Guid?).
+  - `Sale.ClienteId` typo pre-existente, conservado.
+  - `Sale.AddItem(int productId)` / `RemoveItem(int productId)` migrados a `Guid`.
+  - `Purchase.AddItem(int? productId)` / `RemoveItem(int? productId)` migrados a `Guid?`.
+  - `EitherAsync` type-inference break en `AccountingTransactionService.cs:65` (1.2b debe anotar tipo explícito).
+  - `HashSet<Guid>` mismatch en `Distinct().ToHashSet()` cuando entity es Guid pero DTOs siguen siendo int (1.2b arregla migrando DTOs primero).
+  - `int quantity`/`Stock` en Product/Sale NO son FKs — no se migraron.
+- **Deuda para 1.2b**: ~50 errors en services + ~30 errors en DTOs + 1 EitherAsync inference + 6 HashSet mismatches.
+
+#### 1.2b — Infrastructure + Application (Infra + App interfaces + DTOs + JwtService + EF configs + migrations)  →  pending
+#### 1.2c — Api + tests (controllers + BaseController + CurrentUserService + 278 tests adapted + tests nuevos + verification + schema reset)  →  pending
 ### Ciclo 1.3 — Integration + refactor residual  →  pending
 ### Ciclo 1.4 — docs/multitenancy.md  →  pending
+
+## Process rules (lesson learned 2026-09-24)
+
+User feedback: "Si el código no tiene intención no sirve para mí. No es que no se comenten las cosas pero no un comentario cargado."
+
+Hard rules from now on:
+1. **Cero** doc-comments que expliquen lo que el código ya dice.
+2. **Cero** referencias al plan en el código (no "Cycle 1.X", no "as decided in audit doc").
+3. **Cero** cross-references a tests en código de producción.
+4. **Cero** comentarios sobre líneas auto-explicativas.
+5. **Cero** defensive code sin razón real.
+6. **Tests** solo donde haya behavior real. No over-engineering de guards.
+7. **Si algo no necesita cambio, no lo toco.**
 
 ## Verification evidence
 

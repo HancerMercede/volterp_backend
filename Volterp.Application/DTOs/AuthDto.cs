@@ -1,5 +1,5 @@
 namespace Volterp.Application.DTOs;
 
 public record LoginRequest(string Username, string Password);
-public record LoginResponse(string Token, string Username, string Email, string FullName, string Role, int CompanyId);
+public record LoginResponse(string Token, string Username, string Email, string FullName, string Role, Guid CompanyId);
 public record ErrorResponse(string Error, string? Details = null);

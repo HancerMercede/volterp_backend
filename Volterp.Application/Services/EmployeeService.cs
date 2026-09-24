@@ -10,32 +10,32 @@ namespace Volterp.Application.Services;
 
 public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
 {
-    public async Task<PagedResult<EmployeeDto>> GetAllEmployeesAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<EmployeeDto>> GetAllEmployeesAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var employees = await unitOfWork.Employees
             .GetAllEmployeesByCompanyAsync(companyId, pageNumber, pageSize, ct);
         return employees.MapTo<Employee, EmployeeDto>();
     }
 
-    public async Task<Either<Error, EmployeeDto?>> GetEmployeeByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, EmployeeDto?>> GetEmployeeByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async employeeId => await unitOfWork.Employees.GetEmployeeByIdAsync(employeeId, companyId, ct),
                 ex => new Error(ex.Message))
             .Map(employee => employee?.MapTo<Employee, EmployeeDto>())
             .Run();
     }
 
-    public async Task<Either<Error, EmployeeDto>> CreateEmployeeAsync(CreateEmployeeDto request, int companyId, int userId, CancellationToken ct = default)
+    public async Task<Either<Error, EmployeeDto>> CreateEmployeeAsync(CreateEmployeeDto request, Guid companyId, Guid userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, CreateEmployeeDto>
             .FromRight(request)
             .Ensure(r => !string.IsNullOrWhiteSpace(r.FirstName), new Error("The first name is required."))
             .Ensure(r => !string.IsNullOrWhiteSpace(r.LastName), new Error("The last name is required."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .Map(r => r.Project())
             .Map(employee =>
             {
@@ -53,12 +53,12 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             .Run();
     }
 
-    public async Task<Either<Error, EmployeeDto>> UpdateEmployeeAsync(int id, int companyId, UpdateEmployeeDto request, int userId, CancellationToken ct = default)
+    public async Task<Either<Error, EmployeeDto>> UpdateEmployeeAsync(Guid id, Guid companyId, UpdateEmployeeDto request, Guid userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async employeeId => await unitOfWork.Employees.GetEmployeeByIdAsync(employeeId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(employee => employee is not null, new Error("Employee not found."))
@@ -97,12 +97,12 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             .Run();
     }
 
-    public async Task<Either<Error, Unit>> DeleteEmployeeAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<Either<Error, Unit>> DeleteEmployeeAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, int>
+        return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x => x > 0, new Error("id must be greater than zero."))
-            .Ensure(_ => companyId > 0, new Error("companyId must be greater than zero."))
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async employeeId => await unitOfWork.Employees.GetEmployeeByIdAsync(employeeId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(employee => employee is not null, new Error("Employee not found."))

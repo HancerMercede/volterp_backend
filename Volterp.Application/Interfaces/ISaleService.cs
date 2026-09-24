@@ -8,11 +8,11 @@ namespace Volterp.Application.Interfaces;
 
 public interface ISaleService
 {
-    Task<PagedResult<SaleDto>> GetAllSalesAsync(int companyId, int pageNumber, int pageSize, CancellationToken ct = default);
-    Task<PagedResult<SaleDto>> GetSalesByStatusAsync(int companyId, SaleStatus status, int pageNumber, int pageSize, CancellationToken ct = default);
-    Task<Either<Error, SaleDto?>> GetSaleByIdAsync(int id, int companyId, CancellationToken ct = default);
-    Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, int companyId, int? userId, CancellationToken ct = default);
-    Task<Either<Error, SaleDto>> UpdateSaleAsync(int id, int companyId, UpdateSaleRequest request, int? userId, CancellationToken ct = default);
-    Task<Either<Error, SaleDto>> CompleteSaleAsync(int id, int companyId, int? userId, CancellationToken ct = default);
-    Task<Either<Error, Unit>> DeleteSaleAsync(int id, int companyId, CancellationToken ct = default);
+    Task<PagedResult<SaleDto>> GetAllSalesAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<SaleDto>> GetSalesByStatusAsync(Guid companyId, SaleStatus status, int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<Either<Error, SaleDto?>> GetSaleByIdAsync(Guid id, Guid companyId, CancellationToken ct = default);
+    Task<Either<Error, SaleDto>> CreateSaleAsync(CreateSaleRequest request, Guid companyId, Guid? userId, CancellationToken ct = default);
+    Task<Either<Error, SaleDto>> UpdateSaleAsync(Guid id, Guid companyId, UpdateSaleRequest request, Guid? userId, CancellationToken ct = default);
+    Task<Either<Error, SaleDto>> CompleteSaleAsync(Guid id, Guid companyId, Guid? userId, CancellationToken ct = default);
+    Task<Either<Error, Unit>> DeleteSaleAsync(Guid id, Guid companyId, CancellationToken ct = default);
 }

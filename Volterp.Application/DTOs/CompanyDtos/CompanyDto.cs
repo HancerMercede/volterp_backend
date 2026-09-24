@@ -4,7 +4,7 @@ namespace Volterp.Application.DTOs.CompanyDtos;
 
 public class CompanyDto:IMapFrom<Company>
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string TaxId { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
@@ -26,5 +26,6 @@ public class CompanyDto:IMapFrom<Company>
         Email = source.Email;
     }
 }
+
 
 

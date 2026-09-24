@@ -11,10 +11,10 @@ public abstract class RepositoryBase<T>(VolterpDbContext context) : IRepositoryB
 {
     protected DbSet<T> Set() => context.Set<T>();
 
-    public virtual async Task<T?> GetByIdAsync(int id, CancellationToken ct = default)
+    public virtual async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await Set().FindAsync([id], ct);
 
-    public virtual async Task<PagedResult<T>> GetAllAsync(Expression<Func<T, bool>> predicate, 
+    public virtual async Task<PagedResult<T>> GetAllAsync(Expression<Func<T, bool>> predicate,
         int pageNumber,
         int pageSize,
         CancellationToken ct = default,
@@ -23,28 +23,28 @@ public abstract class RepositoryBase<T>(VolterpDbContext context) : IRepositoryB
        var query = Set()
                .Where(predicate)
                .AsNoTracking();
-           
+
            if(includes is not null)
                query = includes(query);
-           
+
            return await query.ToPagedResultAsync(pageNumber, pageSize, ct);
     }
 
     public async Task<T?> GetByCondictionsAsync(Expression<Func<T, bool>> predicate,
-        CancellationToken ct = default, 
+        CancellationToken ct = default,
         Func<IQueryable<T>, IQueryable<T>>? includes = null)
     {
        var query = Set()
            .Where(predicate)
            .AsNoTracking();
-       
+
            if(includes is not null)
                query = includes(query);
-                   
+
            return await query.FirstOrDefaultAsync(ct);
     }
 
-   
+
 
     public virtual async Task AddAsync(T entity, CancellationToken ct = default)=>
         await Set().AddAsync(entity, ct);
@@ -54,7 +54,7 @@ public abstract class RepositoryBase<T>(VolterpDbContext context) : IRepositoryB
 
     public virtual async Task DeleteAsync(T entity, CancellationToken ct = default)=>
         await Task.FromResult(Set().Remove(entity));
-    
+
     public virtual async Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default)
         => await Set().AnyAsync(predicate, ct);
 }

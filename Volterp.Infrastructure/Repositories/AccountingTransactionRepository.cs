@@ -5,15 +5,15 @@ using Volterp.Infrastructure.Data;
 
 namespace Volterp.Infrastructure.Repositories;
 
-public class AccountingTransactionRepository(VolterpDbContext context) : 
-    RepositoryBase<AccountingTransaction>(context), 
+public class AccountingTransactionRepository(VolterpDbContext context) :
+    RepositoryBase<AccountingTransaction>(context),
     IAccountingTransactionRepository
 {
-    public async Task<PagedResult<AccountingTransaction>> GetAllByCompanyAsync(int companyId, int pageNumber, int pageSize,
+    public async Task<PagedResult<AccountingTransaction>> GetAllByCompanyAsync(Guid companyId, int pageNumber, int pageSize,
         CancellationToken ct = default)
         => await GetAllAsync(e => e.CompanyId == companyId, pageNumber, pageSize, ct);
 
-    public async Task<AccountingTransaction?> GetByIdAsync(int id, int companyId, CancellationToken ct = default)
+    public async Task<AccountingTransaction?> GetByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
         => await GetByCondictionsAsync(e => e.Id == id && e.CompanyId == companyId, ct);
 
     public async Task<AccountingTransaction> AddTransactionAsync(AccountingTransaction entity, CancellationToken ct = default)
@@ -25,7 +25,7 @@ public class AccountingTransactionRepository(VolterpDbContext context) :
     public async Task UpdateTransactionAsync(AccountingTransaction entity, CancellationToken ct = default)
         => await UpdateAsync(entity, ct);
 
-    public async Task DeleteTransactionAsync(int id, CancellationToken ct = default)
+    public async Task DeleteTransactionAsync(Guid id, CancellationToken ct = default)
     {
         var transaction = await GetByIdAsync(id, ct);
         if (transaction is not null)
