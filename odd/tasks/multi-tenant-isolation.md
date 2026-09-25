@@ -270,10 +270,13 @@ public class SupplierTenantIsolationTests : IClassFixture<ApiFactory>
 
 The fixture (`Volterp.Tests/Integration/ApiFactory.cs`) wires up `WebApplicationFactory<ApiAssemblyMarker>` with SQLite in-memory, gates `db.Database.Migrate()` on `!app.Environment.IsEnvironment("Testing")`, and registers `HttpTenantContext` per request.
 
-### Observability (not yet wired)
+### Observability
 
-- Log `CompanyId` via Serilog `LogContext.PushProperty("CompanyId", tenant.CompanyId)` in a middleware that sits after authentication.
-- Every log entry produced during a request should carry the tenant scope so cross-tenant tracing is trivial.
+- `TenantLoggingMiddleware` (en `Volterp.Api/Extensions/TenantLoggingMiddleware.cs`) hace `LogContext.PushProperty("CompanyId", tenant.CompanyId)` después de `UseAuthentication`.
+- Cada log entry durante un request autenticado lleva `CompanyId` populado desde el JWT claim → cross-tenant tracing trivial.
+- Pipeline: `app.UseAuthentication(); app.UseTenantLogging(); app.UseRateLimiter();`
+- Invocación via extension C# 14: `extension(IApplicationBuilder builder) { public void UseTenantLogging() => builder.UseMiddleware<TenantLoggingMiddleware>(); }`.
+- Verificación: 2 tests (`AuthenticatedRequest_LogsContainCompanyId`, `AnonymousRequest_MiddlewareDoesNotThrow`) usan `Serilog.Sinks.InMemory` para capturar events y assertear la property.
 
 ### Gotchas
 
@@ -414,12 +417,17 @@ Phase 1 cerrada. Esta fase cubre el trabajo futuro opcional listado en `## Next 
 ### Progress
 - [x] Task 1 — Ensure elimination (commit `cc7b030`)
 - [x] Task 2 — BaseController consolidation (commit `7ebc82e`)
-- [ ] Task 3 — Admin Global ITenantContext (BLOCKED — sin endpoints admin)
-- [x] Task 4 — Serilog enricher para CompanyId ✅
-- [x] Task 5 — Remove dead `companyId` parameter (commit `a22a814`)
+- [ ] Task 3 — Admin Global ITenantContext (BLOCKED — sin endpoints admin cross-tenant)
+- [x] Task 4 — Serilog enricher para CompanyId (commits `5d2ab84` → `7f6270f` → `b4dccff` → `d78e5e7`)
+- [x] Task 5 Tier 1 — Remove dead `companyId` parameter en reads (commit `a22a814`)
+- [ ] Task 5 Tier 2 — Remove dead `companyId` parameter en writes (DIFERIDO — espera decisión arquitectónica sobre dónde validar 401 cuando los services dejan de recibir `companyId` parámetro)
 
 ## Next step
-- **Task 1 (Ensure elimination)**: arrancar ahora. Decisión técnica clara, dead code, verificado por tests existentes.
+- **Phase 2 cerrada**. No quedan tareas ejecutables en esta sesión:
+  - Task 3 (Admin Global) está bloqueada hasta que aparezca el primer endpoint admin cross-tenant. Re-check entonces.
+  - Task 5 Tier 2 está diferida esperando decisión arquitectónica tuya (helper en controller vs filter ASP.NET vs service tira `UnauthorizedException`).
+- **Trabajo user-owned pendiente**: schema reset (`dotnet ef database drop --force` + `dotnet ef database update`) — Postgres apagado en sesión 1.2c.
+- **Branch**: `refactor/multi-tenant-system` queda lista para push + PR cuando decidas merge a `development`.
 
 ## Relevant Files (paths relativos al repo)
 - Entities: `Volterp.Domain/Entities/{AccountingTransaction,Category,Client,Company,Employee,Product,Purchase,PurchaseItem,Sale,SaleItem,Supplier,User}.cs`
