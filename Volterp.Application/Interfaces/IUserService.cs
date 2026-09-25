@@ -8,7 +8,7 @@ namespace Volterp.Application.Interfaces;
 
 public interface IUserService
 {
-    Task<PagedResult<UserDto>> GetAllAsync(Guid companyId, int page, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<UserDto>> GetAllAsync(int page, int pageSize, CancellationToken ct = default);
     Task<Either<Error, UserDto?>> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, Guid companyId, Guid? userId, CancellationToken ct = default);
     Task<Either<Error, UserDto>> UpdateAsync(Guid id, UserWithPasswordHashDto request, Guid? userId, CancellationToken ct = default);

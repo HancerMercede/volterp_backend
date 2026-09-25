@@ -7,11 +7,11 @@ namespace Volterp.Application.Services;
 
 public class DashboardService(IUnitOfWork unitOfWork) : IDashboardService
 {
-    public async Task<Either<Error, DashboardResponse>> GetDashboardDataAsync(Guid companyId, CancellationToken ct = default)
+    public async Task<Either<Error, DashboardResponse>> GetDashboardDataAsync(CancellationToken ct = default)
     {
-        return await EitherAsync<Error, Guid>
-            .FromRight(companyId)
-            .FlatMap(async id => await unitOfWork.Dashboard.GetDashboardDataAsync(id, ct),
+        return await EitherAsync<Error, Unit>
+            .FromRight(new Unit())
+            .FlatMap(async _ => await unitOfWork.Dashboard.GetDashboardDataAsync(ct),
                 ex => new Error(ex.Message))
             .Run();
     }

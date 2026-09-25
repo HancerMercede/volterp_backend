@@ -383,8 +383,40 @@ Phase 1 cerrada. Esta fase cubre el trabajo futuro opcional listado en `## Next 
 - Schema reset (`dotnet ef database drop --force` + `dotnet ef database update`) — user-owned.
 - Revisar migrations de `bf55432` — user-owned decision.
 
+### Task 5 — Remove dead `companyId` parameter (Tier 1 only) 🆕
+- **File scope**: 9 interfaces de repo + 9 archivos de repo + reads en services + 11 controllers (reads) + tests que pasan companyId a reads.
+- **Tier 1 (reads)** — `companyId` se remueve como parámetro en:
+  - 22 métodos de repo (todos los `I{Sale,Purchase,Client,Supplier,Employee,Category,Product,User,Accounting}Repository` que aún lo reciben).
+  - 6 métodos de `DashboardRepository` (parámetro dead desde Cycle 1.3).
+  - 6 Ensure defensivos en CategoryService/ProductService (belt-and-suspenders inertes post-HasQueryFilter).
+  - Reads en services (`GetAllX`, `GetById`) — son dead forwards al repo.
+- **Tier 2 (writes) — DIFERIDO explícitamente**: requiere decisiones arquitectónicas adicionales que necesitan input del usuario:
+  - Si removemos `companyId` parámetro de CreateAsync y el service lee de `ITenantContext`, ¿quién valida 401 cuando falta claim? El controller ya no llamaría `GetCurrentUserCompanyId()`. Opciones: (a) controller helper `EnsureTenant()` para validar claim antes de invocar service, (b) ASP.NET authorization filter, (c) service tira `UnauthorizedException` directamente. Esto necesita decisión antes de implementar.
+  - También requiere inyectar `ITenantContext` en 9 service constructors + actualizar `ServiceManager` + actualizar tests de CreateAsync.
+  - Estimado: ~350 líneas adicionales.
+- **Tier 3 (NO tocar, legítimo)**:
+  - `ICompanyRepository` (3 métodos: PK de la entidad, no filtro de tenant).
+  - `ICompanyService.UpdateCompanyAsync`.
+  - `IJwtService.GenerateToken` (companyId es claim value, no filtro).
+- **Razón**: post-HasQueryFilter + post-eliminación de 33 predicados manuales (Cycle 1.3) + post-eliminación de 33 Ensure (Phase 2 Task 1), el `companyId` parámetro es 100% redundante para reads.
+- **Hard rules**:
+  - Usar `Edit` (no `Write`).
+  - NO tocar métodos CreateAsync (siguen recibiendo `companyId`).
+  - NO tocar DTO comments (esos son para CreateAsync).
+  - Reescribir `ProductServiceTests.cs:20-44` para validar aislamiento via query filter en lugar de via Ensure (porque el Ensure se elimina).
+- **Verificación**:
+  - `git grep "companyId" Volterp.Infrastructure/Repositories/` → solo en CompanyRepository (Tier 3).
+  - `dotnet test` → 283+ passing (los tests que pasan `companyId` a reads deben actualizarse para no pasarlo).
+  - `dotnet build` → 0 errors, 0 nuevos warnings.
+- **Riesgo**: ~30 archivos tocados, mecânico.
+- **Commits esperados**: 1 commit cohesivo.
+
 ### Progress
-_(vacío — Task 1 pendiente)_
+- [x] Task 1 — Ensure elimination (commit `cc7b030`)
+- [x] Task 2 — BaseController consolidation (commit `7ebc82e`)
+- [ ] Task 3 — Admin Global ITenantContext (BLOCKED — sin endpoints admin)
+- [ ] Task 4 — Serilog enricher para CompanyId
+- [ ] Task 5 — Remove dead `companyId` parameter
 
 ## Next step
 - **Task 1 (Ensure elimination)**: arrancar ahora. Decisión técnica clara, dead code, verificado por tests existentes.

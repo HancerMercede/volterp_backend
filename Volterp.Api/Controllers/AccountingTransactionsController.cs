@@ -10,10 +10,10 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var result = await serviceManager
             .AccountingTransactions
-            .GetAllByCompanyAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+            .GetAllAsync(pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
     }
@@ -21,8 +21,8 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
     [HttpGet("{id}")]
     public async Task<ActionResult<AccountingTransactionDto>> GetTransaction(Guid id, CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.AccountingTransactions.GetByIdAsync(id, companyId, ct);
+        EnsureTenant();
+        var result = await serviceManager.AccountingTransactions.GetByIdAsync(id, ct);
 
         return result.Match<ActionResult<AccountingTransactionDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),

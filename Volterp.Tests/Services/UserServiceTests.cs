@@ -89,14 +89,14 @@ public class UserServiceTests
             PageCount = 1
         };
 
-        mockUsersRepo.Setup(r => r.GetAllByCompanyAsync(Guid7TestValues.CompanyA, 1, 10, It.IsAny<CancellationToken>()))
+        mockUsersRepo.Setup(r => r.GetAllAsync(1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(users);
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, Mock.Of<Volterp.Application.Interfaces.IPasswordHasher>(), Mock.Of<ICurrentUserService>());
 
         // ACT
-        var result = await service.GetAllAsync(Guid7TestValues.CompanyA, 1, 10);
+        var result = await service.GetAllAsync(1, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(2);

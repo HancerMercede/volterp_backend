@@ -10,10 +10,10 @@ public class PurchasesController(IServiceManager serviceManager) : BaseControlle
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var result = await serviceManager
             .Purchases
-            .GetAllPurchasesAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+            .GetAllPurchasesAsync(pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
     }
@@ -21,8 +21,8 @@ public class PurchasesController(IServiceManager serviceManager) : BaseControlle
     [HttpGet("{id}")]
     public async Task<ActionResult<PurchaseDto>> GetPurchase(Guid id, CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.Purchases.GetPurchaseByIdAsync(id, companyId, ct);
+        EnsureTenant();
+        var result = await serviceManager.Purchases.GetPurchaseByIdAsync(id, ct);
         return result.Match<ActionResult<PurchaseDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             purchase => purchase is null ? NotFound(new { message = "Not Found Purchase" }) : Ok(purchase)

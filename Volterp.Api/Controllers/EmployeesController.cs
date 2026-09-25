@@ -12,10 +12,10 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var result = await serviceManager
             .Employees
-            .GetAllEmployeesAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+            .GetAllEmployeesAsync(pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
     }
@@ -23,8 +23,8 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
     [HttpGet("{id}")]
     public async Task<ActionResult<EmployeeDto>> GetEmployee(Guid id, CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.Employees.GetEmployeeByIdAsync(id, companyId, ct);
+        EnsureTenant();
+        var result = await serviceManager.Employees.GetEmployeeByIdAsync(id, ct);
         return result.Match<ActionResult<EmployeeDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             employee => employee is null ? NotFound(new { message = "Empleado no encontrado" }) : Ok(employee)

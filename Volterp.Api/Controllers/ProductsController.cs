@@ -12,16 +12,16 @@ public class ProductsController(IServiceManager services) : BaseController
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await services.Products.GetAllAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+        EnsureTenant();
+        var result = await services.Products.GetAllAsync(pagination.PageNumber, pagination.PageSize, ct);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<ProductDto>> GetProduct(Guid id, CancellationToken ct)
     {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await services.Products.GetByIdAsync(id, companyId, ct);
+        EnsureTenant();
+        var result = await services.Products.GetByIdAsync(id, ct);
         return result.Match<ActionResult<ProductDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             product => product is null ? NotFound(new ErrorResponse("Product not found")) : Ok(product)

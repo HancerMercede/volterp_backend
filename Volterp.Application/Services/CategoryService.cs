@@ -10,20 +10,20 @@ namespace Volterp.Application.Services;
 
 public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
 {
-    public async Task<PagedResult<CategoryDto>> GetAllAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<CategoryDto>> GetAllAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
-        var categories = await unitOfWork.Categories.GetAllCategoriesByCompanyAsync(companyId, pageNumber, pageSize, ct);
+        var categories = await unitOfWork.Categories.GetAllCategoriesAsync(pageNumber, pageSize, ct);
         return categories.MapTo<Category, CategoryDto>();
     }
 
-    public async Task<Either<Error, CategoryDto?>> GetByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
+    public async Task<Either<Error, CategoryDto?>> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async categoryId => await unitOfWork.Categories.GetCategoryByIdAsync(categoryId, ct),
                 ex => new Error(ex.Message))
-            .Map(category => category is null || category.CompanyId != companyId ? null : category.MapTo<Category, CategoryDto>())
+            .Map(category => category is null ? null : category.MapTo<Category, CategoryDto>())
             .Run();
     }
 
@@ -56,7 +56,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async categoryId => await unitOfWork.Categories.GetCategoryByIdAsync(categoryId, ct),
                 ex => new Error(ex.Message))
-            .Ensure(category => category is not null && category.CompanyId == companyId,
+            .Ensure(category => category is not null,
                 new Error("Category not found."))
             .Map(category =>
             {
@@ -87,7 +87,7 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async categoryId => await unitOfWork.Categories.GetCategoryByIdAsync(categoryId, ct),
                 ex => new Error(ex.Message))
-            .Ensure(category => category is not null && category.CompanyId == companyId,
+            .Ensure(category => category is not null,
                 new Error("Category not found."))
             .FlatMap(async category =>
             {

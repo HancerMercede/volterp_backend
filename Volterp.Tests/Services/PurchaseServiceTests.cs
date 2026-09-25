@@ -86,7 +86,7 @@ public class PurchaseServiceTests
             }
         };
 
-        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingPurchase);
         
         mockPurchasesRepo.Setup(r => r.UpdatePurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()))
@@ -147,14 +147,14 @@ public class PurchaseServiceTests
             PageCount = 1
         };
 
-        mockPurchasesRepo.Setup(r => r.GetAllPurchasesByCompanyAsync(Guid7TestValues.CompanyA, 1, 10, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetAllPurchasesAsync(1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchases);
         mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetAllPurchasesAsync(Guid7TestValues.CompanyA, 1, 10);
+        var result = await service.GetAllPurchasesAsync(1, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(2);
@@ -178,14 +178,14 @@ public class PurchaseServiceTests
             }
         };
 
-        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchase);
         mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA);
+        var result = await service.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, PurchaseDto?>.Right>();
@@ -202,14 +202,14 @@ public class PurchaseServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockPurchasesRepo = new Mock<IPurchaseRepository>();
 
-        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Purchase?)null);
         mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetPurchaseByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA);
+        var result = await service.GetPurchaseByIdAsync(Guid.NewGuid());
 
         // ASSERT
         result.Should().BeOfType<Either<Error, PurchaseDto?>.Right>();
@@ -224,7 +224,7 @@ public class PurchaseServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockPurchasesRepo = new Mock<IPurchaseRepository>();
 
-        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Purchase?)null);
         mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
 
@@ -257,7 +257,7 @@ public class PurchaseServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockPurchasesRepo = new Mock<IPurchaseRepository>();
 
-        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Purchase?)null);
         mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
 
@@ -287,7 +287,7 @@ public class PurchaseServiceTests
             Items = new List<PurchaseItem>()
         };
 
-        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchase);
         mockPurchasesRepo.Setup(r => r.DeletePurchaseAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -405,14 +405,14 @@ public class PurchaseServiceTests
             PageCount = 0
         };
 
-        mockPurchasesRepo.Setup(r => r.GetAllPurchasesByCompanyAsync(Guid7TestValues.CompanyA, 1, 10, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetAllPurchasesAsync(1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchases);
         mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetAllPurchasesAsync(Guid7TestValues.CompanyA, 1, 10);
+        var result = await service.GetAllPurchasesAsync(1, 10);
 
         // ASSERT
         result.Items.Should().BeEmpty();
@@ -516,7 +516,7 @@ public class PurchaseServiceTests
             }
         };
 
-        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchase);
         mockPurchasesRepo.Setup(r => r.DeletePurchaseAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -554,7 +554,7 @@ public class PurchaseServiceTests
             }
         };
 
-        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchase);
         mockPurchasesRepo.Setup(r => r.DeletePurchaseAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -595,7 +595,7 @@ public class PurchaseServiceTests
             }
         };
 
-        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(purchase);
         mockPurchasesRepo.Setup(r => r.DeletePurchaseAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);

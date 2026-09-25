@@ -9,11 +9,11 @@ public class AccountingTransactionRepository(VolterpDbContext context) :
     RepositoryBase<AccountingTransaction>(context),
     IAccountingTransactionRepository
 {
-    public async Task<PagedResult<AccountingTransaction>> GetAllByCompanyAsync(Guid companyId, int pageNumber, int pageSize,
+    public async Task<PagedResult<AccountingTransaction>> GetAllAsync(int pageNumber, int pageSize,
         CancellationToken ct = default)
         => await GetAllAsync(_ => true, pageNumber, pageSize, ct);
 
-    public async Task<AccountingTransaction?> GetByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
+    public async Task<AccountingTransaction?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await GetByCondictionsAsync(e => e.Id == id, ct);
 
     public async Task<AccountingTransaction> AddTransactionAsync(AccountingTransaction entity, CancellationToken ct = default)

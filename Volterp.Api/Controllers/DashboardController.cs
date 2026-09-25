@@ -8,8 +8,8 @@ public class DashboardController(IServiceManager serviceManager) : BaseControlle
     [HttpGet]
     public async Task<ActionResult<DashboardResponse>> GetDashboard(CancellationToken ct)
     {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.Dashboard.GetDashboardDataAsync(companyId, ct);
+        EnsureTenant();
+        var result = await serviceManager.Dashboard.GetDashboardDataAsync(ct);
 
         return result.Match<ActionResult<DashboardResponse>>(
             error => BadRequest(new ErrorResponse(error.Message)),

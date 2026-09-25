@@ -9,19 +9,19 @@ namespace Volterp.Application.Services;
 
 public class ClientService(IUnitOfWork unitOfWork) : IClientService
 {
-    public async Task<PagedResult<ClientDto>> GetAllClientsAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<ClientDto>> GetAllClientsAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
-        var clients = await unitOfWork.Clients.GetAllClientsByCompanyAsync(companyId, pageNumber, pageSize, ct);
+        var clients = await unitOfWork.Clients.GetAllClientsAsync(pageNumber, pageSize, ct);
 
         return clients.MapTo<Client, ClientDto>();
     }
 
-    public async Task<Either<Error,ClientDto?>> GetClientByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
+    public async Task<Either<Error,ClientDto?>> GetClientByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .FlatMap(async userId => await unitOfWork.Clients.GetClientByIdAsync(userId, companyId, ct),
+            .FlatMap(async userId => await unitOfWork.Clients.GetClientByIdAsync(userId, ct),
                 ex => new Error(ex.Message))
             .Ensure(client => client is not null,
                 new Error("Client not found."))
@@ -53,7 +53,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
     public async Task<Either<Error, ClientDto?>> UpdateClientAsync(Guid id, Guid companyId, UpdateClientDto request, Guid? userId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, ClientDto>
-            .Try(async () => await unitOfWork.Clients.GetClientByIdAsync(id, companyId, ct))
+            .Try(async () => await unitOfWork.Clients.GetClientByIdAsync(id, ct))
             .MapLeft(error => new Error(error.Message))
             .Ensure(client => client is not null, new Error("User not found."))
             .Map(client =>
@@ -86,7 +86,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .FlatMap(async userId => await unitOfWork.Clients.GetClientByIdAsync(userId, companyId, ct),
+            .FlatMap(async userId => await unitOfWork.Clients.GetClientByIdAsync(userId, ct),
                 error => new Error(error.Message))
             .Ensure(client => client is not null, new Error("User not found."))
             .FlatMap(async client =>

@@ -24,8 +24,9 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     {
         if (!IsAdmin()) return Forbid();
 
+        EnsureTenant();
         var users = await serviceManager.Users
-            .GetAllAsync(GetCurrentUserCompanyId(), pagination.PageNumber, pagination.PageSize, ct);
+            .GetAllAsync(pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(users);
     }

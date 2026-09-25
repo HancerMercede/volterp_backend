@@ -7,11 +7,11 @@ namespace Volterp.Infrastructure.Repositories;
 
 public class ClientRepository(VolterpDbContext context) : RepositoryBase<Client>(context), IClientRepository
 {
-    public async Task<PagedResult<Client>> GetAllClientsByCompanyAsync(Guid companyId, int pageNumber, int pageSize,
+    public async Task<PagedResult<Client>> GetAllClientsAsync(int pageNumber, int pageSize,
         CancellationToken ct = default)
         => await GetAllAsync(_ => true, pageNumber, pageSize, ct);
 
-    public async Task<Client?> GetClientByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
+    public async Task<Client?> GetClientByIdAsync(Guid id, CancellationToken ct = default)
         => await GetByCondictionsAsync(c => c.Id == id, ct);
 
     public async Task AddClientAsync(Client client, CancellationToken ct = default)

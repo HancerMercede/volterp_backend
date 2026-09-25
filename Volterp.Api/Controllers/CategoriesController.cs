@@ -12,16 +12,16 @@ public class CategoriesController(IServiceManager services) : BaseController
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await services.Categories.GetAllAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+        EnsureTenant();
+        var result = await services.Categories.GetAllAsync(pagination.PageNumber, pagination.PageSize, ct);
         return Ok(result);
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<CategoryDto>> GetCategory(Guid id, CancellationToken ct)
     {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await services.Categories.GetByIdAsync(id, companyId, ct);
+        EnsureTenant();
+        var result = await services.Categories.GetByIdAsync(id, ct);
         return result.Match<ActionResult<CategoryDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             category => category is null ? NotFound(new ErrorResponse("Category not found")) : Ok(category)

@@ -10,9 +10,9 @@ namespace Volterp.Application.Services;
 
 public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, ICurrentUserService currentUserService) : IUserService
 {
-    public async Task<PagedResult<UserDto>> GetAllAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<UserDto>> GetAllAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
-        var users = await unitOfWork.Users.GetAllByCompanyAsync(companyId, pageNumber, pageSize, ct);
+        var users = await unitOfWork.Users.GetAllAsync(pageNumber, pageSize, ct);
 
         return users.MapTo<User, UserDto>();
     }

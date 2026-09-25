@@ -7,8 +7,8 @@ namespace Volterp.Application.Interfaces;
 
 public interface IClientService
 {
-    Task<PagedResult<ClientDto>> GetAllClientsAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default);
-    Task<Either<Error, ClientDto?>> GetClientByIdAsync(Guid id, Guid companyId, CancellationToken ct = default);
+    Task<PagedResult<ClientDto>> GetAllClientsAsync(int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<Either<Error, ClientDto?>> GetClientByIdAsync(Guid id, CancellationToken ct = default);
     Task<Either<Error, ClientDto>> CreateClientAsync(CreateClientDto request, Guid companyId, Guid? userId, CancellationToken ct = default);
     Task<Either<Error, ClientDto?>> UpdateClientAsync(Guid id, Guid companyId, UpdateClientDto request, Guid? userId, CancellationToken ct = default);
     Task<Either<Error, Unit>> DeleteClientAsync(Guid id, Guid companyId, CancellationToken ct = default);

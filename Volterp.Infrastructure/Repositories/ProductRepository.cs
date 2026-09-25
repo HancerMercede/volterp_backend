@@ -12,7 +12,7 @@ public class ProductRepository(VolterpDbContext context)
     public async Task<Product?> GetProductByIdAsync(Guid id, CancellationToken ct = default)
         => await GetByCondictionsAsync(p => p.Id == id, ct);
 
-    public async Task<PagedResult<Product>> GetAllProductsByCompanyAsync(Guid companyId,int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<Product>> GetAllProductsAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
         return await GetAllAsync(_ => true, pageNumber, pageSize, ct);
     }

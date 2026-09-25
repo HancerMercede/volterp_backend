@@ -18,26 +18,25 @@ namespace Volterp.Tests.Services;
 public class ProductServiceTests
 {
     [Fact]
-    public async Task GetByIdAsync_WithWrongCompanyId_ThrowsProductNotFoundException()
+    public async Task GetByIdAsync_WhenProductNotFound_ReturnsLeft()
     {
-        // ARRANGE
+        // The service no longer takes companyId — HasQueryFilter on VolterpDbContext
+        // blocks cross-tenant reads at the persistence layer. This test covers the
+        // service-level "not found" path. Cross-tenant isolation itself is exercised
+        // by integration tests that run against a real DbContext with the filter active.
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
 
-        var productInCompany1 = new Product { Id = Guid7TestValues.ProductA, Name = "Test", CompanyId = Guid7TestValues.CompanyA, Stock = 10, Price = new Money(100, Currency.ARS) };
-
-        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(productInCompany1);
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Product?)null);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
 
         var service = new ProductService(mockUnitOfWork.Object);
 
-        // ACT - Request product from company 2
-        var result = await service.GetByIdAsync(Guid7TestValues.ProductA, companyId: Guid7TestValues.CompanyB);
+        var result = await service.GetByIdAsync(Guid.NewGuid());
 
-        // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto?>.Left>();
         var error = ((Either<Error, ProductDto?>.Left)result).Value;
         error.Message.Should().Be("Product not found.");
@@ -63,14 +62,14 @@ public class ProductServiceTests
             PageCount = 1
         };
 
-        mockProductsRepo.Setup(r => r.GetAllProductsByCompanyAsync(Guid7TestValues.CompanyA, 1, 10, It.IsAny<CancellationToken>()))
+        mockProductsRepo.Setup(r => r.GetAllProductsAsync(1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetAllAsync(Guid7TestValues.CompanyA, 1, 10);
+        var result = await service.GetAllAsync(1, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(2);
@@ -103,7 +102,7 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetByIdAsync(Guid7TestValues.ProductA, companyId: Guid7TestValues.CompanyA);
+        var result = await service.GetByIdAsync(Guid7TestValues.ProductA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto?>.Right>();
@@ -127,7 +126,7 @@ public class ProductServiceTests
         var service = new ProductService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetByIdAsync(Guid.NewGuid(), companyId: Guid7TestValues.CompanyA);
+        var result = await service.GetByIdAsync(Guid.NewGuid());
 
         // ASSERT
         result.Should().BeOfType<Either<Error, ProductDto?>.Left>();

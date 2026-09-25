@@ -12,7 +12,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
     private static readonly string[] CategoryColors = ["#FACC15", "#6366F1", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6"];
     private static readonly string[] RankColors = ["#FACC15", "#6366F1", "#10B981", "#F59E0B", "#EF4444"];
 
-    public async Task<DashboardResponse> GetDashboardDataAsync(Guid companyId, CancellationToken ct = default)
+    public async Task<DashboardResponse> GetDashboardDataAsync(CancellationToken ct = default)
     {
         var ventas = await context.Sales
             .Where(s => s.Status == SaleStatus.Completed)
@@ -26,12 +26,12 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
             .CountAsync(ct);
 
 
-        var salesChartTask = await GetSalesChartAsync(companyId, ct);
-        var categoriesTask = await GetCategoryDataAsync(companyId, ct);
-        var topProductsTask = await GetTopProductsAsync(companyId, ct);
-        var activitiesTask = await GetRecentActivitiesAsync(companyId, ct);
-        var remindersTask = await GetRemindersAsync(companyId, ct);
-        var statsTask = await GetDashboardStatsAsync(companyId, ct);
+        var salesChartTask = await GetSalesChartAsync(ct);
+        var categoriesTask = await GetCategoryDataAsync(ct);
+        var topProductsTask = await GetTopProductsAsync(ct);
+        var activitiesTask = await GetRecentActivitiesAsync(ct);
+        var remindersTask = await GetRemindersAsync(ct);
+        var statsTask = await GetDashboardStatsAsync(ct);
 
 
         return new DashboardResponse(
@@ -50,7 +50,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
         );
     }
 
-    private async Task<List<SalesChartDto>> GetSalesChartAsync(Guid companyId, CancellationToken ct)
+    private async Task<List<SalesChartDto>> GetSalesChartAsync(CancellationToken ct)
     {
         var sevenDaysAgo = DateTime.UtcNow.Date.AddDays(-6);
 
@@ -86,7 +86,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
             .ToList();
     }
 
-    private async Task<List<CategoryDataDto>> GetCategoryDataAsync(Guid companyId, CancellationToken ct)
+    private async Task<List<CategoryDataDto>> GetCategoryDataAsync(CancellationToken ct)
     {
         var categorySales = await context.SaleItems
             .Where(si => si.Sale.Status == SaleStatus.Completed)
@@ -111,7 +111,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
             .ToList();
     }
 
-    private async Task<List<TopProductDto>> GetTopProductsAsync(Guid companyId, CancellationToken ct)
+    private async Task<List<TopProductDto>> GetTopProductsAsync(CancellationToken ct)
     {
         var topProducts = await context.SaleItems
             .Where(si => si.Sale.Status == SaleStatus.Completed)
@@ -141,7 +141,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
             .ToList();
     }
 
-    private async Task<List<ActivityDto>> GetRecentActivitiesAsync(Guid companyId, CancellationToken ct)
+    private async Task<List<ActivityDto>> GetRecentActivitiesAsync(CancellationToken ct)
     {
         var recentSales = await context.Sales
             .OrderByDescending(s => s.CreatedAt)
@@ -194,7 +194,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
         return allActivities;
     }
 
-    private async Task<List<ReminderDto>> GetRemindersAsync(Guid companyId, CancellationToken ct)
+    private async Task<List<ReminderDto>> GetRemindersAsync(CancellationToken ct)
     {
         var pendingSalesCount = await context.Sales
             .CountAsync(s => s.Status == SaleStatus.Pending, ct);
@@ -222,7 +222,7 @@ public class DashboardRepository(VolterpDbContext context) : IDashboardRepositor
         return reminders;
     }
 
-    private async Task<DashboardStatsDto> GetDashboardStatsAsync(Guid companyId, CancellationToken ct)
+    private async Task<DashboardStatsDto> GetDashboardStatsAsync(CancellationToken ct)
     {
         var ordersCompleted = await context.Sales
             .CountAsync(s => s.Status == SaleStatus.Completed, ct);

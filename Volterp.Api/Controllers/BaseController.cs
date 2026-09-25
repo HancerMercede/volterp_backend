@@ -13,6 +13,8 @@ public abstract class BaseController : ControllerBase
         return id ?? throw new UnauthorizedException("Missing companyId claim.");
     }
 
+    protected void EnsureTenant() => GetCurrentUserCompanyId();
+
     protected Guid? GetCurrentUserId()
     {
         var raw = User.FindFirst(Claims.UserId)?.Value;

@@ -6,7 +6,7 @@ namespace Volterp.Application.Interfaces;
 public interface ICategoryRepository : IRepositoryBase<Category>
 {
     Task<Category?> GetCategoryByIdAsync(Guid id, CancellationToken ct = default);
-    Task<PagedResult<Category>> GetAllCategoriesByCompanyAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<Category>> GetAllCategoriesAsync(int pageNumber, int pageSize, CancellationToken ct = default);
     Task<Category> AddCategoryAsync(Category category, CancellationToken ct = default);
     Task UpdateCategoryAsync(Category category, CancellationToken ct = default);
     Task DeleteCategoryAsync(Guid id, CancellationToken ct = default);

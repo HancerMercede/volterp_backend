@@ -12,10 +12,10 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var result = await serviceManager
             .Clients
-            .GetAllClientsAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+            .GetAllClientsAsync(pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
     }
@@ -23,10 +23,10 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
     [HttpGet("{id}")]
     public async Task<ActionResult<ClientDto>> GetClient(Guid id, CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var client = await serviceManager
             .Clients
-            .GetClientByIdAsync(id, companyId, ct);
+            .GetClientByIdAsync(id, ct);
 
         return client.Match<ActionResult<ClientDto>>(
             error => NotFound(error.Message),

@@ -116,7 +116,7 @@ public class SupplierServiceTenantLeakTests
 
         var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
         mockSuppliersRepo
-            .Setup(r => r.GetSupplierByIdAsync(SupplierId, JwtCompanyId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetSupplierByIdAsync(SupplierId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSupplier);
         mockSuppliersRepo
             .Setup(r => r.UpdateSupplierAsync(It.IsAny<Supplier>(), It.IsAny<CancellationToken>()))
@@ -169,7 +169,7 @@ public class SupplierServiceTenantLeakTests
 
         var (mockUnitOfWork, mockSuppliersRepo) = BuildUnitOfWork();
         mockSuppliersRepo
-            .Setup(r => r.GetSupplierByIdAsync(SupplierId, JwtCompanyId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetSupplierByIdAsync(SupplierId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSupplier);
         mockSuppliersRepo
             .Setup(r => r.UpdateSupplierAsync(It.IsAny<Supplier>(), It.IsAny<CancellationToken>()))

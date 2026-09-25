@@ -9,19 +9,19 @@ namespace Volterp.Application.Services;
 
 public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
 {
-    public async Task<PagedResult<SupplierDto>> GetAllSuppliersAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<SupplierDto>> GetAllSuppliersAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
-        var suppliers = await unitOfWork.Suppliers.GetAllSuppliersByCompanyAsync(companyId, pageNumber, pageSize, ct);
+        var suppliers = await unitOfWork.Suppliers.GetAllSuppliersAsync(pageNumber, pageSize, ct);
 
         return suppliers.MapTo<Supplier, SupplierDto>();
     }
 
-    public async Task<Either<Error,SupplierDto?>> GetSupplierByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
+    public async Task<Either<Error,SupplierDto?>> GetSupplierByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("The id must not be empty."))
-            .FlatMap(async (s) => await unitOfWork.Suppliers.GetSupplierByIdAsync(s, companyId, ct),
+            .FlatMap(async (s) => await unitOfWork.Suppliers.GetSupplierByIdAsync(s, ct),
                 exception => new Error($"Error: {exception.Message}"))
             .Map(supplier => supplier?.MapTo<Supplier, SupplierDto>())
             .Run();
@@ -59,7 +59,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Ensure(_ => !string.IsNullOrEmpty(request.Address), new Error("The address must be specified."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Email), new Error("The email must be specified."))
             .Ensure(_=> request.Email.IsValidEmail(), _=> new Error("The email is not valid"))
-            .FlatMap(async supplier => await unitOfWork.Suppliers.GetSupplierByIdAsync(id, companyId, ct),
+            .FlatMap(async supplier => await unitOfWork.Suppliers.GetSupplierByIdAsync(id, ct),
                 exception => new Error($"Error: {exception.Message}"))
             .Map(supplier =>
             {
@@ -92,7 +92,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Ensure(s => s != Guid.Empty, new Error("the id must not be empty."))
             .FlatMap(async supplierId =>
             {
-                var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(supplierId, companyId, ct);
+                var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(supplierId, ct);
                 return supplier;
             }, exception => new Error($"error:{exception.Message}"))
             .FlatMap(async supplier =>

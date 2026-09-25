@@ -105,7 +105,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -144,7 +144,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -193,14 +193,14 @@ public class  SaleServiceTests
             PageCount = 1
         };
 
-        mockSalesRepo.Setup(r => r.GetAllSalesByCompanyAsync(Guid7TestValues.CompanyA, 1, 10, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetAllSalesAsync(1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sales);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetAllSalesAsync(Guid7TestValues.CompanyA, 1, 10);
+        var result = await service.GetAllSalesAsync(1, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(2);
@@ -226,14 +226,14 @@ public class  SaleServiceTests
             PageCount = 1
         };
 
-        mockSalesRepo.Setup(r => r.GetSalesByStatusAsync(Guid7TestValues.CompanyA, SaleStatus.Pending, 1, 10, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSalesByStatusAsync(SaleStatus.Pending, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sales);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetSalesByStatusAsync(Guid7TestValues.CompanyA, SaleStatus.Pending, 1, 10);
+        var result = await service.GetSalesByStatusAsync(SaleStatus.Pending, 1, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(1);
@@ -257,14 +257,14 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
+        var result = await service.GetSaleByIdAsync(Guid7TestValues.SaleA);
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto?>.Right>();
@@ -281,14 +281,14 @@ public class  SaleServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA);
+        var result = await service.GetSaleByIdAsync(Guid.NewGuid());
 
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto?>.Right>();
@@ -338,7 +338,7 @@ public class  SaleServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
@@ -368,7 +368,7 @@ public class  SaleServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
@@ -390,7 +390,7 @@ public class  SaleServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
@@ -419,7 +419,7 @@ public class  SaleServiceTests
             Items = new List<SaleItem>()
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -492,14 +492,14 @@ public class  SaleServiceTests
             PageCount = 1
         };
 
-        mockSalesRepo.Setup(r => r.GetAllSalesByCompanyAsync(Guid7TestValues.CompanyA, 0, 10, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetAllSalesAsync(0, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sales);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetAllSalesAsync(Guid7TestValues.CompanyA, 0, 10);
+        var result = await service.GetAllSalesAsync(0, 10);
 
         // ASSERT
         result.Items.Should().HaveCount(1);
@@ -611,7 +611,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
         mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
@@ -662,7 +662,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
         mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
@@ -712,7 +712,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
         mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
@@ -756,7 +756,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingSale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -873,14 +873,14 @@ public class  SaleServiceTests
             PageCount = 0
         };
 
-        mockSalesRepo.Setup(r => r.GetSalesByStatusAsync(Guid7TestValues.CompanyA, SaleStatus.Completed, 1, 10, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSalesByStatusAsync(SaleStatus.Completed, 1, 10, It.IsAny<CancellationToken>()))
             .ReturnsAsync(emptyResult);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
 
         // ACT
-        var result = await service.GetSalesByStatusAsync(Guid7TestValues.CompanyA, SaleStatus.Completed, 1, 10);
+        var result = await service.GetSalesByStatusAsync(SaleStatus.Completed, 1, 10);
 
         // ASSERT
         result.Items.Should().BeEmpty();
@@ -906,7 +906,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -946,7 +946,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -985,7 +985,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<Product> { product });
@@ -1022,7 +1022,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -1062,7 +1062,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
@@ -1102,7 +1102,7 @@ public class  SaleServiceTests
             }
         };
 
-        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
         mockSalesRepo.Setup(r => r.DeleteSaleAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);

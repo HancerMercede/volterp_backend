@@ -7,11 +7,11 @@ namespace Volterp.Infrastructure.Repositories;
 
 public class PurchaseRepository(VolterpDbContext context) : RepositoryBase<Purchase>(context), IPurchaseRepository
 {
-    public async Task<PagedResult<Purchase>> GetAllPurchasesByCompanyAsync(Guid companyId, int pageNumber, int pageSize,
+    public async Task<PagedResult<Purchase>> GetAllPurchasesAsync(int pageNumber, int pageSize,
         CancellationToken ct = default)
         => await GetAllAsync(_ => true, pageNumber, pageSize, ct);
 
-    public async Task<Purchase?> GetPurchaseByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
+    public async Task<Purchase?> GetPurchaseByIdAsync(Guid id, CancellationToken ct = default)
         => await GetByCondictionsAsync(p => p.Id == id, ct);
 
     public async Task<Purchase> AddPurchaseAsync(Purchase purchase, CancellationToken ct = default)

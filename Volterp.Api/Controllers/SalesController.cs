@@ -19,10 +19,10 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var result = await serviceManager
             .Sales
-            .GetAllSalesAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+            .GetAllSalesAsync(pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
     }
@@ -33,10 +33,10 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var result = await serviceManager
             .Sales
-            .GetSalesByStatusAsync(companyId, status, pagination.PageNumber, pagination.PageSize, ct);
+            .GetSalesByStatusAsync(status, pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
     }
@@ -46,10 +46,10 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var result = await serviceManager
             .Sales
-            .GetSalesByStatusAsync(companyId, SaleStatus.Pending, pagination.PageNumber, pagination.PageSize, ct);
+            .GetSalesByStatusAsync(SaleStatus.Pending, pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
     }
@@ -57,8 +57,8 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     [HttpGet("{id}")]
     public async Task<ActionResult<SaleDto>> GetSale(Guid id, CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.Sales.GetSaleByIdAsync(id, companyId, ct);
+        EnsureTenant();
+        var result = await serviceManager.Sales.GetSaleByIdAsync(id, ct);
 
         return result.Match<ActionResult<SaleDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),

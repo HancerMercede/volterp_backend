@@ -12,10 +12,10 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var result = await serviceManager
             .Suppliers
-            .GetAllSuppliersAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+            .GetAllSuppliersAsync(pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
     }
@@ -23,10 +23,10 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
     [HttpGet("{id}")]
     public async Task<ActionResult<SupplierDto>> GetSupplier(Guid id, CancellationToken ct = default)
     {
-        var companyId = GetCurrentUserCompanyId();
+        EnsureTenant();
         var result = await serviceManager
             .Suppliers
-            .GetSupplierByIdAsync(id, companyId, ct);
+            .GetSupplierByIdAsync(id, ct);
 
         return result.Match<ActionResult<SupplierDto>>(
             error => NotFound(new { message = error.Message }),

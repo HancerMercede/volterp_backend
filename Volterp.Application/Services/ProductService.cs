@@ -12,20 +12,20 @@ namespace Volterp.Application.Services;
 
 public class ProductService(IUnitOfWork unitOfWork) : IProductService
 {
-    public async Task<PagedResult<ProductDto>> GetAllAsync(Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<PagedResult<ProductDto>> GetAllAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
-        var products = await unitOfWork.Products.GetAllProductsByCompanyAsync(companyId, pageNumber, pageSize, ct);
+        var products = await unitOfWork.Products.GetAllProductsAsync(pageNumber, pageSize, ct);
         return products.MapTo<Product, ProductDto>();
     }
 
-    public async Task<Either<Error, ProductDto?>> GetByIdAsync(Guid id, Guid companyId, CancellationToken ct = default)
+    public async Task<Either<Error, ProductDto?>> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async productId => await unitOfWork.Products.GetProductByIdAsync(productId, ct),
                 ex => new Error(ex.Message))
-            .Ensure(product => product is not null && product.CompanyId == companyId,
+            .Ensure(product => product is not null,
                 new Error("Product not found."))
             .Map(product => product?.MapTo<Product, ProductDto>())
             .Run();
@@ -65,7 +65,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async productId => await unitOfWork.Products.GetProductByIdAsync(productId, ct),
                 ex => new Error(ex.Message))
-            .Ensure(product => product is not null && product.CompanyId == companyId,
+            .Ensure(product => product is not null,
                 new Error("Product not found."))
             .FlatMap(async product =>
             {
@@ -105,7 +105,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async productId => await unitOfWork.Products.GetProductByIdAsync(productId, ct),
                 ex => new Error(ex.Message))
-            .Ensure(product => product is not null && product.CompanyId == companyId,
+            .Ensure(product => product is not null,
                 new Error("Product not found."))
             .FlatMap(async product =>
             {
