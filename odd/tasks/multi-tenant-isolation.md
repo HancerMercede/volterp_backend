@@ -312,10 +312,82 @@ Hard rules from now on:
 - 25 files changed, 490 insertions, 192 deletions.
 - Commit: pendiente.
 
+## Phase 2 (future work)
+
+Phase 1 cerrada. Esta fase cubre el trabajo futuro opcional listado en `## Next step` previo. Scope confirmado en sesión 2026-09-24: 4 tareas; Message Handler queda explícitamente descartado (Volterp es ERP síncrono, no event-driven).
+
+### Estado de las tareas
+
+| # | Tarea | Estado | Bloqueador |
+|---|---|---|---|
+| 1 | Eliminar 33 `Ensure(companyId != Guid.Empty, ...)` en services | Pendiente | — |
+| 2 | Consolidar `BaseController.GetCurrentUserCompanyId` → consumer de `ITenantContext` | Pendiente | — |
+| 3 | Implementar **Admin Global** `ITenantContext` (cross-tenant) | **BLOQUEADO** | No hay endpoints admin (ver `IsSuperAdminOnly` call sites: 4, todos en `UsersController`) |
+| 4 | Wirear Serilog enricher para `CompanyId` | Pendiente | — |
+| ~~5~~ | ~~Message Handler `ITenantContext`~~ | **DESCARTADO** | ERP síncrono, sin message broker |
+
+### Task 1 — Remove 33 `Ensure(companyId != Guid.Empty, ...)` boilerplate
+- **File scope**: `Volterp.Application/Services/*.cs` (10 archivos).
+- **Patrón exacto**: `.Ensure(_ => companyId != Guid.Empty, new Error("..."))` → eliminar línea + ajustar chain.
+- **Variantes detectadas** (todas a eliminar):
+  - Forma estándar `_` (28×): `AccountingTransactionService`, `PurchaseService`, `SaleService`, `UserService`, `CategoryService`, `ClientService`, `EmployeeService`, `ProductService`, `SupplierService` (mayoría).
+  - Alias `c` (1×): `DashboardService.cs:14` — `.Ensure(c => c != Guid.Empty, ...)`.
+  - Multi-line (1×): `SupplierService.cs:42-43` con indentación rota.
+  - Strings de error inconsistentes (28 "companyId", 2 "company id", 2 "The companyId", 1 "the companyId") — todos a eliminar.
+- **Razón**: `BaseController.GetCurrentUserCompanyId()` lanza 401 antes de que el service corra → el guard es unreachable. `ITenantContext` cubre el resto.
+- **Hard rules**: usar `Edit` (no `Write`), no agregar comments, no tocar firmas de service.
+- **Verificación**:
+  - `git grep "companyId != Guid.Empty" Volterp.Application` → 0.
+  - `git grep "Guid.Empty" Volterp.Application/Services` → 0 (excluyendo falsos positivos).
+  - `dotnet test` → 283 passing (sin cambios).
+  - `dotnet build` → 0 errors, 0 warnings nuevos.
+- **TDD**: dead-code elimination, no cycle red→green→refactor. Caracterización previa = los 283 tests existentes ya cubren el behavior. Si siguen verdes post-eliminación, el cambio es seguro.
+- **Commit**: `chore(multi-tenant): remove 33 Ensure(companyId != Guid.Empty) boilerplate`.
+
+### Task 2 — Consolidate `BaseController.GetCurrentUserCompanyId` → `ITenantContext` consumer
+- **File scope**: `Volterp.Api/Controllers/BaseController.cs`.
+- **Approach**: reemplazar el body de `GetCurrentUserCompanyId()` para leer de `ITenantContext.CompanyId` en vez de leer el claim directo. Mantener firma pública exacta (`Guid`, throws 401).
+- **Razón**: `HttpTenantContext.CompanyId` ya es la fuente de verdad (registrado en DI). `BaseController.GetCurrentUserCompanyId()` duplica la lectura del claim.
+- **NO** se hace en este task:
+  - Eliminar `CurrentUserService` (lo usa `UserService.IsSuperAdmin()`).
+  - Cambiar firmas de service.
+  - Tocar los 47 call sites de `GetCurrentUserCompanyId()`.
+- **Hard rules**: `Edit` solamente, no agregar comments, no romper los 16 tests de `BaseControllerAuthorizationTests` + `CurrentUserCompanyIdCharacterizationTests`.
+- **Verificación**:
+  - `dotnet test` → 283 passing (sin cambios).
+  - 16 tests de `BaseControllerAuthorizationTests` + `CurrentUserCompanyIdCharacterizationTests` siguen verdes sin tocarlos.
+- **TDD**: los tests existentes son la red. Si siguen verdes, el refactor preserva el behavior.
+- **Commit**: `refactor(multi-tenant): consolidate BaseController.GetCurrentUserCompanyId via ITenantContext`.
+
+### Task 3 — Admin Global `ITenantContext` (BLOQUEADO)
+- **Bloqueador**: no hay endpoints admin cross-tenant. `IsSuperAdminOnly()` está definido en `BaseController.cs:32-33` pero solo se usa en `UsersController` (4 call sites), y todos son para autorizar acciones de users — no para queries cross-tenant.
+- **Cuando se desbloquee**: implementar `AdminTenantContext` con Guid fijo + `IgnoreQueryFilters()` en admin repos. Wrap en `IsSuperAdminOnly()`.
+- **Re-check** cuando aparezca el primer endpoint admin cross-tenant.
+
+### Task 4 — Wirear Serilog enricher para `CompanyId`
+- **File scope**: `Volterp.Api/` (middleware nuevo) + `Program.cs` (1 línea de registration).
+- **Approach**: middleware después de `UseAuthentication` que haga `LogContext.PushProperty("CompanyId", tenant.CompanyId)` por el lifetime del request.
+- **Razón**: cada log entry durante un request debería llevar el tenant scope para cross-tenant tracing trivial.
+- **Hard rules**: no modificar middleware existente, agregar uno nuevo.
+- **Verificación**: integration test con log capture; assert cada entry durante request autenticado tiene `CompanyId` property.
+- **Riesgo**: bajo, aislado.
+
+### Constraints vigentes (Phase 2)
+- Los 7 hard rules del doc (líneas 288-299): cero doc-comments, cero refs al plan en código, cero defensive code, cero over-engineering de tests.
+- TDD: dead-code elimination se verifica con los tests existentes; refactor preserva behavior.
+- Branch: continuar en `refactor/multi-tenant-system` hasta merge (decisión del usuario).
+- Commit messages: conventional commits sin AI attribution.
+- Delivery: ~400 líneas/PR heurística. Task 1 = 33 deletions (bien dentro del budget).
+
+### Out of scope (deferred explícitamente)
+- Schema reset (`dotnet ef database drop --force` + `dotnet ef database update`) — user-owned.
+- Revisar migrations de `bf55432` — user-owned decision.
+
+### Progress
+_(vacío — Task 1 pendiente)_
+
 ## Next step
-Phase 1 cerrada. Ciclos 1.0–1.4 completos (10 commits desde `development @ 62339ed`). Pendiente:
-- **Trabajo del usuario**: schema reset (`dotnet ef database drop --force` + `dotnet ef database update`); revisar migrations de `bf55432`.
-- **Trabajo futuro opcional**: eliminar los 33 `Ensure(companyId != Guid.Empty, ...)` en services; consolidar `BaseController.GetCurrentUserCompanyId` + `CurrentUserService` en un solo consumer de `HttpTenantContext`; implementar contexto 2 (Admin Global); wirear Serilog enricher para `CompanyId`.
+- **Task 1 (Ensure elimination)**: arrancar ahora. Decisión técnica clara, dead code, verificado por tests existentes.
 
 ## Relevant Files (paths relativos al repo)
 - Entities: `Volterp.Domain/Entities/{AccountingTransaction,Category,Client,Company,Employee,Product,Purchase,PurchaseItem,Sale,SaleItem,Supplier,User}.cs`
