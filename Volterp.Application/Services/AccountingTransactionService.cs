@@ -28,7 +28,6 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async transactionId => await unitOfWork.AccountingTransactions.GetByIdAsync(transactionId, companyId, ct),
                 ex => new Error(ex.Message))
             .Map(transaction => transaction is null ? null : MapToDto(transaction))
@@ -40,7 +39,6 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
         return await EitherAsync<Error, AccountingTransactionDto>
             .FromRight(request)
             .Ensure(r => !string.IsNullOrWhiteSpace(r.Description), new Error("The description is required."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async req =>
             {
                 var transaction = new AccountingTransaction
@@ -71,7 +69,6 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async transactionId => await unitOfWork.AccountingTransactions.GetByIdAsync(transactionId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(transaction => transaction is not null, new Error("Accounting transaction not found."))
@@ -107,7 +104,6 @@ public class AccountingTransactionService(IUnitOfWork unitOfWork) : IAccountingT
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async transactionId => await unitOfWork.AccountingTransactions.GetByIdAsync(transactionId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(transaction => transaction is not null, new Error("Accounting transaction not found."))

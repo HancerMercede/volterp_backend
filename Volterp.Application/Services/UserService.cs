@@ -35,7 +35,6 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Try(async() => await unitOfWork.Users.GetByUsernameAsync(request.Username, ct))
             .MapLeft(ex => new Error(ex.Message))
             .Ensure(user => user is null, new Error("username already exists"))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .Ensure(_ => request.Role != UserRole.SuperAdmin || currentUserService.IsSuperAdmin(),
                 _ => new Error("Only SuperAdmin can create SuperAdmin users"))
             .Map(_ => request.Project())

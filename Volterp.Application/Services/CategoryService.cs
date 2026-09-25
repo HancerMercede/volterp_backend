@@ -21,7 +21,6 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async categoryId => await unitOfWork.Categories.GetCategoryByIdAsync(categoryId, ct),
                 ex => new Error(ex.Message))
             .Map(category => category is null || category.CompanyId != companyId ? null : category.MapTo<Category, CategoryDto>())
@@ -33,7 +32,6 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         return await EitherAsync<Error, CreateCategoryRequest>
             .FromRight(request)
             .Ensure(r => !string.IsNullOrWhiteSpace(r.Name), new Error("The name is required."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .Map(r => r.Project())
             .Map(category =>
             {
@@ -56,7 +54,6 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async categoryId => await unitOfWork.Categories.GetCategoryByIdAsync(categoryId, ct),
                 ex => new Error(ex.Message))
             .Ensure(category => category is not null && category.CompanyId == companyId,
@@ -88,7 +85,6 @@ public class CategoryService(IUnitOfWork unitOfWork) : ICategoryService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async categoryId => await unitOfWork.Categories.GetCategoryByIdAsync(categoryId, ct),
                 ex => new Error(ex.Message))
             .Ensure(category => category is not null && category.CompanyId == companyId,

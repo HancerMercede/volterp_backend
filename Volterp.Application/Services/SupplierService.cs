@@ -21,7 +21,6 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("The id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("The companyId must not be empty."))
             .FlatMap(async (s) => await unitOfWork.Suppliers.GetSupplierByIdAsync(s, companyId, ct),
                 exception => new Error($"Error: {exception.Message}"))
             .Map(supplier => supplier?.MapTo<Supplier, SupplierDto>())
@@ -39,8 +38,6 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Ensure(x => !string.IsNullOrEmpty(x.Email),
                 new Error("The email must be specified."))
             .Ensure(_=> request.Email.IsValidEmail(), _=> new Error("The email is not valid"))
-            .Ensure(_=> companyId != Guid.Empty,
-                new Error("The companyId must not be empty."))
             .Map(_ => request.Project())
             .Map(supplier =>
             {
@@ -58,7 +55,6 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
     {
         return await EitherAsync<Error, Guid>.FromRight(id)
             .Ensure(s => s != Guid.Empty, new Error("The id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("The companyId must not be empty."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Name), new Error("The name must be specified."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Address), new Error("The address must be specified."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Email), new Error("The email must be specified."))
@@ -94,7 +90,6 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
 
         return await EitherAsync<Error, Guid>.FromRight(id)
             .Ensure(s => s != Guid.Empty, new Error("the id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("the companyId must not be empty."))
             .FlatMap(async supplierId =>
             {
                 var supplier = await unitOfWork.Suppliers.GetSupplierByIdAsync(supplierId, companyId, ct);

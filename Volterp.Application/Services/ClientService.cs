@@ -21,7 +21,6 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error($"companyId must not be empty."))
             .FlatMap(async userId => await unitOfWork.Clients.GetClientByIdAsync(userId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(client => client is not null,
@@ -38,7 +37,6 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .Ensure(x=> !string.IsNullOrEmpty(x.Email), new Error("The email is required."))
             .Ensure(x=> !string.IsNullOrEmpty(x.Phone), new Error("The phone is required."))
             .Ensure(x=> !string.IsNullOrEmpty(x.Address), new Error("The address is required."))
-            .Ensure(_ =>  companyId != Guid.Empty, new Error("companyId must not be empty."))
             .Map(x => x.Project())
             .FlatMap(async client =>
             {
@@ -58,7 +56,6 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .Try(async () => await unitOfWork.Clients.GetClientByIdAsync(id, companyId, ct))
             .MapLeft(error => new Error(error.Message))
             .Ensure(client => client is not null, new Error("User not found."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("company id must not be empty."))
             .Map(client =>
             {
                 client.Apply(c =>
@@ -89,7 +86,6 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("company id must not be empty."))
             .FlatMap(async userId => await unitOfWork.Clients.GetClientByIdAsync(userId, companyId, ct),
                 error => new Error(error.Message))
             .Ensure(client => client is not null, new Error("User not found."))

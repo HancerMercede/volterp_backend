@@ -23,7 +23,6 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async productId => await unitOfWork.Products.GetProductByIdAsync(productId, ct),
                 ex => new Error(ex.Message))
             .Ensure(product => product is not null && product.CompanyId == companyId,
@@ -64,7 +63,6 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async productId => await unitOfWork.Products.GetProductByIdAsync(productId, ct),
                 ex => new Error(ex.Message))
             .Ensure(product => product is not null && product.CompanyId == companyId,
@@ -105,7 +103,6 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async productId => await unitOfWork.Products.GetProductByIdAsync(productId, ct),
                 ex => new Error(ex.Message))
             .Ensure(product => product is not null && product.CompanyId == companyId,

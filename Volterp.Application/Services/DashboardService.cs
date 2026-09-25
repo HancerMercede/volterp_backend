@@ -11,7 +11,6 @@ public class DashboardService(IUnitOfWork unitOfWork) : IDashboardService
     {
         return await EitherAsync<Error, Guid>
             .FromRight(companyId)
-            .Ensure(c => c != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async id => await unitOfWork.Dashboard.GetDashboardDataAsync(id, ct),
                 ex => new Error(ex.Message))
             .Run();

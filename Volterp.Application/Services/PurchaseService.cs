@@ -20,7 +20,6 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
                 ex => new Error(ex.Message))
             .Map(purchase => purchase is null ? null : purchase.MapTo<Purchase, PurchaseDto>())
@@ -89,7 +88,6 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(purchase => purchase is not null, new Error("Purchase not found."))
@@ -153,7 +151,6 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async purchaseId => await unitOfWork.Purchases.GetPurchaseByIdAsync(purchaseId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(purchase => purchase is not null, new Error("Purchase not found."))

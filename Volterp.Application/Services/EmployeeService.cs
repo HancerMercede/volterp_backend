@@ -22,7 +22,6 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async employeeId => await unitOfWork.Employees.GetEmployeeByIdAsync(employeeId, companyId, ct),
                 ex => new Error(ex.Message))
             .Map(employee => employee?.MapTo<Employee, EmployeeDto>())
@@ -35,7 +34,6 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
             .FromRight(request)
             .Ensure(r => !string.IsNullOrWhiteSpace(r.FirstName), new Error("The first name is required."))
             .Ensure(r => !string.IsNullOrWhiteSpace(r.LastName), new Error("The last name is required."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .Map(r => r.Project())
             .Map(employee =>
             {
@@ -58,7 +56,6 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async employeeId => await unitOfWork.Employees.GetEmployeeByIdAsync(employeeId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(employee => employee is not null, new Error("Employee not found."))
@@ -102,7 +99,6 @@ public class EmployeeService(IUnitOfWork unitOfWork) : IEmployeeService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async employeeId => await unitOfWork.Employees.GetEmployeeByIdAsync(employeeId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(employee => employee is not null, new Error("Employee not found."))

@@ -41,7 +41,6 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, companyId, ct),
                 ex => new Error(ex.Message))
             .Map(sale => sale?.MapTo<Sale, SaleDto>())
@@ -53,7 +52,6 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return await EitherAsync<Error, CreateSaleRequest>
             .FromRight(request)
             .Ensure(r => r.Items.Count > 0, new Error("Sale must have at least one item."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async req =>
             {
                 var sale = req.Project();
@@ -89,7 +87,6 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(sale => sale is not null, new Error("Sale not found."))
@@ -154,7 +151,6 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(sale => sale is not null, new Error("Sale not found."))
@@ -196,7 +192,6 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
-            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(sale => sale is not null, new Error("Sale not found."))
