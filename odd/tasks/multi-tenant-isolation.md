@@ -415,8 +415,8 @@ Phase 1 cerrada. Esta fase cubre el trabajo futuro opcional listado en `## Next 
 - [x] Task 1 — Ensure elimination (commit `cc7b030`)
 - [x] Task 2 — BaseController consolidation (commit `7ebc82e`)
 - [ ] Task 3 — Admin Global ITenantContext (BLOCKED — sin endpoints admin)
-- [ ] Task 4 — Serilog enricher para CompanyId
-- [ ] Task 5 — Remove dead `companyId` parameter
+- [x] Task 4 — Serilog enricher para CompanyId ✅
+- [x] Task 5 — Remove dead `companyId` parameter (commit `a22a814`)
 
 ## Next step
 - **Task 1 (Ensure elimination)**: arrancar ahora. Decisión técnica clara, dead code, verificado por tests existentes.

@@ -1,10 +1,21 @@
+using Serilog;
 using Volterp.Api.Configuration;
+using Volterp.Api.Middleware;
 using Volterp.Application.Diagnostics;
 using Volterp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Volterp.Api.Extensions;
 
-var builder = WebApplication.CreateBuilder(args);
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .CreateLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+
+    builder.Host.UseSerilog();
 
 var jwtSettings = new JwtSettings
 {
@@ -45,6 +56,7 @@ app.ConfigureExceptionMiddleWare(app.Logger);
 app.UseForwardedHeaders();
 app.UseCors();
 app.UseAuthentication();
+app.UseMiddleware<TenantLoggingMiddleware>();
 app.UseRateLimiter();
 app.UseAuthorization();
 
@@ -77,3 +89,12 @@ app.MapGet("/_diagnostics/exceptions", (IExceptionLogStore store) =>
 
 app.UseStaticFiles();
 app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
