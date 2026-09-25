@@ -17,6 +17,9 @@ public sealed class TenantLoggingMiddleware(RequestDelegate next, ITenantContext
 
 public static class TenantLoggingExtensions
 {
-    public static IApplicationBuilder UseTenantLogging(this IApplicationBuilder builder)
-        => builder.UseMiddleware<TenantLoggingMiddleware>();
+    extension(IApplicationBuilder builder)
+    {
+        public void UseTenantLogging()
+            => builder.UseMiddleware<TenantLoggingMiddleware>();
+    }
 }
