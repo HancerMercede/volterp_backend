@@ -1,6 +1,5 @@
 using Serilog;
 using Volterp.Api.Configuration;
-using Volterp.Api.Middleware;
 using Volterp.Application.Diagnostics;
 using Volterp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -56,7 +55,7 @@ app.ConfigureExceptionMiddleWare(app.Logger);
 app.UseForwardedHeaders();
 app.UseCors();
 app.UseAuthentication();
-app.UseMiddleware<TenantLoggingMiddleware>();
+app.UseTenantLogging();
 app.UseRateLimiter();
 app.UseAuthorization();
 

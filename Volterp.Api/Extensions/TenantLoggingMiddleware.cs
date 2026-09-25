@@ -1,7 +1,7 @@
 using Serilog.Context;
 using Volterp.Application.Abstractions;
 
-namespace Volterp.Api.Middleware;
+namespace Volterp.Api.Extensions;
 
 public sealed class TenantLoggingMiddleware(RequestDelegate next, ITenantContext tenantContext)
 {
@@ -13,4 +13,10 @@ public sealed class TenantLoggingMiddleware(RequestDelegate next, ITenantContext
             await next(context);
         }
     }
+}
+
+public static class TenantLoggingExtensions
+{
+    public static IApplicationBuilder UseTenantLogging(this IApplicationBuilder builder)
+        => builder.UseMiddleware<TenantLoggingMiddleware>();
 }
