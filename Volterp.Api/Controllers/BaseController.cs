@@ -1,4 +1,6 @@
+using Microsoft.Extensions.DependencyInjection;
 using Volterp.Api.Exceptions;
+using Volterp.Application.Abstractions;
 using Volterp.Application.Common;
 
 namespace Volterp.Api.Controllers;
@@ -7,12 +9,8 @@ public abstract class BaseController : ControllerBase
 {
     protected Guid GetCurrentUserCompanyId()
     {
-        var raw = User.FindFirst(Claims.CompanyId)?.Value;
-        if (string.IsNullOrEmpty(raw))
-            throw new UnauthorizedException("Missing companyId claim.");
-        if (!Guid.TryParseExact(raw, "N", out var id))
-            throw new UnauthorizedException("Malformed companyId claim.");
-        return id;
+        var id = HttpContext.RequestServices.GetRequiredService<ITenantContext>().CompanyId;
+        return id ?? throw new UnauthorizedException("Missing companyId claim.");
     }
 
     protected Guid? GetCurrentUserId()

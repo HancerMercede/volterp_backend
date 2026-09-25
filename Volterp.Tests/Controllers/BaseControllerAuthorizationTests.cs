@@ -2,8 +2,11 @@ using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Volterp.Api.Controllers;
 using Volterp.Api.Exceptions;
+using Volterp.Api.Http;
+using Volterp.Application.Abstractions;
 using Volterp.Application.Common;
 using Xunit;
 
@@ -21,10 +24,15 @@ public class BaseControllerAuthorizationTests
         where TController : ControllerBase
     {
         var identity = new ClaimsIdentity(claims, authenticationType: "TestAuth");
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
-        };
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+
+        var accessor = new HttpContextAccessor { HttpContext = httpContext };
+        var services = new ServiceCollection();
+        services.AddSingleton<IHttpContextAccessor>(accessor);
+        services.AddSingleton<ITenantContext>(new HttpTenantContext(accessor));
+        httpContext.RequestServices = services.BuildServiceProvider();
+
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         return controller;
     }
 

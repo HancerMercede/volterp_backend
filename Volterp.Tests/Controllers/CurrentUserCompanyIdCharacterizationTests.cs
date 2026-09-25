@@ -2,10 +2,13 @@ using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Volterp.Api.Controllers;
 using Volterp.Api.Exceptions;
 using Volterp.Api.Helpers;
+using Volterp.Api.Http;
+using Volterp.Application.Abstractions;
 using Volterp.Application.Common;
 using Volterp.Tests.TestHelpers;
 using Xunit;
@@ -24,10 +27,15 @@ public class CurrentUserCompanyIdCharacterizationTests
         where TController : ControllerBase
     {
         var identity = new ClaimsIdentity(claims, authenticationType: "TestAuth");
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
-        };
+        var httpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
+
+        var accessor = new HttpContextAccessor { HttpContext = httpContext };
+        var services = new ServiceCollection();
+        services.AddSingleton<IHttpContextAccessor>(accessor);
+        services.AddSingleton<ITenantContext>(new HttpTenantContext(accessor));
+        httpContext.RequestServices = services.BuildServiceProvider();
+
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         return controller;
     }
 
@@ -71,10 +79,7 @@ public class CurrentUserCompanyIdCharacterizationTests
     [Fact]
     public void BaseController_GetCurrentUserCompanyId_WhenUserIsAnonymous_ThrowsUnauthorized()
     {
-        var sut = new TestableBaseController
-        {
-            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
-        };
+        var sut = BuildWithUser(new TestableBaseController());
 
         Action act = () => sut.InvokeGetCurrentUserCompanyId();
 

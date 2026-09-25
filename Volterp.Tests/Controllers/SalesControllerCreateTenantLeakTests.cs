@@ -3,8 +3,11 @@ using EitherWay;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Volterp.Api.Controllers;
+using Volterp.Api.Http;
+using Volterp.Application.Abstractions;
 using Volterp.Application.Common;
 using Volterp.Application.DTOs;
 using Volterp.Application.Exceptions.AppErrors;
@@ -34,10 +37,15 @@ public class SalesControllerCreateTenantLeakTests
         var identity = new ClaimsIdentity(claims, authenticationType: "TestAuth");
         var principal = new ClaimsPrincipal(identity);
 
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = principal }
-        };
+        var httpContext = new DefaultHttpContext { User = principal };
+
+        var accessor = new HttpContextAccessor { HttpContext = httpContext };
+        var services = new ServiceCollection();
+        services.AddSingleton<IHttpContextAccessor>(accessor);
+        services.AddSingleton<ITenantContext>(new HttpTenantContext(accessor));
+        httpContext.RequestServices = services.BuildServiceProvider();
+
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
         return controller;
     }
