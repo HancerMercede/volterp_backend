@@ -5,16 +5,9 @@ using Volterp.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Volterp.Api.Extensions;
 
-Log.Logger = new LoggerConfiguration()
-    .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-    .CreateLogger();
 
-try
-{
-    var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog();
+var builder = WebApplication.CreateBuilder(args);
 
 var jwtSettings = new JwtSettings
 {
@@ -42,6 +35,14 @@ builder.Services.ConfigureForwardedHeaders();
 builder.Services.ConfigureRateLimiting(builder.Configuration);
 builder.Services.ConfigureSwagger();
 
+Log.Logger = new LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .CreateLogger();
+
+
+builder.Host.UseSerilog();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -55,8 +56,8 @@ app.ConfigureExceptionMiddleWare(app.Logger);
 app.UseForwardedHeaders();
 app.UseCors();
 app.UseAuthentication();
-app.UseTenantLogging();
 app.UseRateLimiter();
+app.UseTenantLogging();
 app.UseAuthorization();
 
 if (app.Environment.IsDevelopment())
@@ -88,12 +89,3 @@ app.MapGet("/_diagnostics/exceptions", (IExceptionLogStore store) =>
 
 app.UseStaticFiles();
 app.Run();
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
-}
