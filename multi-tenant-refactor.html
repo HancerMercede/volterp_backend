@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --accent-primary: #6366f1;
+    --accent-secondary: #8b5cf6;
+    --bg-dark: #0f0c29;
+    --bg-surface: #f1f5f9;
+    --text-primary: #1e293b;
+    --text-light: #ffffff;
+    --text-muted: #64748b;
+    --border: #cbd5e1;
+    --border-radius: 8px;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page { size: A4; margin: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 10pt;
+    line-height: 1.55;
+    color: var(--text-primary);
+    width: 210mm;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    page-break-after: always;
+    background: #fff;
+    padding: 50px 55px 55px;
+    position: relative;
+  }
+
+  .page:last-child { page-break-after: auto; }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1.5px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+    font-size: 7.5pt;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .page-header .brand { color: var(--accent-primary); font-weight: 700; }
+
+  h1 { font-size: 32pt; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+  h2 { font-size: 15pt; font-weight: 700; color: var(--accent-primary); margin: 18px 0 10px; }
+  h3 { font-size: 11pt; font-weight: 700; color: var(--text-primary); margin: 12px 0 6px; }
+  h4 { font-size: 9.5pt; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin: 10px 0 5px; }
+  p { margin-bottom: 7px; font-size: 9.5pt; }
+  ul, ol { margin-left: 18px; margin-bottom: 8px; }
+  li { font-size: 9.5pt; margin-bottom: 3px; }
+
+  .code { font-family: 'JetBrains Mono', monospace; font-size: 8pt; background: var(--bg-surface); padding: 1px 5px; border-radius: 3px; color: var(--accent-primary); }
+  pre {
+    background: var(--bg-dark); color: var(--text-light);
+    font-family: 'JetBrains Mono', monospace; font-size: 7.5pt;
+    line-height: 1.45; padding: 10px 14px; border-radius: 7px;
+    white-space: pre-wrap; word-break: break-all;
+    page-break-inside: avoid; margin: 6px 0;
+  }
+  pre .k { color: #c084fc; }
+  pre .s { color: #86efac; }
+  pre .c { color: #64748b; font-style: italic; }
+
+  /* === COVER === */
+  .page-cover {
+    background: linear-gradient(135deg, #0f0c29 0%, #1e1b4b 50%, #312e81 100%);
+    color: var(--text-light);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 50px 55px;
+    position: relative;
+    overflow: hidden;
+  }
+  .page-cover::before {
+    content: '';
+    position: absolute;
+    top: -30%; right: -15%;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .page-cover::after {
+    content: '';
+    position: absolute;
+    bottom: -25%; left: -10%;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .cover-tag {
+    display: inline-block;
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    color: #c4b5fd;
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 22px;
+    width: fit-content;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-title {
+    font-size: 42pt;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+    margin-bottom: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-title .grad {
+    background: linear-gradient(90deg, #c4b5fd 0%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cover-sub {
+    font-size: 12pt;
+    font-weight: 300;
+    color: #cbd5e1;
+    line-height: 1.45;
+    max-width: 480px;
+    margin-bottom: 38px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+    margin-top: 12px;
+  }
+  .cover-stat {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px 14px;
+    backdrop-filter: blur(10px);
+  }
+  .cover-stat .num {
+    font-size: 22pt;
+    font-weight: 800;
+    background: linear-gradient(90deg, #c4b5fd 0%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+  }
+  .cover-stat .lbl {
+    font-size: 7pt;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+  .cover-foot {
+    position: absolute;
+    bottom: 30px;
+    left: 55px;
+    right: 55px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt;
+    color: #64748b;
+    z-index: 1;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* === CARDS === */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 10px 0;
+    page-break-inside: avoid;
+  }
+  .card {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--border-radius);
+    padding: 11px 14px;
+    border-left: 4px solid var(--accent-primary);
+    break-inside: avoid;
+  }
+  .card.danger { border-left-color: var(--danger); }
+  .card.success { border-left-color: var(--success); }
+  .card.warning { border-left-color: var(--warning); }
+  .card-title { font-weight: 700; font-size: 9.5pt; color: var(--text-primary); margin-bottom: 3px; }
+  .card-body { font-size: 8.5pt; color: var(--text-muted); line-height: 1.5; }
+
+  /* === BEFORE / AFTER === */
+  .ba-row {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    gap: 10px;
+    align-items: stretch;
+    margin: 8px 0;
+    page-break-inside: avoid;
+  }
+  .ba-before, .ba-after {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 8.5pt;
+  }
+  .ba-before { background: #fef2f2; border: 1.5px solid #fecaca; }
+  .ba-after { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+  .ba-arrow {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14pt; color: var(--accent-primary); font-weight: 700;
+  }
+  .ba-label { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 4px; }
+  .ba-before .ba-label { color: var(--danger); }
+  .ba-after .ba-label { color: var(--success); }
+
+  /* === TABLE === */
+  table { width: 100%; border-collapse: collapse; font-size: 8.5pt; page-break-inside: avoid; margin: 6px 0; }
+  thead th {
+    background: var(--bg-dark); color: var(--text-light);
+    padding: 7px 11px; font-size: 7.5pt; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    text-align: left;
+  }
+  tbody td { padding: 6px 11px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:nth-child(even) { background: var(--bg-surface); }
+  tbody td:first-child { font-family: 'JetBrains Mono', monospace; font-size: 7.5pt; color: var(--accent-primary); font-weight: 600; }
+
+  /* === FLOW === */
+  .flow {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--border-radius);
+    padding: 14px;
+    margin: 8px 0;
+  }
+  .fs {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 5px;
+    padding: 7px 11px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    page-break-inside: avoid;
+  }
+  .fs .n {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px;
+    background: var(--accent-primary); color: var(--text-light);
+    border-radius: 50%;
+    font-size: 7.5pt; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .fs .txt { font-size: 8.5pt; line-height: 1.45; }
+  .fs .txt strong { color: var(--accent-primary); }
+
+  /* === ENTITY === */
+  .entity {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin: 6px 0;
+    page-break-inside: avoid;
+  }
+  .entity .eh {
+    background: var(--bg-dark);
+    color: var(--text-light);
+    padding: 7px 12px;
+    font-weight: 700;
+    font-size: 8.5pt;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .entity .eh .scope { font-size: 7pt; color: #c4b5fd; text-transform: uppercase; letter-spacing: 0.5px; }
+  .entity .eb { padding: 7px 12px; }
+  .erow { display: flex; justify-content: space-between; padding: 2.5px 0; border-bottom: 1px solid var(--border); font-size: 8pt; }
+  .erow:last-child { border-bottom: none; }
+  .erow .k { font-family: 'JetBrains Mono', monospace; color: var(--accent-primary); font-weight: 600; }
+  .erow .v { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
+
+  /* === EXEC SUMMARY === */
+  .exec-summary {
+    background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(99, 102, 241, 0.08) 100%);
+    border: 2px solid var(--accent-primary);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    page-break-inside: avoid;
+  }
+  .exec-summary .lbl {
+    font-size: 7pt;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    color: var(--accent-primary);
+    margin-bottom: 6px;
+  }
+  .exec-summary p { font-size: 10pt; line-height: 1.55; margin: 0; }
+
+  /* === VERDICT === */
+  .verdict {
+    background: #f0fdf4;
+    border: 2px solid var(--success);
+    border-radius: 8px;
+    padding: 11px 16px;
+    margin: 8px 0;
+    page-break-inside: avoid;
+    font-size: 9pt;
+  }
+  .verdict strong { color: var(--success); }
+  .verdict.danger { background: #fef2f2; border-color: var(--danger); }
+  .verdict.danger strong { color: var(--danger); }
+  .verdict.warning { background: #fffbeb; border-color: var(--warning); }
+  .verdict.warning strong { color: var(--warning); }
+
+  /* === TAGS === */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 7pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 4px;
+  }
+  .tag-green { background: #dcfce7; color: #166534; }
+  .tag-red { background: #fee2e2; color: #991b1b; }
+  .tag-blue { background: #dbeafe; color: #1e40af; }
+  .tag-purple { background: #ede9fe; color: #5b21b6; }
+  .tag-amber { background: #fef3c7; color: #92400e; }
+  .tag-gray { background: #f1f5f9; color: #475569; }
+
+  /* === TOC === */
+  .toc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    border-bottom: 1px dotted var(--border);
+    font-size: 9.5pt;
+  }
+  .toc-item .t { color: var(--text-primary); font-weight: 500; }
+  .toc-item .p { color: var(--accent-primary); font-family: 'JetBrains Mono', monospace; font-size: 8.5pt; }
+
+  /* === PAGE FOOTER === */
+  .page-foot {
+    position: absolute;
+    bottom: 22px;
+    left: 55px;
+    right: 55px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7pt;
+    color: var(--text-muted);
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============== PAGE 1: COVER ============== -->
+<div class="page page-cover">
+  <div class="cover-tag">Volterp Backend · Refactor Documentado</div>
+  <div class="cover-title">
+    Aislamiento<br>
+    <span class="grad">Multi-Tenant</span><br>
+    de punta a punta
+  </div>
+  <div class="cover-sub">
+    De 3 bugs cross-tenant latentes y duplicación manual de predicados
+    a un dominio declarativo con <span style="color:#c4b5fd;">HasQueryFilter</span>,
+    <span style="color:#c4b5fd;">ITenantContext</span> y trazabilidad
+    con <span style="color:#c4b5fd;">Serilog</span>.
+  </div>
+
+  <div class="cover-stats">
+    <div class="cover-stat">
+      <div class="num">26</div>
+      <div class="lbl">Commits</div>
+    </div>
+    <div class="cover-stat">
+      <div class="num">5</div>
+      <div class="lbl">Ciclos TDD</div>
+    </div>
+    <div class="cover-stat">
+      <div class="num">285</div>
+      <div class="lbl">Tests verdes</div>
+    </div>
+    <div class="cover-stat">
+      <div class="num">3</div>
+      <div class="lbl">Bugs cerrados</div>
+    </div>
+  </div>
+
+  <div class="cover-foot">
+    <span>Volterp · Backend · branch refactor/multi-tenant-system</span>
+    <span>Documento técnico · Sept 2026</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 2: TOC ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">VOLTERP · MULTI-TENANT REFACTOR</span>
+    <span>Tabla de contenidos</span>
+  </div>
+
+  <h1 style="font-size: 26pt; margin-bottom: 18px;">Contenido</h1>
+
+  <div class="toc-item"><span class="t">1. Executive summary — antes y después</span><span class="p">p. 03</span></div>
+  <div class="toc-item"><span class="t">2. El problema: diagnóstico del estado inicial</span><span class="p">p. 04</span></div>
+  <div class="toc-item"><span class="t">3. Los 3 bugs cross-tenant (con file:line)</span><span class="p">p. 05</span></div>
+  <div class="toc-item"><span class="t">4. Code smells + duplicación cuantificada</span><span class="p">p. 06</span></div>
+  <div class="toc-item"><span class="t">5. Arquitectura objetivo (la visión)</span><span class="p">p. 07</span></div>
+  <div class="toc-item"><span class="t">6. Cómo encajan las capas</span><span class="p">p. 08</span></div>
+  <div class="toc-item"><span class="t">7. Phase 1 — proceso TDD de 5 ciclos</span><span class="p">p. 09</span></div>
+  <div class="toc-item"><span class="t">8. Cycle 1.0 — Characterization + auditoría</span><span class="p">p. 10</span></div>
+  <div class="toc-item"><span class="t">9. Cycle 1.1 — Wire refactor (cierra los 3 bugs)</span><span class="p">p. 11</span></div>
+  <div class="toc-item"><span class="t">10. Cycle 1.2 — Guid 7 migration (a / b / c)</span><span class="p">p. 12</span></div>
+  <div class="toc-item"><span class="t">11. Cycle 1.3 — HasQueryFilter + integration tests</span><span class="p">p. 13</span></div>
+  <div class="toc-item"><span class="t">12. Phase 2 — cleanup + observability</span><span class="p">p. 14</span></div>
+  <div class="toc-item"><span class="t">13. Comparativa antes vs después</span><span class="p">p. 15</span></div>
+  <div class="toc-item"><span class="t">14. Lecciones aprendidas + estado final</span><span class="p">p. 16</span></div>
+
+  <h2 style="margin-top: 28px;">Stack</h2>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">Runtime & framework</div>
+      <div class="card-body">.NET 10 · ASP.NET Core · C# 14 (extension blocks, primary constructors)</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Persistencia</div>
+      <div class="card-body">PostgreSQL · EF Core 10 · <span class="code">HasQueryFilter</span> + reflection-based filter</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Observabilidad</div>
+      <div class="card-body">Serilog · <span class="code">LogContext.PushProperty</span> por request</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Auth</div>
+      <div class="card-body">JWT bearer · claim <span class="code">companyId</span> en formato Guid <span class="code">N</span></div>
+    </div>
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>02</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 3: EXEC SUMMARY ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">01 · EXECUTIVE SUMMARY</span>
+    <span>Antes y después en una página</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 12px;">De manual y riesgoso a declarativo y trazable</h1>
+
+  <div class="exec-summary">
+    <div class="lbl">El cambio en una frase</div>
+    <p>Cada query EF <strong>declara membresía de tenant</strong> a través de <span class="code">HasQueryFilter</span> que se nutre de <span class="code">ITenantContext</span>; los controllers <strong>ya no necesitan acordarse</strong> de pasar <span class="code">companyId</span> en cada llamada. Los IDs migran a <strong>Guid 7</strong> para locality en el B-tree de Postgres.</p>
+  </div>
+
+  <h2>Comparativa high-level</h2>
+
+  <div class="ba-row">
+    <div class="ba-before">
+      <div class="ba-label">Antes</div>
+      <strong>Tenant membership implícita y repetida</strong>
+      <p style="margin-top:4px; font-size:8.5pt; color:#7f1d1d;">Cada repo escribía <span class="code">c.CompanyId == companyId</span> a mano. Cada service recibía <span class="code">companyId</span> como parámetro. Cada controller lo extraía del JWT. <strong>Tres lugares</strong> donde se podía romper el aislamiento.</p>
+    </div>
+    <div class="ba-arrow">→</div>
+    <div class="ba-after">
+      <div class="ba-label">Después</div>
+      <strong>Tenant membership declarativa y única</strong>
+      <p style="margin-top:4px; font-size:8.5pt; color:#14532d;">EF Core aplica el filtro solo desde <span class="code">ITenantContext</span>. Services y controllers <strong>no necesitan</strong> acordarse. Los 3 bugs cross-tenant quedan <strong>arquitectónicamente cerrados</strong>.</p>
+    </div>
+  </div>
+
+  <div class="ba-row">
+    <div class="ba-before">
+      <div class="ba-label">Antes</div>
+      <strong>Identidad <span class="code">int</span> autoincremental</strong>
+      <p style="margin-top:4px; font-size:8.5pt; color:#7f1d1d;">IDs predecibles, fragmentación en B-tree de Postgres, riesgo de enumeración. Claim <span class="code">companyId</span> inconsistente entre services.</p>
+    </div>
+    <div class="ba-arrow">→</div>
+    <div class="ba-after">
+      <div class="ba-label">Después</div>
+      <strong><span class="code">Guid 7</span> con timestamp</strong>
+      <p style="margin-top:4px; font-size:8.5pt; color:#14532d;">Primeros 48 bits = timestamp ms → locality en B-tree. Claim <span class="code">companyId</span> en formato <span class="code">N</span> (32 hex chars), constante única en <span class="code">Claims.cs</span>.</p>
+    </div>
+  </div>
+
+  <div class="ba-row">
+    <div class="ba-before">
+      <div class="ba-label">Antes</div>
+      <strong>Logs sin contexto de tenant</strong>
+      <p style="margin-top:4px; font-size:8.5pt; color:#7f1d1d;">Cruzar un error en producción con su tenant era manual. Sin <span class="code">CompanyId</span> en el log context, no había forma de correlacionar.</p>
+    </div>
+    <div class="ba-arrow">→</div>
+    <div class="ba-after">
+      <div class="ba-label">Después</div>
+      <strong>Cada log lleva <span class="code">CompanyId</span></strong>
+      <p style="margin-top:4px; font-size:8.5pt; color:#14532d;"><span class="code">TenantLoggingMiddleware</span> hace <span class="code">LogContext.PushProperty</span> post-auth. Cross-tenant tracing = un grep.</p>
+    </div>
+  </div>
+
+  <h2>Métricas de la rama</h2>
+  <table>
+    <thead><tr><th>Métrica</th><th>Valor</th><th>Detalle</th></tr></thead>
+    <tbody>
+      <tr><td>Commits</td><td><strong>26</strong></td><td>5 ciclos Phase 1 + 4 tareas Phase 2 + docs</td></tr>
+      <tr><td>Archivos tocados</td><td><strong>178</strong></td><td>Net -9.948 líneas (mucho ruido eliminado)</td></tr>
+      <tr><td>Tests passing</td><td><strong>285 / 285</strong></td><td>+32 nuevos vs baseline 253</td></tr>
+      <tr><td>Bugs cross-tenant</td><td><strong>3 → 0</strong></td><td>Cerrados con regression tests</td></tr>
+      <tr><td>Predicados manuales eliminados</td><td><strong>33</strong></td><td>Reemplazados por <span class="code">HasQueryFilter</span></td></tr>
+      <tr><td><span class="code">Ensure(... companyId != Guid.Empty)</span> eliminados</td><td><strong>33</strong></td><td>Boilerplate unreachable post-401</td></tr>
+      <tr><td>Parámetros <span class="code">companyId</span> en reads removidos</td><td><strong>22+ métodos</strong></td><td>9 services + 9 repos + 11 controllers</td></tr>
+    </tbody>
+  </table>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>03</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 4: EL PROBLEMA ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">02 · DIAGNÓSTICO</span>
+    <span>Estado inicial auditado</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">El problema: estado inicial</h1>
+  <p style="color: var(--text-muted); margin-bottom: 14px;">Audit completo hecho en Cycle 1.0 antes de tocar una sola línea de producción.</p>
+
+  <h2>Hallazgos cuantitativos</h2>
+
+  <div class="card-grid">
+    <div class="card danger">
+      <div class="card-title">12 entities con <span class="code">int Id</span></div>
+      <div class="card-body">AccountingTransaction, Category, Client, Company, Employee, Product, Purchase, PurchaseItem, Sale, SaleItem, Supplier, User. IDs predecibles, riesgo de enumeración, fragmentación en B-tree.</div>
+    </div>
+    <div class="card danger">
+      <div class="card-title">38 predicados manuales</div>
+      <div class="card-body"><span class="code">c.CompanyId == companyId</span> repetidos en cada repo. <span class="code">DashboardRepository</span> solo tenía 17 de esos. Olvidar uno = tenant leak silencioso.</div>
+    </div>
+    <div class="card warning">
+      <div class="card-title"><span class="code">companyId</span> en request DTOs</div>
+      <div class="card-body">5 DTOs exponían <span class="code">CompanyId</span> (<span class="code">CreateSaleRequest</span>, <span class="code">CreateCategoryRequest</span>, <span class="code">CreateProductDto</span>, <span class="code">CreateUserDto</span>, <span class="code">SupplierCreateDto</span>). Cliente-controlled = disaster waiting.</div>
+    </div>
+    <div class="card danger">
+      <div class="card-title">3 bugs reales de cross-tenant leak</div>
+      <div class="card-body"><span class="code">SalesController.Create</span> ignora JWT. <span class="code">SupplierService.Create</span> y <span class="code">Update</span> usan <span class="code">request.CompanyId</span>. Detalle en página siguiente.</div>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card warning">
+      <div class="card-title">Duplicación de fuentes de verdad</div>
+      <div class="card-body"><span class="code">GetCurrentUserCompanyId()</span> existía en <span class="code">BaseController</span> y <span class="code">CurrentUserService</span>. El literal <span class="code">"companyId"</span> repetido en 3 lugares (controller, service, JwtService).</div>
+    </div>
+    <div class="card warning">
+      <div class="card-title">Boilerplate defensivo (~30 sitios)</div>
+      <div class="card-body"><span class="code">Ensure(companyId != Guid.Empty, ...)</span> en 10 services. Era código defensivo contra un bug que <strong>no podía ocurrir</strong> si el controller lanzaba 401 antes.</div>
+    </div>
+    <div class="card warning">
+      <div class="card-title"><span class="code">int.Parse(claim?.Value ?? "0")</span></div>
+      <div class="card-body">Falla silenciosa con 0. Sin claim → companyId=0 → query devuelve todo. <strong>No era 401</strong>, era "todo el mundo es tenant 0".</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="code">CurrentUserService</span> implementado pero bypassed</div>
+      <div class="card-body">Existía pero ningún controller lo usaba. Path recomendado: eliminarlo + consolidar en <span class="code">HttpTenantContext</span>.</div>
+    </div>
+  </div>
+
+  <h2>El riesgo real</h2>
+  <div class="verdict danger">
+    <strong>Riesgo:</strong> cualquier <strong>nuevo developer</strong> que tocara un repo y olvidara el predicado <span class="code">CompanyId == companyId</span> creaba un tenant leak silencioso. No había <strong>ninguna</strong> capa arquitectónica que lo previniera — solo convenciones y code review.
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>04</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 5: LOS 3 BUGS ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">03 · BUGS ENCONTRADOS</span>
+    <span>Tres tenant leaks reales</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Los 3 bugs cross-tenant</h1>
+  <p style="color: var(--text-muted); margin-bottom: 14px;">Descubiertos en auditoría de Cycle 1.0. Todos cerrados con regression tests en Cycle 1.1.</p>
+
+  <h2>Bug #1 — <span class="code">SalesController.Create</span> ignora JWT</h2>
+  <div class="entity">
+    <div class="eh">
+      <span>Volterp.Api/Controllers/SalesController.cs · CreateSale (líneas 71-79)</span>
+      <span class="scope">CRÍTICO</span>
+    </div>
+    <div class="eb">
+<pre>// ANTES — nunca llamaba GetCurrentUserCompanyId()
+public async Task&lt;IActionResult&gt; CreateSale([FromBody] CreateSaleRequest request)
+{
+    var sale = await _saleService.CreateSaleAsync(request);  // ❌ companyId nunca viaja
+    return Ok(sale);
+}</pre>
+      <p style="margin-top:6px; font-size:8.5pt; color:var(--text-muted);">
+        <strong>Impacto:</strong> una venta quedaba asociada al <span class="code">CompanyId</span> del body. Un usuario de la Compañía A podía crear ventas para la Compañía B con solo editar el body.
+      </p>
+    </div>
+  </div>
+
+  <h2>Bug #2 — <span class="code">SupplierService.Create</span> usa <span class="code">request.CompanyId</span></h2>
+  <div class="entity">
+    <div class="eh">
+      <span>Volterp.Application/Services/SupplierService.cs · CreateSupplierAsync (líneas 31-54)</span>
+      <span class="scope">CRÍTICO</span>
+    </div>
+    <div class="eb">
+<pre>// ANTES — confiaba en el cliente
+public async Task&lt;SupplierDto&gt; CreateSupplierAsync(SupplierCreateDto request)
+{
+    var supplier = new Supplier
+    {
+        Name = request.Name,
+        CompanyId = request.CompanyId,  // ❌ viene del body
+        // ...
+    };
+}</pre>
+      <p style="margin-top:6px; font-size:8.5pt; color:var(--text-muted);">
+        <strong>Impacto:</strong> proveedor de la Compañía B podía quedar registrado bajo la Compañía A (o viceversa). Cross-tenant data corruption silenciosa.
+      </p>
+    </div>
+  </div>
+
+  <h2>Bug #3 — <span class="code">SupplierService.Update</span> reasigna <span class="code">CompanyId</span></h2>
+  <div class="entity">
+    <div class="eh">
+      <span>Volterp.Application/Services/SupplierService.cs · UpdateSupplierAsync (línea 75)</span>
+      <span class="scope">CRÍTICO</span>
+    </div>
+    <div class="eb">
+<pre>// ANTES — el update pisaba el tenant
+public async Task UpdateSupplierAsync(Guid id, SupplierUpdateDto request)
+{
+    var supplier = await _repo.GetByIdAsync(id);
+    supplier.Name = request.Name;
+    supplier.CompanyId = request.CompanyId;  // ❌ reasignación
+    // ...
+}</pre>
+      <p style="margin-top:6px; font-size:8.5pt; color:var(--text-muted);">
+        <strong>Impacto:</strong> aunque el supplier ya tuviera un <span class="code">CompanyId</span> legítimo, el update lo sobrescribía con lo que mandara el body.
+      </p>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <strong>Patrón común:</strong> los 3 bugs vienen de confiar en datos <strong>cliente-controlled</strong> para algo que <strong>tiene que venir del JWT</strong>. La solución arquitectónica es mover la fuente de verdad del tenant a una sola capa.
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>05</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 6: CODE SMELLS ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">04 · CODE SMELLS</span>
+    <span>Duplicación cuantificada</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Duplicación y debt acumulado</h1>
+  <p style="color: var(--text-muted); margin-bottom: 14px;">Contados con grep empírico durante Cycle 1.0. <strong>Cada uno de estos números</strong> es una superficie de bug latente.</p>
+
+  <table>
+    <thead>
+      <tr><th>Code smell</th><th>Cantidad</th><th>Archivos</th><th>Tratamiento</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Predicate <span class="code">CompanyId == companyId</span> en repos</td>
+        <td><strong>38</strong> (17 en <span class="code">DashboardRepository</span> solo)</td>
+        <td>9 repositorios</td>
+        <td>Reemplazados por <span class="code">HasQueryFilter</span></td>
+      </tr>
+      <tr>
+        <td><span class="code">Ensure(companyId != Guid.Empty)</span> boilerplate</td>
+        <td><strong>30</strong></td>
+        <td>10 services</td>
+        <td>Eliminados — unreachable post-401</td>
+      </tr>
+      <tr>
+        <td>Invocaciones a <span class="code">GetCurrentUserCompanyId()</span></td>
+        <td><strong>41</strong></td>
+        <td>10 controllers</td>
+        <td>Consolidadas en <span class="code">ITenantContext</span></td>
+      </tr>
+      <tr>
+        <td>Literal <span class="code">"companyId"</span> repetido</td>
+        <td><strong>3</strong></td>
+        <td><span class="code">BaseController</span>, <span class="code">CurrentUserService</span>, <span class="code">JwtService</span></td>
+        <td>Constante única en <span class="code">Claims.cs</span></td>
+      </tr>
+      <tr>
+        <td>DTOs request con <span class="code">CompanyId</span></td>
+        <td><strong>5</strong></td>
+        <td><span class="code">CreateSaleRequest</span>, <span class="code">CreateCategoryRequest</span>, <span class="code">CreateProductDto</span>, <span class="code">CreateUserDto</span>, <span class="code">SupplierCreateDto</span></td>
+        <td>Removido del body</td>
+      </tr>
+      <tr>
+        <td><span class="code">CurrentUserService</span> implementado pero no usado</td>
+        <td><strong>1</strong></td>
+        <td><span class="code">CurrentUserService.cs</span></td>
+        <td>Conservado (usado por <span class="code">IsSuperAdmin</span>)</td>
+      </tr>
+      <tr>
+        <td><span class="code">AuditableDto.cs</span> sin consumidores</td>
+        <td><strong>1</strong></td>
+        <td><span class="code">AuditableDto.cs</span></td>
+        <td>Eliminado en Cycle 1.2c</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 style="margin-top: 16px;">El smell detrás de los smells</h2>
+
+  <div class="verdict warning">
+    <strong>El problema de fondo:</strong> la pertenencia al tenant estaba <strong>esparcida</strong> por 3 capas (controller, service, repo). Cada capa podía olvidarla. No había un <strong>single point of truth</strong> arquitectónico — solo convenciones.
+  </div>
+
+  <h2>Lo que NO se tocó en el audit</h2>
+  <ul>
+    <li><strong>No se tocaron services ni controllers existentes</strong> (regla del Cycle 1.0).</li>
+    <li><strong>No se consolidó <span class="code">BaseController</span>/<span class="code">CurrentUserService</span></strong> (queda para Phase 2).</li>
+    <li><strong>No se eliminó <span class="code">AuditableDto.cs</span></strong> en el audit (queda para 1.2c).</li>
+    <li><strong>No se tocaron los 30 <span class="code">Ensure</span> ni los 38 predicados</strong> en el audit (queda para 1.3 / Phase 2).</li>
+  </ul>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>06</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 7: ARQUITECTURA OBJETIVO ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">05 · ARQUITECTURA OBJETIVO</span>
+    <span>La visión antes de codear</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">La arquitectura objetivo</h1>
+  <p style="color: var(--text-muted); margin-bottom: 14px;">Decisiones arquitectónicas cerradas ANTES de empezar a codear.</p>
+
+  <div class="card-grid">
+    <div class="card success">
+      <div class="card-title">Domain-centric</div>
+      <div class="card-body"><span class="code">ITenantScoped</span> en Domain (declara membresía). <span class="code">ITenantContext</span> en Application (interface). EF en Infrastructure aplica <span class="code">HasQueryFilter</span>. <strong>Domain no depende de EF ni de HTTP</strong>.</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Guid 7 (no Guid 4)</div>
+      <div class="card-body"><span class="code">Guid.CreateVersion7()</span>: timestamp en los primeros 48 bits → locality en B-tree de Postgres → menos page splits que UUIDv4. <strong>Formato <span class="code">N</span></strong> (32 hex chars) en JWT claims.</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Greenfield migration</div>
+      <div class="card-body"><span class="code">DROP SCHEMA public CASCADE; CREATE SCHEMA public;</span> + <span class="code">dotnet ef database update</span>. Seeders usan Guid 7 con valores fijos (tests deterministas).</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">3 tenant contexts</div>
+      <div class="card-body"><strong>HTTP</strong> (JWT, throw 401 si falta). <strong>Admin Global</strong> (cross-tenant, deferred). <strong>Tests/Seeder</strong> (<span class="code">NullTenantContext</span>).</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Wire refactor</div>
+      <div class="card-body"><span class="code">companyId</span> <strong>fuera</strong> de los request DTOs. Solo <span class="code">LoginResponse</span> lo conserva (la UI lo necesita).</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Whitelist cerrada de <span class="code">IgnoreQueryFilters()</span></div>
+      <div class="card-body">Solo permitido para admin paths wrapped en <span class="code">IsSuperAdminOnly()</span>. Por defecto, las queries <strong>siempre</strong> están filtradas.</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top: 18px;">El flujo de datos — antes vs después</h2>
+
+  <div class="card">
+    <div class="card-title" style="color:var(--danger);">Antes: tenant membership esparcida</div>
+    <div class="card-body">
+<pre>Controller:  jwt.companyId → variable local
+Service:     variable local → pasa como parámetro
+Repository:  WHERE CompanyId == parámetro  (38 sitios)
+EF:          ejecuta la query</pre>
+    </div>
+  </div>
+
+  <div class="card success" style="margin-top:6px;">
+    <div class="card-title" style="color:var(--success);">Después: tenant membership centralizada</div>
+    <div class="card-body">
+<pre>Controller:  jwt.companyId → ITenantContext (singleton scoped)
+Service:     (no necesita companyId — EF lo lee solo)
+Repository:  (no filtra — EF aplica HasQueryFilter)
+EF:          lee ITenantContext.CompanyId → WHERE automático</pre>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <strong>Resultado:</strong> services y repositories <strong>dejan de tener</strong> la responsabilidad de filtrar. Es <strong>imposible olvidarse</strong> del filtro porque vive en una sola capa (el <span class="code">OnModelCreating</span> del DbContext).
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>07</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 8: LAS CAPAS ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">06 · CAPAS</span>
+    <span>Cómo encaja cada pieza</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Las capas después del refactor</h1>
+
+  <table>
+    <thead>
+      <tr><th>Capa</th><th>Responsabilidad</th><th>Archivos clave</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Domain</td>
+        <td>Declarar membresía (<span class="code">ITenantScoped</span>)</td>
+        <td><span class="code">Entities/*.cs</span> (12 entities con <span class="code">Guid CompanyId</span>)</td>
+      </tr>
+      <tr>
+        <td>Application</td>
+        <td>Contrato de tenant context (<span class="code">ITenantContext</span>)</td>
+        <td><span class="code">Abstractions/ITenantContext.cs</span>, <span class="code">Abstractions/NullTenantContext.cs</span>, <span class="code">Common/Claims.cs</span></td>
+      </tr>
+      <tr>
+        <td>Infrastructure</td>
+        <td>Aplicar <span class="code">HasQueryFilter</span> + persistencia</td>
+        <td><span class="code">Data/VolterpDbContext.cs</span>, <span class="code">Data/Configurations/*.cs</span> (13), <span class="code">Repositories/*.cs</span></td>
+      </tr>
+      <tr>
+        <td>Api (impl HTTP)</td>
+        <td>Poblar <span class="code">ITenantContext</span> desde JWT</td>
+        <td><span class="code">Http/HttpTenantContext.cs</span>, <span class="code">Controllers/BaseController.cs</span>, <span class="code">Extensions/TenantLoggingMiddleware.cs</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 style="margin-top: 16px;">El truco del reflection en <span class="code">OnModelCreating</span></h2>
+
+  <p>En lugar de editar las 12 EF Configurations para agregar <span class="code">HasQueryFilter</span> una por una, el DbContext recorre las entities vía reflection y aplica el filtro automáticamente a las que tienen <span class="code">Guid CompanyId</span>:</p>
+
+<pre>// Volterp.Infrastructure/Data/VolterpDbContext.cs (núcleo)
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+
+    foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+    {
+        if (typeof(ITenantScoped).IsAssignableFrom(entityType.ClrType))
+        {
+            var method = typeof(VolterpDbContext)
+                .GetMethod(nameof(ApplyTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)!
+                .MakeGenericMethod(entityType.ClrType);
+
+            method.Invoke(this, new object[] { modelBuilder });
+        }
+    }
+
+    modelBuilder.Entity&lt;Company&gt;().HasQueryFilter(e =&gt; false); // bypass total
+}
+
+private void ApplyTenantFilter&lt;TEntity&gt;(ModelBuilder modelBuilder)
+    where TEntity : class, ITenantScoped
+{
+    modelBuilder.Entity&lt;TEntity&gt;().HasQueryFilter(
+        e =&gt; _tenantContext.CompanyId == null
+          || EF.Property&lt;Guid&gt;(e, "CompanyId") == _tenantContext.CompanyId);
+}</pre>
+
+  <h3 style="margin-top: 12px;">¿Por qué field-access y no closure-local?</h3>
+  <div class="verdict warning">
+    <strong>Lección crítica:</strong> EF Core <strong>inlinea las closure-locals</strong> como SQL constants al model-build time. Si capturás <span class="code">var tenant = _tenantContext.CompanyId</span> en una lambda, el filtro se lockea al primer valor visto (típicamente <span class="code">null</span> durante <span class="code">EnsureCreated</span> fuera de HTTP) → <strong>todas las queries unfiltered</strong>.
+  </div>
+
+  <p style="margin-top:8px;">El fix: referenciar <span class="code">_tenantContext.CompanyId</span> <strong>directamente</strong> en la lambda (field access). EF Core parameteriza el field access por query → filtro dinámico correcto.</p>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>08</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 9: PHASE 1 PROCESO ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">07 · PHASE 1 — PROCESO</span>
+    <span>5 ciclos TDD rigurosos</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Phase 1: 5 ciclos TDD</h1>
+  <p style="color: var(--text-muted); margin-bottom: 14px;">Cada ciclo = red → green → refactor. Tests van en el mismo commit que la implementación.</p>
+
+  <h2>El mapa de los 5 ciclos</h2>
+
+  <table>
+    <thead>
+      <tr><th>Ciclo</th><th>Objetivo</th><th>Commit</th><th>Tests</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1.0</td><td>Characterization + auditoría de duplicación</td><td><span class="code">2b633a0</span></td><td>+16</td></tr>
+      <tr><td>1.1</td><td>Wire refactor (cierra los 3 bugs cross-tenant)</td><td><span class="code">2384a8a</span></td><td>+9 (flip 7 + 9 nuevos)</td></tr>
+      <tr><td>1.2a</td><td>Domain layer a Guid 7</td><td><span class="code">d5eac9e</span></td><td>—</td></tr>
+      <tr><td>1.2b</td><td>Infra + App a Guid 7 (migration breaking)</td><td><span class="code">bf55432</span></td><td>—</td></tr>
+      <tr><td>1.2c</td><td>Api + tests a Guid 7 (cierra migration)</td><td><span class="code">187b069</span></td><td>+2</td></tr>
+      <tr><td>1.3 step 1</td><td><span class="code">ApiAssemblyMarker</span> para WebApplicationFactory</td><td><span class="code">d613727</span></td><td>—</td></tr>
+      <tr><td>1.3</td><td><span class="code">HasQueryFilter</span> via <span class="code">ITenantContext</span> + remove 33 predicates</td><td><span class="code">afcdeb6</span></td><td>—</td></tr>
+      <tr><td>1.3 fix</td><td>Closure-local bug fix + integration tests</td><td><span class="code">6803319</span></td><td>+3</td></tr>
+      <tr><td>1.4</td><td>Operational guide incorporado al plan</td><td><span class="code">a34549a</span></td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="margin-top: 18px;">Por qué characterization tests primero</h2>
+
+  <div class="card">
+    <div class="card-title">Regla de oro del refactor</div>
+    <div class="card-body">Antes de tocar el código, escribí tests que <strong>capturen el comportamiento actual</strong>. Esos tests se vuelven tu red de seguridad. Cuando refactorices, si siguen verdes → preservaste el behavior.</div>
+  </div>
+
+  <h2 style="margin-top: 12px;">Flujo de cada ciclo</h2>
+  <div class="flow">
+    <div class="fs"><span class="n">1</span><span class="txt"><strong>RED</strong> — Escribí el test que captura el comportamiento que querés (o el bug que querés cerrar). Debe fallar.</span></div>
+    <div class="fs"><span class="n">2</span><span class="txt"><strong>GREEN</strong> — Escribí el código mínimo para que el test pase. Nada más.</span></div>
+    <div class="fs"><span class="n">3</span><span class="txt"><strong>REFACTOR</strong> — Mejorá el código sin cambiar el behavior. Los tests siguen siendo tu red.</span></div>
+    <div class="fs"><span class="n">4</span><span class="txt"><strong>COMMIT</strong> — Un commit cohesivo. Mensaje conventional. Sin AI attribution.</span></div>
+  </div>
+
+  <div class="verdict">
+    <strong>Resultado:</strong> 283 tests passing al cerrar Phase 1. Cada cambio posterior tenía <strong>una red de seguridad</strong> que probaba que el behavior no se rompía.
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>09</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 10: CYCLE 1.0 ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">08 · CYCLE 1.0</span>
+    <span>Characterization + auditoría</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Cycle 1.0: el mapa del terreno</h1>
+  <p style="color: var(--text-muted); margin-bottom: 10px;">Commit <span class="code">2b633a0</span> · 5 archivos · 948 insertions · <strong>0 cambios a producción</strong></p>
+
+  <h2>Objetivo</h2>
+  <p>Antes de tocar nada, <strong>saber exactamente</strong> qué hay. Escribir characterization tests que capturen el comportamiento actual (incluyendo los 3 bugs) + producir un audit doc con los números.</p>
+
+  <h2>Lo que se descubrió</h2>
+
+  <h3>3 bugs cross-tenant confirmados con file:line</h3>
+  <div class="card-grid">
+    <div class="card danger">
+      <div class="card-title">Bug #1</div>
+      <div class="card-body"><span class="code">SalesController.cs:71-79</span> — <span class="code">CreateSale</span> nunca llama <span class="code">GetCurrentUserCompanyId()</span>.</div>
+    </div>
+    <div class="card danger">
+      <div class="card-title">Bug #2</div>
+      <div class="card-body"><span class="code">SupplierService.cs:31-54</span> + DTO <span class="code">SupplierCreateDto.cs:24</span> — <span class="code">request.CompanyId</span> se persiste.</div>
+    </div>
+    <div class="card danger">
+      <div class="card-title">Bug #3</div>
+      <div class="card-body"><span class="code">SupplierService.cs:75</span> — update path reasigna <span class="code">s.CompanyId = request.CompanyId</span>.</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 12px;">Duplicación cuantificada</h3>
+  <table>
+    <thead><tr><th>Code smell</th><th>Count</th></tr></thead>
+    <tbody>
+      <tr><td><span class="code">Ensure(companyId &gt; 0)</span> en services</td><td><strong>30</strong> en 10 archivos</td></tr>
+      <tr><td><span class="code">CompanyId == companyId</span> en repos</td><td><strong>38</strong> (17 en <span class="code">DashboardRepository</span>)</td></tr>
+      <tr><td>Literal <span class="code">"companyId"</span></td><td><strong>3</strong> sitios</td></tr>
+      <tr><td><span class="code">GetCurrentUserCompanyId()</span> calls</td><td><strong>41</strong> en 10 controllers</td></tr>
+      <tr><td>DTOs exponiendo <span class="code">CompanyId</span></td><td><strong>5</strong> request types</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Surprises detectadas (no estaban en el plan)</h3>
+  <div class="card-grid">
+    <div class="card warning">
+      <div class="card-title"><span class="code">int.Parse</span> vs <span class="code">int.TryParse</span></div>
+      <div class="card-body">Inconsistente entre <span class="code">GetCurrentUserCompanyId()</span> y <span class="code">GetCurrentUserId()</span>. Surface en 1.2 cuando Guid 7 introduzca claims no-numéricos.</div>
+    </div>
+    <div class="card warning">
+      <div class="card-title"><span class="code">CurrentUserService</span> bypassed</div>
+      <div class="card-body">Implementado pero ningún controller lo usaba. Path recomendado: eliminar + consolidar en <span class="code">HttpTenantContext</span>.</div>
+    </div>
+    <div class="card warning">
+      <div class="card-title"><span class="code">AuditEntity</span> FKs</div>
+      <div class="card-body"><span class="code">CreatedBy</span>/<span class="code">UpdatedBy</span> son <span class="code">int?</span> — también afectados por Guid 7 migration.</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="code">SaleItem</span> co-located</div>
+      <div class="card-body">Vive en <span class="code">Sale.cs:78-94</span>, no en archivo separado. <span class="code">DashboardRepository</span> con 17 predicates → candidate para strangler-fig en 1.3.</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top: 12px;">Tests del ciclo</h2>
+  <table>
+    <thead><tr><th>Test file</th><th>Tests</th></tr></thead>
+    <tbody>
+      <tr><td><span class="code">SalesControllerCreateTenantLeakTests.cs</span></td><td>3</td></tr>
+      <tr><td><span class="code">SupplierServiceTenantLeakTests.cs</span></td><td>4</td></tr>
+      <tr><td><span class="code">CurrentUserCompanyIdCharacterizationTests.cs</span></td><td>9</td></tr>
+      <tr><td><strong>Total</strong></td><td><strong>+16 → 269 passing</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>10</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 11: CYCLE 1.1 ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">09 · CYCLE 1.1</span>
+    <span>Wire refactor</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Cycle 1.1: cerrar los 3 bugs</h1>
+  <p style="color: var(--text-muted); margin-bottom: 10px;">Commit <span class="code">2384a8a</span> · 25 archivos · +490/-192 · <strong>dentro del budget de 400/PR</strong></p>
+
+  <h2>El cambio</h2>
+  <p><span class="code">CompanyId</span> removido de los 5 request DTOs. <span class="code">SupplierDto</span> split en response-only + nuevo <span class="code">UpdateSupplierRequest</span> (request-only, sin <span class="code">CompanyId</span>).</p>
+
+  <h2>Los 3 bugs cerrados</h2>
+
+  <div class="card-grid">
+    <div class="card success">
+      <div class="card-title">Bug #1 — SalesController</div>
+      <div class="card-body">Ahora llama <span class="code">GetCurrentUserCompanyId()</span> y pasa <span class="code">companyId</span> a <span class="code">SaleService.CreateSaleAsync</span> (firma extendida con <span class="code">Guid companyId</span>).</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Bug #2 — SupplierService.Create</div>
+      <div class="card-body">Usa <span class="code">companyId</span> param, no <span class="code">request.CompanyId</span>.</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Bug #3 — SupplierService.Update</div>
+      <div class="card-body">Ya no reasigna <span class="code">CompanyId</span> desde el body. El parámetro del body se ignora.</div>
+    </div>
+  </div>
+
+  <h3 style="margin-top: 10px;">Bug latente #4 detectado y arreglado</h3>
+  <div class="card warning">
+    <div class="card-title"><span class="code">UserService.CreateAsync</span></div>
+    <div class="card-body">El controller parchaba con <span class="code">with { CompanyId = companyId }</span> que se volvió dead code al dropear la propiedad. Fix obligatorio al wire refactor (mismo patrón: usar <span class="code">companyId</span> param).</div>
+  </div>
+
+  <h2>Tests añadidos</h2>
+
+  <table>
+    <thead><tr><th>Tipo</th><th>Cantidad</th></tr></thead>
+    <tbody>
+      <tr><td>Characterization tests flipeados (los 3 bugs)</td><td>7</td></tr>
+      <tr><td>Wire-contract tests nuevos</td><td>9</td></tr>
+      <tr><td>&nbsp;&nbsp;&nbsp;↳ JSON deserialization guards</td><td>3</td></tr>
+      <tr><td>&nbsp;&nbsp;&nbsp;↳ Reflection guards durables</td><td>6</td></tr>
+      <tr><td><strong>Total después</strong></td><td><strong>278 passing, 0 failed, 231 ms</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Decisiones fuera del plan reportadas</h2>
+  <ol>
+    <li><strong>UserService</strong> también tenía bug latente — fix obligatorio.</li>
+    <li><strong>Dead code <span class="code">MapToSaleEntity</span></strong> removido en <span class="code">SaleService.cs</span> (era inalcanzable).</li>
+    <li><strong>9 wire-contract tests</strong> en lugar de 3 — agregué 6 reflection guards durables.</li>
+    <li><strong>7 flipped characterization tests</strong> cubren happy-paths además de leak-tests.</li>
+  </ol>
+
+  <h2>Constraints respetados</h2>
+  <div class="verdict">
+    <strong>NO DB / NO schema / NO <span class="code">ITenantContext</span> / NO <span class="code">HasQueryFilter</span></strong> · 30 <span class="code">Ensure</span> ni 38 predicates intactos · <span class="code">LoginResponse</span> intacto.
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>11</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 12: CYCLE 1.2 ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">10 · CYCLE 1.2</span>
+    <span>Guid 7 migration (a / b / c)</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Cycle 1.2: migración a Guid 7</h1>
+  <p style="color: var(--text-muted); margin-bottom: 10px;">3 commits cohesivos · <span class="code">d5eac9e</span> → <span class="code">bf55432</span> → <span class="code">187b069</span></p>
+
+  <h2>¿Por qué Guid 7 y no Guid 4?</h2>
+  <div class="card-grid">
+    <div class="card danger">
+      <div class="card-title">Guid 4 (random)</div>
+      <div class="card-body">Distribución uniforme → fragmentación en B-tree → page splits frecuentes en Postgres → write amplification.</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Guid 7 (timestamp-based)</div>
+      <div class="card-body">Primeros 48 bits = timestamp ms → IDs ordenables cronológicamente → locality en B-tree → menos page splits. <strong>Monotonicidad intra-millisecond</strong> en .NET 10.</div>
+    </div>
+  </div>
+
+  <h2>Las 3 fases</h2>
+
+  <table>
+    <thead><tr><th>Sub-ciclo</th><th>Scope</th><th>Commit</th><th>Tamaño</th></tr></thead>
+    <tbody>
+      <tr><td>1.2a</td><td>Domain layer (12 entities + AuditEntity a Guid)</td><td><span class="code">d5eac9e</span></td><td>14 files, +45/-38</td></tr>
+      <tr><td>1.2b</td><td>Infra + App interfaces + DTOs + JwtService + EF configs + migration</td><td><span class="code">bf55432</span></td><td>Breaking</td></tr>
+      <tr><td>1.2c</td><td>Api + tests + BaseController + CurrentUserService + 278 tests adapted</td><td><span class="code">187b069</span></td><td>+2 tests</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Por qué split en 3 commits</h3>
+  <p>Entre 1.2a y 1.2b el código <strong>no compila</strong> (~176 errors en Application esperados). Cada commit es una unidad revisable; el reviewer ve solo el delta que le importa.</p>
+
+  <h2>Cierres clave de 1.2c</h2>
+
+  <div class="card-grid">
+    <div class="card success">
+      <div class="card-title">Silent-zero bug fixed</div>
+      <div class="card-body"><span class="code">BaseController</span>/<span class="code">CurrentUserService</span>: <span class="code">int.Parse</span> → <span class="code">Guid.TryParse</span> con throw <span class="code">UnauthorizedException</span> (401) en missing/malformed claim.</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">JwtService emite <span class="code">N</span>-format</div>
+      <div class="card-body">Claims en formato <span class="code">Guid:N</span> (32 hex chars, sin guiones) — verificado por tests en <span class="code">JwtServiceTests.cs</span>.</div>
+    </div>
+    <div class="card success">
+      <div class="card-title"><span class="code">AuditableDto.cs</span> revertido</div>
+      <div class="card-body">No se usaba en ningún lado — única referencia era su propia definición. Eliminado.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Slop menor corregido</div>
+      <div class="card-body">Test de <span class="code">JwtService</span> N-format en <span class="code">BaseControllerAuthorizationTests.cs</span> era duplicado de <span class="code">GenerateToken_EmitsCompanyIdClaim</span> en <span class="code">JwtServiceTests.cs</span> — eliminado.</div>
+    </div>
+  </div>
+
+  <h2>Surprises detectadas en 1.2a/b</h2>
+  <ul>
+    <li><span class="code">Employee.DirectManagerId</span> (self-FK <span class="code">Guid?</span>).</li>
+    <li><span class="code">Sale.ClienteId</span> typo pre-existente, conservado (no era del refactor).</li>
+    <li><span class="code">Sale.AddItem(Guid productId)</span> / <span class="code">RemoveItem(Guid productId)</span> migrados.</li>
+    <li><span class="code">EitherAsync</span> type-inference break en <span class="code">AccountingTransactionService.cs:65</span> — 1.2b anota tipo explícito.</li>
+    <li><span class="code">HashSet&lt;Guid&gt;</span> mismatch en <span class="code">Distinct().ToHashSet()</span> cuando entity es Guid pero DTOs siguen siendo <span class="code">int</span> — 1.2b arregla migrando DTOs primero.</li>
+    <li><span class="code">int quantity</span>/<span class="code">Stock</span> en Product/Sale <strong>NO</strong> son FKs — no se migraron.</li>
+  </ul>
+
+  <h2>Estado final post 1.2c</h2>
+  <div class="verdict">
+    ✅ Domain / Application / Infrastructure / Api / Tests compilan.<br>
+    ✅ <strong>280/280 tests passing</strong> (281 - 1 duplicado eliminado).<br>
+    ⚠️ Schema reset <strong>NO ejecutado</strong> — Postgres apagado en sesión, queda para el usuario.
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>12</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 13: CYCLE 1.3 ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">11 · CYCLE 1.3</span>
+    <span>HasQueryFilter + integration tests</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Cycle 1.3: el corazón del refactor</h1>
+  <p style="color: var(--text-muted); margin-bottom: 10px;">3 commits · <span class="code">d613727</span> → <span class="code">afcdeb6</span> → <span class="code">6803319</span></p>
+
+  <h2>El approach</h2>
+  <p>Siguiendo el patrón de Derek Comartin (codeopinion.com):</p>
+
+  <div class="flow">
+    <div class="fs"><span class="n">1</span><span class="txt"><span class="code">ITenantContext</span> interface en <span class="code">Volterp.Application/Abstractions/</span></span></div>
+    <div class="fs"><span class="n">2</span><span class="txt"><span class="code">HttpTenantContext</span> impl en <span class="code">Volterp.Api/Http/</span> (lee <span class="code">IHttpContextAccessor</span> + JWT claim <span class="code">companyId</span>)</span></div>
+    <div class="fs"><span class="n">3</span><span class="txt"><span class="code">NullTenantContext</span> impl en <span class="code">Volterp.Application/Abstractions/</span> (design-time/seeders)</span></div>
+    <div class="fs"><span class="n">4</span><span class="txt"><span class="code">VolterpDbContext</span> inyecta <span class="code">ITenantContext</span> opcional + aplica <span class="code">HasQueryFilter</span> via reflection</span></div>
+    <div class="fs"><span class="n">5</span><span class="txt"><span class="code">Company</span> se salta (es el tenant, no tenant-scoped). <span class="code">SaleItem</span>/<span class="code">PurchaseItem</span> con filter navigation-based.</span></div>
+  </div>
+
+  <h2>Predicados eliminados</h2>
+  <table>
+    <thead><tr><th>Repositorio</th><th>Predicados eliminados</th></tr></thead>
+    <tbody>
+      <tr><td><span class="code">DashboardRepository</span></td><td><strong>17</strong> (incluye 2 navigation-based <span class="code">si.Sale.CompanyId</span>)</td></tr>
+      <tr><td>Otros 9 repos</td><td><strong>16</strong> distribuidos</td></tr>
+      <tr><td><strong>Total</strong></td><td><strong>33</strong> (no 38 como decía el spec — discrepancia corregida)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>El bug que casi se nos escapa</h2>
+
+  <div class="verdict danger">
+    <strong>Closure-local bug en commit <span class="code">afcdeb6</span></strong> (fixed en <span class="code">6803319</span>)<br><br>
+    Versión inicial capturaba <span class="code">tenant</span> como closure-local:<br>
+    <span class="code">var tenant = _tenantContext.CompanyId; .HasQueryFilter(e =&gt; tenant == null || e.CompanyId == tenant)</span><br><br>
+    EF Core <strong>inlinea las closure-locals</strong> como SQL constants al model-build time → el filtro se lockeaba al primer valor visto (típicamente <span class="code">null</span> durante <span class="code">EnsureCreated</span> fuera de HTTP) → <strong>todas las queries unfiltered</strong>.<br><br>
+    <strong>Fix:</strong> referenciar <span class="code">_tenantContext.CompanyId</span> <strong>directamente</strong> en la lambda (field access del DbContext) → EF Core parameteriza por query.
+  </div>
+
+  <h2>Los integration tests</h2>
+
+  <table>
+    <thead><tr><th>Test</th><th>Qué verifica</th></tr></thead>
+    <tbody>
+      <tr><td><span class="code">CrossTenantRead_IsBlocked</span></td><td>Un supplier de CompanyA no aparece en la query de CompanyB.</td></tr>
+      <tr><td><span class="code">CrossTenantUpdate_IsBlocked</span></td><td>Intentar editar un supplier de otra company devuelve 404.</td></tr>
+      <tr><td><span class="code">NoCompanyClaim_Returns401</span></td><td>JWT sin claim <span class="code">companyId</span> → 401 (no 200 con todo).</td></tr>
+    </tbody>
+  </table>
+
+  <p>Tests usan <span class="code">IJwtService.GenerateToken</span> real + <span class="code">WebApplicationFactory&lt;ApiAssemblyMarker&gt;</span> + <span class="code">EnsureCreated</span> en SQLite in-memory.</p>
+
+  <h2>Resultado</h2>
+  <div class="verdict">
+    280 → <strong>283 passing</strong> (+3 integration tests reales con HTTP pipeline + SQLite).<br>
+    Los 3 tests nuevos <strong>detectaron el closure-local bug</strong>. Sin ellos, el refactor hubiera pasado todos los unit tests pero el runtime estaría roto.
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>13</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 14: PHASE 2 ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">12 · PHASE 2</span>
+    <span>Cleanup + observability</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Phase 2: cleanup + observability</h1>
+  <p style="color: var(--text-muted); margin-bottom: 14px;">Dead code elimination, consolidación y Serilog. 4 tareas, 8 commits.</p>
+
+  <table>
+    <thead><tr><th>#</th><th>Tarea</th><th>Commits</th><th>Estado</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Eliminar 33 <span class="code">Ensure(companyId != Guid.Empty)</span> en 10 services</td>
+        <td><span class="code">cc7b030</span></td>
+        <td><span class="tag tag-green">Done</span></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Consolidar <span class="code">BaseController.GetCurrentUserCompanyId</span> → consumer de <span class="code">ITenantContext</span></td>
+        <td><span class="code">7ebc82e</span></td>
+        <td><span class="tag tag-green">Done</span></td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Implementar <strong>Admin Global</strong> <span class="code">ITenantContext</span> (cross-tenant)</td>
+        <td>—</td>
+        <td><span class="tag tag-amber">Blocked</span></td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Wirear Serilog enricher para <span class="code">CompanyId</span></td>
+        <td><span class="code">5d2ab84</span> · <span class="code">7f6270f</span> · <span class="code">b4dccff</span> · <span class="code">d78e5e7</span> · <span class="code">64b8492</span></td>
+        <td><span class="tag tag-green">Done</span></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Remove dead <span class="code">companyId</span> parameter en reads (Tier 1)</td>
+        <td><span class="code">a22a814</span></td>
+        <td><span class="tag tag-green">Done</span></td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Remove dead <span class="code">companyId</span> parameter en writes (Tier 2)</td>
+        <td>—</td>
+        <td><span class="tag tag-purple">Deferred</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Task 4: Serilog enricher — la saga de 5 commits</h2>
+
+  <p>Task 4 terminó requiriendo 5 commits porque en el camino aparecieron 2 bugs y un refactor estilístico:</p>
+
+  <div class="flow">
+    <div class="fs"><span class="n">1</span><span class="txt"><strong><span class="code">5d2ab84</span></strong> — feat: middleware + 2 tests + Program.cs registration. <span class="code">ITenantContext</span> inyectado por constructor.</span></div>
+    <div class="fs"><span class="n">2</span><span class="txt"><strong><span class="code">7f6270f</span></strong> — refactor: move a <span class="code">Extensions/</span> (donde está <span class="code">ExceptionMiddleWareHandler</span>) + extension method <span class="code">UseTenantLogging()</span>.</span></div>
+    <div class="fs"><span class="n">3</span><span class="txt"><strong><span class="code">b4dccff</span></strong> — fix: el pipeline tenía <strong>ambas</strong> llamadas (<span class="code">UseMiddleware&lt;TenantLoggingMiddleware&gt;</span> + <span class="code">UseTenantLogging</span>) → middleware ejecutaba 2 veces.</span></div>
+    <div class="fs"><span class="n">4</span><span class="txt"><strong><span class="code">d78e5e7</span></strong> — refactor: C# 14 <span class="code">extension(IApplicationBuilder builder) { public void UseTenantLogging() }</span> blocks (en lugar de <span class="code">this</span>).</span></div>
+    <div class="fs"><span class="n">5</span><span class="txt"><strong><span class="code">64b8492</span></strong> — fix: <span class="code">Cannot resolve scoped service ITenantContext from root provider</span>. Constructor injection falla en middlewares; el fix es resolverlo desde <span class="code">context.RequestServices</span> dentro de <span class="code">InvokeAsync</span>.</span></div>
+  </div>
+
+  <h3>El bug que explotó en runtime</h3>
+  <div class="verdict warning">
+    <strong>Por qué no lo detectaron los tests:</strong> el <span class="code">WebApplicationFactory</span> de los integration tests arma un scope diferente que <strong>resuelve el constructor injection</strong> sin quejarse. Pero en el <strong>runtime real</strong>, los middlewares se construyen una vez al startup desde el root provider. <span class="code">ITenantContext</span> es <span class="code">AddScoped</span> → no se puede resolver → <span class="code">Hosting failed to start</span>.<br><br>
+    <strong>Lección:</strong> los tests con <span class="code">WebApplicationFactory</span> no reemplazan al startup real. Hay que probar la app de verdad.
+  </div>
+
+  <h2>Task 3 — Admin Global: por qué está bloqueado</h2>
+  <div class="card warning">
+    <div class="card-title">Bloqueador</div>
+    <div class="card-body">No hay endpoints admin cross-tenant. <span class="code">IsSuperAdminOnly()</span> está definido en <span class="code">BaseController.cs:32-33</span> pero solo se usa en <span class="code">UsersController</span> (4 call sites) — todos para autorizar acciones de users, <strong>no</strong> para queries cross-tenant. <strong>Re-check cuando aparezca el primer endpoint admin cross-tenant.</strong></div>
+  </div>
+
+  <h2>Task 5 Tier 2 — por qué está diferido</h2>
+  <div class="card">
+    <div class="card-title">Decisión arquitectónica pendiente</div>
+    <div class="card-body">Si removemos <span class="code">companyId</span> parámetro de <span class="code">CreateAsync</span> y el service lee de <span class="code">ITenantContext</span>, ¿quién valida 401 cuando falta el claim? El controller ya no llamaría <span class="code">GetCurrentUserCompanyId()</span>. Opciones: (a) <span class="code">EnsureTenant()</span> helper en controller · (b) ASP.NET authorization filter · (c) service tira <span class="code">UnauthorizedException</span> directo. <strong>~350 líneas adicionales. Necesita decisión tuya antes de implementar.</strong></div>
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>14</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 15: COMPARATIVA ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">13 · COMPARATIVA</span>
+    <span>Antes vs después, métrica a métrica</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Comparativa antes vs después</h1>
+
+  <table>
+    <thead>
+      <tr><th>Dimensión</th><th>Antes</th><th>Después</th><th>Cómo se logró</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Identidad</strong></td>
+        <td><span class="code">int</span> autoincremental</td>
+        <td><span class="code">Guid 7</span> (timestamp-based)</td>
+        <td><span class="code">Guid.CreateVersion7()</span> + formato <span class="code">N</span></td>
+      </tr>
+      <tr>
+        <td><strong>Predicados manuales</strong></td>
+        <td>38 <span class="code">CompanyId == companyId</span></td>
+        <td><strong>0</strong> — 1 <span class="code">HasQueryFilter</span> global</td>
+        <td>Reflection-based filter en <span class="code">OnModelCreating</span></td>
+      </tr>
+      <tr>
+        <td><strong>Fuentes de verdad del tenant</strong></td>
+        <td>3 (controller, service, repo)</td>
+        <td>1 (<span class="code">ITenantContext</span>)</td>
+        <td><span class="code">HttpTenantContext</span> registrado en DI</td>
+      </tr>
+      <tr>
+        <td><strong>Bugs cross-tenant</strong></td>
+        <td>3 + 1 latente detectado</td>
+        <td><strong>0</strong> arquitectónicamente cerrados</td>
+        <td>Wire refactor + 3 regression tests</td>
+      </tr>
+      <tr>
+        <td><strong>Boilerplate <span class="code">Ensure(... != Guid.Empty)</span></strong></td>
+        <td>30 en 10 services</td>
+        <td><strong>0</strong></td>
+        <td>Dead code post-401</td>
+      </tr>
+      <tr>
+        <td><strong><span class="code">companyId</span> en reads</strong></td>
+        <td>22+ métodos con parámetro</td>
+        <td><strong>0</strong> en reads</td>
+        <td>Eliminado en Task 5 Tier 1</td>
+      </tr>
+      <tr>
+        <td><strong>Silent-zero en claim parse</strong></td>
+        <td><span class="code">int.Parse(... ?? "0")</span> → 0</td>
+        <td><span class="code">Guid.TryParse</span> + throw 401</td>
+        <td>Cycle 1.2c</td>
+      </tr>
+      <tr>
+        <td><strong>Log <span class="code">CompanyId</span></strong></td>
+        <td>Manual (grep en logs)</td>
+        <td>Automático por request</td>
+        <td><span class="code">TenantLoggingMiddleware</span> + <span class="code">LogContext.PushProperty</span></td>
+      </tr>
+      <tr>
+        <td><strong>Tests passing</strong></td>
+        <td>253</td>
+        <td><strong>285</strong></td>
+        <td>+32 nuevos tests (+3 integration reales)</td>
+      </tr>
+      <tr>
+        <td><strong>Predicados manuales totales</strong></td>
+        <td>38</td>
+        <td><strong>0</strong></td>
+        <td>33 en Cycle 1.3 + 5 en Task 5</td>
+      </tr>
+      <tr>
+        <td><strong>Cobertura de integration tests reales</strong></td>
+        <td>0</td>
+        <td>3 (cross-tenant read, cross-tenant update, no-claim-401)</td>
+        <td><span class="code">SupplierTenantIsolationTests.cs</span></td>
+      </tr>
+      <tr>
+        <td><strong>Riesgo de regresión</strong></td>
+        <td>Alto — convention-based</td>
+        <td>Bajo — architecture-enforced</td>
+        <td>Filtro centralizado en EF, no en cada repo</td>
+      </tr>
+      <tr>
+        <td><strong>Para agregar nueva entity tenant-scoped</strong></td>
+        <td>Editar N repos con predicados</td>
+        <td>Agregar <span class="code">Guid CompanyId</span> — el filtro se aplica solo</td>
+        <td>Reflection en <span class="code">OnModelCreating</span></td>
+      </tr>
+      <tr>
+        <td><strong>Para agregar nuevo endpoint</strong></td>
+        <td>Acordarse de <span class="code">GetCurrentUserCompanyId()</span> + pasar <span class="code">companyId</span> a service + repo</td>
+        <td>Solo escribir la lógica — el filtro se aplica solo</td>
+        <td>Architecture-enforced</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="verdict" style="margin-top: 14px;">
+    <strong>Cambio cualitativo:</strong> el aislamiento multi-tenant pasó de ser <strong>convención humana</strong> (olvidable, code-review-dependiente) a ser <strong>garantía arquitectónica</strong> (olvidable ≠ posible). Un developer nuevo que escribe un repo nuevo <strong>no puede</strong> saltarse el filtro.
+  </div>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>15</span>
+  </div>
+</div>
+
+<!-- ============== PAGE 16: LECCIONES ============== -->
+<div class="page">
+  <div class="page-header">
+    <span class="brand">14 · LECCIONES + ESTADO FINAL</span>
+    <span>Qué aprendimos</span>
+  </div>
+
+  <h1 style="font-size: 22pt; margin-bottom: 8px;">Lecciones aprendidas</h1>
+
+  <h2>Gotchas que pueden morderte</h2>
+
+  <table>
+    <thead><tr><th>Pitfall</th><th>Por qué muerde</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Closure-local en HasQueryFilter</strong></td>
+        <td>EF Core inlinea closure-locals como SQL constants al model-build time. El filtro se lockea al primer valor visto (típicamente <span class="code">null</span> durante <span class="code">EnsureCreated</span> fuera de HTTP). <strong>Todas las queries unfiltered.</strong></td>
+        <td>Referenciar <span class="code">_tenantContext.CompanyId</span> <strong>directamente</strong> en la lambda. EF Core parameteriza el field access por query.</td>
+      </tr>
+      <tr>
+        <td><strong><span class="code">WebApplicationFactory</span> vs runtime real</strong></td>
+        <td>Los integration tests con factory arman un scope que resuelve constructor injection sin quejarse. Pero en el runtime real, los middlewares se construyen una vez al startup desde el root provider.</td>
+        <td><strong>Probar la app de verdad, no solo los tests.</strong> El factory no reemplaza al startup real.</td>
+      </tr>
+      <tr>
+        <td><strong><span class="code">int.Parse(... ?? "0")</span></td>
+        <td>Silent data corruption. Sin claim → companyId=0 → query devuelve todo. <strong>No es 401, es "todo el mundo es tenant 0".</strong></td>
+        <td>Siempre <span class="code">Guid.TryParse</span> + throw <span class="code">UnauthorizedException</span> en missing/malformed.</td>
+      </tr>
+      <tr>
+        <td><strong><span class="code">IgnoreQueryFilters()</span> fuera de admin</strong></td>
+        <td>Bypassea el aislamiento. Si lo necesitás, estás haciendo admin work.</td>
+        <td>Wrap en <span class="code">IsSuperAdminOnly()</span> + whitelist cerrada.</td>
+      </tr>
+      <tr>
+        <td><strong>Migrar a Guid 7 sin split</strong></td>
+        <td>Entre 1.2a y 1.2b el código no compila (~176 errors esperados). Si metés todo en 1 commit, el reviewer ve un delta inmanejable.</td>
+        <td>Split en 3 commits cohesivos (a/b/c). Cada commit = unidad revisable.</td>
+      </tr>
+      <tr>
+        <td><strong>Trust <span class="code">request.CompanyId</span></strong></td>
+        <td>Datos cliente-controlled. Un usuario de la Compañía A puede crear datos para la Compañía B con solo editar el body.</td>
+        <td><span class="code">companyId</span> SIEMPRE del JWT, nunca del request.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Decisiones que nos guiaron</h2>
+
+  <div class="card-grid">
+    <div class="card success">
+      <div class="card-title">Characterization tests primero</div>
+      <div class="card-body">Antes de refactorizar, capturar el comportamiento actual (bugs incluidos). Esos tests son tu red de seguridad.</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Un commit por unidad cohesiva</div>
+      <div class="card-body">Red+green+refactor juntos si caben. Mensaje conventional. Sin AI attribution.</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Auditar antes de tocar</div>
+      <div class="card-body">Cycle 1.0 fue 100% read-only. 5 archivos, 948 insertions, <strong>0 cambios a producción</strong>. Ese audit fue el mapa del terreno.</div>
+    </div>
+    <div class="card success">
+      <div class="card-title">Hard rules desde el día 1</div>
+      <div class="card-body">Cero doc-comments que expliquen lo obvio · cero refs al plan en código · cero defensive code sin razón · cero over-engineering de tests.</div>
+    </div>
+  </div>
+
+  <h2 style="margin-top: 12px;">Estado final de la rama</h2>
+
+  <div class="exec-summary">
+    <div class="lbl">Branch <span class="code">refactor/multi-tenant-system</span></div>
+    <p><strong>285/285 tests passing</strong> · 0 warnings nuevos · 26 commits cohesivos · lista para merge a <span class="code">development</span>. Schema reset ejecutado (DB <span class="code">volterp</span> inicializada con <span class="code">InitialGuid7</span>).</p>
+  </div>
+
+  <h2>Pendientes</h2>
+
+  <table>
+    <thead><tr><th>#</th><th>Item</th><th>Estado</th><th>Cuándo</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Task 3 — Admin Global <span class="code">ITenantContext</span></td>
+        <td><span class="tag tag-amber">Blocked</span></td>
+        <td>Cuando aparezca el primer endpoint admin cross-tenant</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Task 5 Tier 2 — Remove <span class="code">companyId</span> en writes</td>
+        <td><span class="tag tag-purple">Deferred</span></td>
+        <td>Decisión arquitectónica sobre validación 401 (~350 líneas)</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Slop menor del commit 1.1 pendiente de limpieza</td>
+        <td><span class="tag tag-gray">Cleanup</span></td>
+        <td>Antes del merge final</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-foot">
+    <span>Volterp · refactor/multi-tenant-system</span>
+    <span>16 · Fin</span>
+  </div>
+</div>
+
+</body>
+</html>

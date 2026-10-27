@@ -1,5 +1,5 @@
 using EitherWay;
-using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Domain.Enums;

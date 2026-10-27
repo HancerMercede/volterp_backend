@@ -51,14 +51,15 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
             .Run();
     }
 
-    public async Task<Either<Error,SupplierDto>> UpdateSupplierAsync(Guid id, Guid companyId, UpdateSupplierRequest request, Guid? userId, CancellationToken ct = default)
+    public async Task<Either<Error, SupplierDto>> UpdateSupplierAsync(Guid id, Guid companyId, UpdateSupplierRequest request, Guid? userId, CancellationToken ct = default)
     {
-        return await EitherAsync<Error, Guid>.FromRight(id)
+        return await EitherAsync<Error, Guid>
+            .FromRight(id)
             .Ensure(s => s != Guid.Empty, new Error("The id must not be empty."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Name), new Error("The name must be specified."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Address), new Error("The address must be specified."))
             .Ensure(_ => !string.IsNullOrEmpty(request.Email), new Error("The email must be specified."))
-            .Ensure(_=> request.Email.IsValidEmail(), _=> new Error("The email is not valid"))
+            .Ensure(_=> request.Email.IsValidEmail(), new Error("The email is not valid"))
             .FlatMap(async supplier => await unitOfWork.Suppliers.GetSupplierByIdAsync(id, ct),
                 exception => new Error($"Error: {exception.Message}"))
             .Map(supplier =>
@@ -81,7 +82,7 @@ public class SupplierService(IUnitOfWork unitOfWork) : ISupplierService
                   return supplier;
                 },
                 exception => new Error($"Error: {exception.Message}"))
-            .Map(s => s?.MapTo<Supplier, SupplierDto>())
+            .Map(supplier => supplier!.MapTo<Supplier, SupplierDto>())
             .Run();
     }
 

@@ -1,7 +1,6 @@
 ﻿using EitherWay;
 using FluentAssertions;
 using Moq;
-using Volterp.Application.DTOs;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
@@ -10,6 +9,7 @@ using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Xunit;
 using Volterp.Tests.TestHelpers;
+using Volterp.Application.DTOs.SaleDtos;
 
 namespace Volterp.Tests.Services;
 
@@ -1125,5 +1125,108 @@ public class  SaleServiceTests
         // Stock was modified in memory before commit failed
         // NOTE: This documents current behavior. True rollback requires integration tests.
         product.Stock.Should().Be(15); // 5 + 10 restored before commit failed
+    }
+
+    [Fact]
+    public async Task CreateSaleAsync_MapsEveryItemFieldToEntity()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+
+        Sale? capturedSale = null;
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Callback<Sale, CancellationToken>((s, ct) => capturedSale = s)
+            .ReturnsAsync((Sale s, CancellationToken ct) => s);
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        var request = new CreateSaleRequest(
+            ClienteId: null, ClienteName: "Test Client",
+            Status: SaleStatus.Pending, Total: 100, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test Product", "Tools", "CODE-1", "https://img/product.png", 2, 50, 100)
+            }
+        );
+
+        // ACT
+        await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT - every field of the request item must reach the entity item
+        capturedSale.Should().NotBeNull();
+        var item = capturedSale!.Items.Should().ContainSingle().Subject;
+        item.ProductId.Should().Be(Guid7TestValues.ProductA);
+        item.ProductName.Should().Be("Test Product");
+        item.ProductCategory.Should().Be("Tools");
+        item.ProductCode.Should().Be("CODE-1");
+        item.ProductImageUrl.Should().Be("https://img/product.png");
+        item.Quantity.Should().Be(2);
+        item.UnitPrice.Should().Be(50m);
+        item.Subtotal.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task UpdateSaleAsync_MapsEveryItemFieldToEntity()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
+
+        var existingSale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
+            Items = new List<SaleItem>
+            {
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        Sale? capturedSale = null;
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingSale);
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Callback<Sale, CancellationToken>((s, ct) => capturedSale = s)
+            .Returns(Task.CompletedTask);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        var updateRequest = new UpdateSaleRequest(
+            ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
+            Total: 100, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test Product", "Tools", "CODE-1", "https://img/product.png", 2, 50, 100)
+            }
+        );
+
+        // ACT
+        await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
+
+        // ASSERT - every field of the request item must reach the entity item
+        capturedSale.Should().NotBeNull();
+        var item = capturedSale!.Items.Should().ContainSingle().Subject;
+        item.ProductId.Should().Be(Guid7TestValues.ProductA);
+        item.ProductName.Should().Be("Test Product");
+        item.ProductCategory.Should().Be("Tools");
+        item.ProductCode.Should().Be("CODE-1");
+        item.ProductImageUrl.Should().Be("https://img/product.png");
+        item.Quantity.Should().Be(2);
+        item.UnitPrice.Should().Be(50m);
+        item.Subtotal.Should().Be(100m);
     }
 }

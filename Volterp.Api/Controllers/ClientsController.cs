@@ -45,8 +45,7 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
 
         return client.Match<ActionResult<ClientDto>>(
             error => BadRequest(error.Message),
-            result => CreatedAtAction(nameof(GetClient),
-                new { id = result.Id }, result));
+            result => CreatedAtAction(nameof(GetClient), new { id = result.Id }, result));
     }
 
     [HttpPut("{id}")]

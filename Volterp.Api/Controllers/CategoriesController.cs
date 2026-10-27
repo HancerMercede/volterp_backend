@@ -24,7 +24,8 @@ public class CategoriesController(IServiceManager services) : BaseController
         var result = await services.Categories.GetByIdAsync(id, ct);
         return result.Match<ActionResult<CategoryDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
-            category => category is null ? NotFound(new ErrorResponse("Category not found")) : Ok(category)
+            category => category is null ? NotFound(new ErrorResponse("Category not found")) 
+                                                   : Ok(category)
         );
     }
 

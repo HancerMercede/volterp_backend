@@ -9,7 +9,7 @@ using Volterp.Api.Controllers;
 using Volterp.Api.Http;
 using Volterp.Application.Abstractions;
 using Volterp.Application.Common;
-using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Enums;

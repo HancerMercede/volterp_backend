@@ -20,7 +20,13 @@ public record UpdateClientDto
     {
         return new Client
         {
-
+            Name = Name,
+            Email = Email,
+            Phone = Phone,
+            Address = Address,
+            ImageUrl = ImageUrl,
+            IsActive = IsActive,
+            CreatedAt = DateTime.UtcNow,
         };
     }
 }

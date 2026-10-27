@@ -1,9 +1,9 @@
 using System.Reflection;
 using System.Text.Json;
 using FluentAssertions;
-using Volterp.Application.DTOs;
 using Volterp.Application.DTOs.CategoryDtos;
 using Volterp.Application.DTOs.ProductDtos;
+using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.DTOs.SupplierDtos;
 using Volterp.Application.DTOs.UserDtos;
 using Xunit;

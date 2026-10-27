@@ -66,6 +66,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
                     c?.Address = request.Address;
                     c?.IsActive = request.IsActive;
                     c?.UpdatedAt = DateTime.UtcNow;
+                    c?.ImageUrl = request.ImageUrl;
                     if (userId.HasValue) c?.SetUpdatedBy(userId.Value);
                 });
                 return client;
@@ -89,9 +90,9 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .FlatMap(async userId => await unitOfWork.Clients.GetClientByIdAsync(userId, ct),
                 error => new Error(error.Message))
             .Ensure(client => client is not null, new Error("User not found."))
-            .FlatMap(async client =>
+            .FlatMap(async _ =>
             {
-                await unitOfWork.Clients.DeleteClientAsync(client.Id, ct);
+                await unitOfWork.Clients.DeleteClientAsync(id, ct);
                 await unitOfWork.CommitAsync(ct);
                 return new Unit();
             }, error => new Error(error.Message))

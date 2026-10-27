@@ -1,7 +1,6 @@
 using EitherWay;
-using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.Exceptions.AppErrors;
-using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
@@ -10,20 +9,6 @@ namespace Volterp.Application.Services;
 
 public class SaleService(IUnitOfWork unitOfWork) : ISaleService
 {
-
-    private static List<SaleItem> MapToSaleItems(List<CreateSaleItemRequest> items) => items
-        .Select(i => new SaleItem
-        {
-            ProductId = i.ProductId,
-            ProductName = i.ProductName,
-            ProductCategory = i.ProductCategory,
-            ProductCode = i.ProductCode,
-            ProductImageUrl = i.ProductImageUrl,
-            Quantity = i.Quantity,
-            UnitPrice = i.UnitPrice,
-            Subtotal = i.Subtotal
-        }).ToList();
-
     public async Task<PagedResult<SaleDto>> GetAllSalesAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var sales = await unitOfWork.Sales.GetAllSalesAsync(pageNumber, pageSize, ct);
@@ -123,9 +108,9 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
 
                     product.DeductStock(quantity);
                 }
-
-                var newItems = MapToSaleItems(request.Items);
-
+                
+                var newItems = request.Items.Map(i => i.Project());
+                
                 sale.Apply(s =>
                 {
                     s.ClienteId = request.ClienteId;

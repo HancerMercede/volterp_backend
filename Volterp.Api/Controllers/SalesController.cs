@@ -2,7 +2,7 @@ using EitherWay;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
-using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Enums;
