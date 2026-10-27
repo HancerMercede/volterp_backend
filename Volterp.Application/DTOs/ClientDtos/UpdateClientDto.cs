@@ -26,7 +26,6 @@ public record UpdateClientDto
             Address = Address,
             ImageUrl = ImageUrl,
             IsActive = IsActive,
-            CreatedAt = DateTime.UtcNow,
         };
     }
 }

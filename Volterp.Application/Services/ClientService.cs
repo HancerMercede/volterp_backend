@@ -72,7 +72,6 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
                 return client;
             }).FlatMap(async client =>
             {
-
                 await unitOfWork.Clients.UpdateClientAsync(client!, ct);
                 await unitOfWork.CommitAsync(ct);
                 return client;
