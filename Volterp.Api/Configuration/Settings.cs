@@ -12,3 +12,8 @@ public class DatabaseSettings
 {
     public string DefaultConnection { get; init; } = string.Empty;
 }
+
+public class EncryptionSettings
+{
+    public string MasterKey { get; init; } = string.Empty;
+}

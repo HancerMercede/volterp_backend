@@ -56,6 +56,9 @@ public static class ServiceExtensions
         services.AddAuthorization();
     }
 
+    public static void ConfigureEncryption(IServiceCollection services, EncryptionSettings settings)
+        => services.AddSingleton<ICredentialProtector>(new AesCredentialProtector(settings.MasterKey));
+
     public static void ConfigureControllers(IServiceCollection services)
         => services.AddControllers()
             .AddJsonOptions(options =>

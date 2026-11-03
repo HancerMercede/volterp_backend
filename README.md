@@ -80,6 +80,8 @@ Unit tests covering the critical application services:
 
 2. Configure the database and JWT settings in `Volterp.Api/appsettings.json`. The file is already present in the repo with development defaults — override via environment variables or user secrets for production.
 
+   `Encryption:MasterKey` is the 256-bit base64 key that encrypts the issuer credentials at rest. It is **not** rotatable in place: changing it makes every stored credential unreadable. Generate a production one with `openssl rand -base64 32` and inject it as `Encryption__MasterKey`.
+
 3. Apply migrations (they run automatically on startup, or manually):
    ```bash
    dotnet ef database update
@@ -112,6 +114,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Sales** | CRUD `/api/sales` |
 | **Purchases** | CRUD `/api/purchases` |
 | **Companies** | CRUD `/api/companies` |
+| **Company Certificates** | `GET /api/company-certificates`, `POST /api/company-certificates` (admin) |
 | **Accounting** | CRUD `/api/accounting-transactions` |
 
 ## Related

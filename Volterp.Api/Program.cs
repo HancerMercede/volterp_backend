@@ -22,10 +22,16 @@ var dbSettings = new DatabaseSettings
     DefaultConnection = builder.Configuration.GetConnectionString("DefaultConnection")!
 };
 
+var encryptionSettings = new EncryptionSettings
+{
+    MasterKey = builder.Configuration["Encryption:MasterKey"]!
+};
+
 ServiceExtensions.ConfigureDbContext(builder.Services, dbSettings);
 ServiceExtensions.ConfigureUnitOfWork(builder.Services);
 ServiceExtensions.ConfigureServiceManager(builder.Services);
 ServiceExtensions.ConfigureJwt(builder.Services, jwtSettings);
+ServiceExtensions.ConfigureEncryption(builder.Services, encryptionSettings);
 ServiceExtensions.ConfigureControllers(builder.Services);
 ServiceExtensions.ConfigureCors(builder.Services);
 ServiceExtensions.ConfigureExceptionLogStore(builder.Services);

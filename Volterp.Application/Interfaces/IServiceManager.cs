@@ -12,5 +12,6 @@ public interface IServiceManager
     IEmployeeService Employees { get; }
     IAccountingTransactionService AccountingTransactions { get; }
     IClientService Clients { get; }
+    ICompanyCertificateService CompanyCertificates { get; }
     IDashboardService Dashboard { get; }
 }
