@@ -4,6 +4,7 @@ using Volterp.Application.DTOs.CompanyDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
+using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Application.Services;
 
@@ -35,9 +36,11 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Ensure(c => !string.IsNullOrEmpty(c.Email), new Error("email can't be null or empty."))
             .Ensure(c => !string.IsNullOrEmpty(c.Phone), new Error("phone can't be null or empty."))
             .Ensure(c => !string.IsNullOrEmpty(c.LegalName), new Error("legal name can't be null or empty."))
+            .Ensure(c => Rnc.TryParse(c.TaxId, out _), new Error("The tax id must be a valid RNC or citizen ID."))
             .Map(c => c.Project())
             .Map(companyToAdd =>
             {
+                companyToAdd.UpdateTaxId(new Rnc(companyToAdd.TaxId));
                 if (userId.HasValue) companyToAdd.SetCreatedBy(userId.Value);
                 return companyToAdd;
             })
@@ -61,6 +64,7 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
             .Ensure(_ => !string.IsNullOrWhiteSpace(company.Email), new Error("email can't be null or empty."))
             .Ensure(_ => !string.IsNullOrWhiteSpace(company.Phone), new Error("phone can't be null or empty."))
             .Ensure(_ => !string.IsNullOrWhiteSpace(company.LegalName), new Error("legal name can't be null or empty."))
+            .Ensure(x => Rnc.TryParse(company.TaxId, out _), new Error("The tax id must be a valid RNC or citizen ID."))
             .FlatMap(async searchId => await unitOfWork.Companies.GetCompanyByIdAsync(searchId, ct),
                 error => new Error(error.Message))
             .Ensure(companyDb => companyDb is not null, new Error("company not found"))
@@ -78,6 +82,8 @@ public class CompanyService(IUnitOfWork unitOfWork) :ICompanyService
                     c.UpdatedAt = DateTime.UtcNow;
                     if (userId.HasValue) c.SetUpdatedBy(userId.Value);
                 });
+
+                companyToUpdate?.UpdateTaxId(new Rnc(company.TaxId));
                 return companyToUpdate;
             }).FlatMap(async companyToUpdate =>
             {

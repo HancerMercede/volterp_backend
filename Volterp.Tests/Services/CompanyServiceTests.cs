@@ -128,7 +128,7 @@ public class CompanyServiceTests
 
         var service = new CompanyService(mockUnitOfWork.Object);
         var request = new CreateCompanyDto(
-            Name: "New Company", TaxId: "TAX123", LogoUrl: null,
+            Name: "New Company", TaxId: "1-30-86234-6", LogoUrl: null,
             Address: "123 Main St", LegalName: "New Company LLC",
             Phone: "809-555-1234", Email: "new@company.com"
         );
@@ -140,7 +140,32 @@ public class CompanyServiceTests
         result.Should().BeOfType<Either<Error, CompanyDto?>.Right>();
         var company = ((Either<Error, CompanyDto?>.Right)result).Value;
         company!.Name.Should().Be("New Company");
+        company.TaxId.Should().Be("130862346");
         mockCompaniesRepo.Verify(r => r.AddCompanyAsync(It.IsAny<Company>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddCompanyAsync_WithInvalidTaxId_ReturnsLeft()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockCompaniesRepo = new Mock<ICompanyRepository>();
+
+        mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
+
+        var service = new CompanyService(mockUnitOfWork.Object);
+        var request = new CreateCompanyDto(
+            Name: "New Company", TaxId: "TAX123", LogoUrl: null,
+            Address: "123 Main St", LegalName: "New Company LLC",
+            Phone: "809-555-1234", Email: "new@company.com"
+        );
+
+        // ACT
+        var result = await service.AddCompanyAsync(request, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, CompanyDto?>.Left>();
+        mockCompaniesRepo.Verify(r => r.AddCompanyAsync(It.IsAny<Company>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -165,7 +190,7 @@ public class CompanyServiceTests
 
         var service = new CompanyService(mockUnitOfWork.Object);
         var request = new UpdateCompanyDto(
-            Name: "Updated Name", TaxId: "456", LogoUrl: null,
+            Name: "Updated Name", TaxId: "04800009575", LogoUrl: null,
             Address: "New Address", LegalName: "New Legal",
             Phone: "809-555-9999", Email: "updated@test.com"
         );
@@ -176,7 +201,40 @@ public class CompanyServiceTests
         // ASSERT
         company.Name.Should().Be("Updated Name");
         company.Email.Should().Be("updated@test.com");
+        company.TaxId.Should().Be("04800009575");
         mockCompaniesRepo.Verify(r => r.UpdateCompanyAsync(company, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateCompanyAsync_WithInvalidTaxId_ReturnsLeft()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockCompaniesRepo = new Mock<ICompanyRepository>();
+
+        var company = new Company
+        {
+            Id = Guid7TestValues.CompanyA, Name = "Old Name", TaxId = "130862346", Address = "Old Address",
+            LegalName = "Old Legal", Phone = "000", Email = "old@test.com", IsActive = true
+        };
+
+        mockCompaniesRepo.Setup(r => r.GetCompanyByIdAsync(Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(company);
+        mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
+
+        var service = new CompanyService(mockUnitOfWork.Object);
+        var request = new UpdateCompanyDto(
+            Name: "Updated Name", TaxId: "TAX123", LogoUrl: null,
+            Address: "New Address", LegalName: "New Legal",
+            Phone: "809-555-9999", Email: "updated@test.com"
+        );
+
+        // ACT
+        var result = await service.UpdateCompanyAsync(Guid7TestValues.CompanyA, request, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, CompanyDto?>.Left>();
+        mockCompaniesRepo.Verify(r => r.UpdateCompanyAsync(It.IsAny<Company>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
