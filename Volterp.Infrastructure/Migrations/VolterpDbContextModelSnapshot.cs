@@ -277,6 +277,54 @@ namespace Volterp.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Volterp.Domain.Entities.CompanyCertificate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EncryptedCredential")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TaxId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("CompanyCertificates");
+                });
+
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoiceSequence", b =>
                 {
                     b.Property<Guid>("Id")
@@ -887,6 +935,17 @@ namespace Volterp.Infrastructure.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Volterp.Domain.Entities.CompanyCertificate", b =>
+                {
+                    b.HasOne("Volterp.Domain.Entities.Company", "Company")
+                        .WithMany("Certificates")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoiceSequence", b =>
                 {
                     b.HasOne("Volterp.Domain.Entities.Company", "Company")
@@ -1010,6 +1069,8 @@ namespace Volterp.Infrastructure.Migrations
                     b.Navigation("AccountingTransactions");
 
                     b.Navigation("Categories");
+
+                    b.Navigation("Certificates");
 
                     b.Navigation("ElectronicInvoiceSequences");
 

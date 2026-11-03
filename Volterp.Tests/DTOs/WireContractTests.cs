@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using FluentAssertions;
 using Volterp.Application.DTOs.CategoryDtos;
+using Volterp.Application.DTOs.CompanyCertificateDtos;
 using Volterp.Application.DTOs.ProductDtos;
 using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.DTOs.SupplierDtos;
@@ -46,6 +47,12 @@ public class WireContractTests
     public void UpdateSupplierRequest_HasNoCompanyIdProperty()
     {
         AssertRequestDtoHasNoCompanyIdProperty(typeof(UpdateSupplierRequest));
+    }
+
+    [Fact]
+    public void CreateCompanyCertificateDto_HasNoCompanyIdProperty()
+    {
+        AssertRequestDtoHasNoCompanyIdProperty(typeof(CreateCompanyCertificateDto));
     }
 
     // ─────── JSON-level contract: a "companyId" field in the body is silently dropped ───────

@@ -13,6 +13,7 @@ public interface IUnitOfWork
     IAccountingTransactionRepository AccountingTransactions { get; }
     IClientRepository Clients { get; }
     IElectronicInvoiceSequenceRepository ElectronicInvoiceSequences { get; }
+    ICompanyCertificateRepository CompanyCertificates { get; }
     IDashboardRepository Dashboard { get; }
     Task<int> CommitAsync(CancellationToken ct = default);
     void Dispose();

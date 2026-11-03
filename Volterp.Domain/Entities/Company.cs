@@ -23,6 +23,7 @@ public class Company : AuditEntity
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     public ICollection<AccountingTransaction> AccountingTransactions { get; set; } = new List<AccountingTransaction>();
     public ICollection<ElectronicInvoiceSequence> ElectronicInvoiceSequences { get; set; } = new List<ElectronicInvoiceSequence>();
+    public ICollection<CompanyCertificate> Certificates { get; set; } = new List<CompanyCertificate>();
 
     public void Activate() => IsActive = true;
     public void Deactivate() => IsActive = false;
