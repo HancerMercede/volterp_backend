@@ -218,7 +218,7 @@ En vez de crear `docs/multitenancy.md` separado (se solapaba con este plan), los
 
 | Layer | Role | File |
 |---|---|---|
-| `ITenantContext` | Read-only access to current `CompanyId` | `Volterp.Application/Abstractions/ITenantContext.cs` |
+| `ITenantContext` | Read-only access to current `CompanyId` + `IsUnrestricted` (design-time only) | `Volterp.Application/Abstractions/ITenantContext.cs` |
 | `HttpTenantContext` | Production impl: reads JWT `companyId` claim (Guid in `N` format) | `Volterp.Api/Http/HttpTenantContext.cs` |
 | `NullTenantContext` | No-op for design-time (migrations, seeders) | `Volterp.Application/Abstractions/NullTenantContext.cs` |
 | `VolterpDbContext.OnModelCreating` | Applies `HasQueryFilter` per entity via reflection; `Company` excluded, `SaleItem`/`PurchaseItem` use navigation filters | `Volterp.Infrastructure/Data/VolterpDbContext.cs` |
@@ -231,6 +231,22 @@ En vez de crear `docs/multitenancy.md` separado (se solapaba con este plan), los
 | 1 | HTTP (JWT, throw 401 si falta claim) | ✅ implemented | `HttpTenantContext` is the registered default. `BaseController` throws before services run. |
 | 2 | Admin Global (cross-tenant explícito) | ❌ not implemented | Implement `ITenantContext` returning a fixed `Guid` paired with `IgnoreQueryFilters()` in admin repos. Wrap in `IsSuperAdminOnly()`. Blocked: no admin endpoints exist yet. |
 | 3 | Tests / Seeder (explícito o `NullTenantContext`) | ✅ implemented | `NullTenantContext` is the design-time default. Integration tests use `WebApplicationFactory<ApiAssemblyMarker>` + custom tenant context per test. |
+| 4 | Sin tenant resuelto (claim ausente, `HttpContext` nulo) | ✅ fail closed | `ITenantContext.CompanyId == null` **no** significa "sin restricción". El filtro devuelve 0 filas. `IsUnrestricted` es `false` en `HttpTenantContext` y `true` solo en `NullTenantContext`. |
+
+### Fail-closed vs fail-open
+
+`null` en `ITenantContext.CompanyId` solía hacer doble trabajo: significaba "sin restricción" (design-time) y "no hay tenant" (job sin `HttpContext`, token sin claim, claim malformado). El filtro no podía distinguirlos y tomaba la interpretación permisiva → **devolvía las filas de todos los tenants**.
+
+Ahora el null significa **solo** "no hay tenant", y el caso permisivo está explícito en `IsUnrestricted`:
+
+| Contexto | `CompanyId` | `IsUnrestricted` | Filas devueltas |
+|---|---|---|---|
+| `NullTenantContext` (design-time, seeders) | null | `true` | todas |
+| `HttpTenantContext` con JWT válido | G | `false` | solo G |
+| `HttpTenantContext` sin claim / malformado | null | `false` | **0** |
+| `HttpTenantContext` sin `HttpContext` (job en background) | null | `false` | **0** |
+
+El filtro es `_tenantContext.IsUnrestricted || <predicado de tenant>`. Regla general: **ante la duda, negar**.
 
 ### Adding a new tenant-scoped entity
 
@@ -284,7 +300,7 @@ The fixture (`Volterp.Tests/Integration/ApiFactory.cs`) wires up `WebApplication
 |---|---|---|
 | Capturing `_tenantContext.CompanyId` as a closure-local inside `HasQueryFilter` | EF Core inlines closure-locals as SQL constants at model-build time. The filter locks to the first value seen (typically `null` during `EnsureCreated` outside HTTP). All queries become unfiltered. | Reference the DbContext field directly in the lambda: `e => _tenantContext.CompanyId == null \|\| EF.Property<Guid>(e, "CompanyId") == _tenantContext.CompanyId`. EF Core parameterizes field access per query. |
 | Forgetting to gate `db.Database.Migrate()` in tests | The startup runs `Migrate()` against the real connection string. In integration tests with SQLite in-memory, this throws because migrations are Postgres-specific. | `Program.cs` already gates with `if (!app.Environment.IsEnvironment("Testing")) db.Database.Migrate();`. Do not remove this gate. |
-| Reading `CompanyId` from `IHttpContextAccessor` in a background job | `HttpContext` is null outside an HTTP request. The implicit tenant context is wrong for background work. | Use a Message-Handler-flavored `ITenantContext` reading from the message envelope. Not implemented yet — see context 2 above. |
+| Reading `CompanyId` from `IHttpContextAccessor` in a background job | `HttpContext` is null outside an HTTP request, so `CompanyId` is null. | El filtro ahora **falla cerrado**: un job sin tenant explícito lee 0 filas, no todas. El job debe resolver el tenant de su mensaje y pasarlo a un contexto con `CompanyId` + `IsUnrestricted = false`. |
 | Returning `Guid.Empty` when the claim is missing | Silent data corruption, not 401. | Always go through `BaseController.GetCurrentUserCompanyId()` so missing claims produce 401. |
 | Calling `IgnoreQueryFilters()` outside admin paths | Bypasses tenant isolation. | If you need it, you are doing admin work. Wrap in `IsSuperAdminOnly()`. |
 
@@ -421,11 +437,64 @@ Phase 1 cerrada. Esta fase cubre el trabajo futuro opcional listado en `## Next 
 - [x] Task 4 — Serilog enricher para CompanyId (commits `5d2ab84` → `7f6270f` → `b4dccff` → `d78e5e7`)
 - [x] Task 5 Tier 1 — Remove dead `companyId` parameter en reads (commit `a22a814`)
 - [ ] Task 5 Tier 2 — Remove dead `companyId` parameter en writes (DIFERIDO — espera decisión arquitectónica sobre dónde validar 401 cuando los services dejan de recibir `companyId` parámetro)
+- [x] Task 6 — Fail closed en el filtro de tenant + `ITenantContext.IsUnrestricted` (commit `03c0498`)
+
+## Gap analysis (2026-11-03)
+
+Auditoría del estado **real contra el código** (no contra este doc), con 287/287 tests verdes como baseline. 5 gaps abiertos.
+
+### Gap 1 — La decisión `ITenantScoped` nunca se implementó
+
+- **Por qué está así**: la decisión de "Architectural decisions" (línea 23), y el código que muestra el PDF entregado (líneas 899/913), es `ITenantScoped` en `Volterp.Domain/Abstractions`. Cycle 1.3 implementó otra cosa: reflection sobre el **nombre** de la propiedad (`clrType.GetProperty("CompanyId") is not null`). La memoria (#1546) lo registra como decisión consciente —"reflection es el canonical blog approach"— pero nadie cruzó el doc con el código.
+- **Impacto**: el conjunto de entidades filtradas es implícito y verificado por *string*. Una entidad nueva con `CompaniId` (typo) o sin `CompanyId` queda **sin filtro, sin error, sin warning, sin test**. Falla en producción. Tampoco hay forma de expresar "esta entidad NO es tenant-scoped": el único caso (`Company`) está hardcodeado en un `else if`.
+- **Mejora**: `ITenantScoped` como marker interface en `Volterp.Domain/Abstractions` + aserción en model build que falle el arranque si una entidad `ITenantScoped` no tiene `Guid CompanyId`. Convierte un error silencioso de producción en un error de arranque.
+
+### Gap 2 — El filtro falla abierto cuando no hay tenant
+
+- **Por qué está así**: `null` en `CompanyId` significaba "sin restricción" (necesario para design-time/seeders) y "no hay tenant" (job sin `HttpContext`, claim ausente/malformado). El filtro no distinguía y tomaba la interpretación permisiva.
+- **Estado**: **CERRADO** (Task 6). `IsUnrestricted` separa los dos casos; `HttpTenantContext` es `false` siempre; `NullTenantContext` es `true`.
+- **Mejora aplicada**: fail closed. `ITenantContext.CompanyId == null` → 0 filas.
+
+### Gap 3 — `ITenantContext` no puede expresar "sin tenant" vs "sin restricción"
+
+- **Por qué está así**: `Guid? CompanyId` mezcla dos estados semánticamente distintos; el consumidor tenía que adivinar por qué era null.
+- **Estado**: **CERRADO** con Task 6 (mismo cambio).
+- **Pendiente**: `NullTenantContext` ahora miente — suena a "no hay tenant" pero es "no hay restricción". Candidato a rename (`UnrestrictedTenantContext`), requiere aprobación del usuario.
+
+### Gap 4 — La escritura tiene dos fuentes de verdad para el tenant
+
+- **Por qué está así**: Cycle 1.1 movió el `companyId` del request DTO (client-controlled, era el bug) a un parámetro del service, con el controller como único productor. Correcto hoy: el valor tiene un solo origen (`BaseController.GetCurrentUserCompanyId()` → `ITenantContext.CompanyId`), así que no puede divergir. Pero es una **copia de un valor de seguridad** pasado por 2 capas, y nada verifica que la copia sea fiel. `HasQueryFilter` protege reads, **no writes**: un caller futuro (import, job, otro controller) puede escribir una fila con `CompanyId` de otro tenant, y esa fila desaparece en los libros del otro tenant.
+- **Por qué quedó diferido**: el doc registra que "necesita decisión arquitectónica". La objeción real era de capas: `UnauthorizedException` vive en `Volterp.Api/Exceptions/`, mientras Application ya tiene `NotFoundException`, `AlreadyExistException` y `ValidationException` con `IHttpException` en `Volterp.Application/Interfaces/`. **La objeción era mover una clase de archivo**, no un problema de arquitectura.
+- **Mejora**: el service resuelve el tenant desde `ITenantContext` y `companyId` deja de ser parámetro → el valor equivocado se vuelve **irrepresentable**, no "validado". El controller conserva `GetCurrentUserCompanyId()` en las escrituras como guard de frontera (401 temprano, semántica HTTP correcta); ambos derivan del mismo `ITenantContext`, así que no pueden divergir.
+- **Decisión ya tomada en el audit (#1555)**: "writes get ITenantContext injection" + "47 `GetCurrentUserCompanyId()` calls — drop for reads, **keep for writes**". Falta ejecutar.
+- **Costo estimado**: ~350 líneas (27 firmas en 10 services, 10 constructores, 9 controllers, tests).
+
+### Gap 5 — Cobertura de aislamiento: 1 de 11 entidades
+
+- **Por qué está así**: los 3 integration tests de Cycle 1.3 caracterizaban el **mecanismo** (HasQueryFilter end-to-end con HTTP real), no la cobertura por entidad. La regla del doc ("agregá un integration test por cada entidad **nueva**") es prospectiva; nunca hubo backfill.
+- **Impacto**: `DashboardRepository` es el repo con más predicados (17) y **no tiene ningún test de aislamiento**. Con Gap 1 sin resolver, el conjunto filtrado es implícito.
+- **Mejora**: NO 10 archivos de test boilerplate. Un **guard test** que afirme el conjunto de entidades con filtro contra el conjunto esperado (documenta la decisión SÍ/NO en un solo lugar y atrapa entidades nuevas) + 2-3 integration tests sobre el camino navigation-based (`SaleItem`/`PurchaseItem`), que es el único mecanismo no estándar.
+
+### Task 3 (Admin Global) — sigue BLOQUEADO
+
+Sin consumidor cross-tenant, implementarlo es código muerto (viola la regla dura #5). Se desbloquea con la vista admin de e-CF.
+
+### Orden de ejecución
+
+| # | Gap | Tarea | Costo | Riesgo |
+|---|---|---|---|---|
+| 1 | Gap 2 + 3 | `IsUnrestricted` + fail closed | ~50 líneas | Bajo |
+| 2 | Gap 1 | `ITenantScoped` + aserción de model build | ~130 líneas | Medio |
+| 3 | Gap 5 | Guard test + tests de navegación | ~200 líneas | Bajo |
+| 4 | Gap 4 | Service resuelve el tenant; `companyId` sale de las escrituras | ~350 líneas | Medio |
 
 ## Next step
-- **Phase 2 cerrada**. No quedan tareas ejecutables en esta sesión:
-  - Task 3 (Admin Global) está bloqueada hasta que aparezca el primer endpoint admin cross-tenant. Re-check entonces.
-  - Task 5 Tier 2 está diferida esperando decisión arquitectónica tuya (helper en controller vs filter ASP.NET vs service tira `UnauthorizedException`).
+- **Task 6 cerrada** (fail closed, commit `03c0498`): 289/289 tests verdes.
+- **Siguiente**: Gap 1 — `ITenantScoped` + aserción de model build.
+- **Después**: Gap 5 (guard test), Gap 4 (Tier 2).
+- **Task 3 (Admin Global)**: bloqueada hasta que exista vista admin cross-tenant (llega con e-CF).
+- **Trabajo user-owned pendiente**: la branch `refactor/multi-tenant-system` **nunca fue pusheada** — no existe `origin/refactor/multi-tenant-system`. Push + PR quedan bajo ordinary repo policy.
+- **Working tree**: `ClientService.cs` tiene un cambio propio del usuario (`UpdatedAt` manual → `MarkUpdated()`) sin commitear; fuera del scope de multi-tenant.
 - **Trabajo user-owned pendiente**: schema reset (`dotnet ef database drop --force` + `dotnet ef database update`) — Postgres apagado en sesión 1.2c.
 - **Branch**: `refactor/multi-tenant-system` queda lista para push + PR cuando decidas merge a `development`.
 
