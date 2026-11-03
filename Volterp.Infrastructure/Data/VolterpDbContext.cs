@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Volterp.Application.Abstractions;
+using Volterp.Domain.Abstractions;
 using Volterp.Domain.Entities;
 
 namespace Volterp.Infrastructure.Data;
@@ -32,7 +33,11 @@ public class VolterpDbContext(
 
     private void ApplyTenantFilters(ModelBuilder modelBuilder)
     {
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        var entityTypes = modelBuilder.Model.GetEntityTypes().ToList();
+
+        TenantScopeGuard.EnsureDeclared(entityTypes);
+
+        foreach (var entityType in entityTypes)
         {
             var clrType = entityType.ClrType;
 
@@ -50,7 +55,7 @@ public class VolterpDbContext(
             {
                 continue;
             }
-            else if (clrType.GetProperty("CompanyId") is not null)
+            else if (typeof(ITenantScoped).IsAssignableFrom(clrType))
             {
                 ApplyDirectFilter(modelBuilder, clrType);
             }
@@ -65,9 +70,9 @@ public class VolterpDbContext(
         method.Invoke(this, [modelBuilder]);
     }
 
-    private void ApplyDirectFilterGeneric<TEntity>(ModelBuilder modelBuilder) where TEntity : class
+    private void ApplyDirectFilterGeneric<TEntity>(ModelBuilder modelBuilder) where TEntity : class, ITenantScoped
     {
         modelBuilder.Entity<TEntity>()
-            .HasQueryFilter(e => _tenantContext.IsUnrestricted || EF.Property<Guid>(e, "CompanyId") == _tenantContext.CompanyId);
+            .HasQueryFilter(e => _tenantContext.IsUnrestricted || e.CompanyId == _tenantContext.CompanyId);
     }
 }

@@ -1,6 +1,8 @@
+using Volterp.Domain.Abstractions;
+
 namespace Volterp.Domain.Entities;
 
-public class Category : AuditEntity
+public class Category : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;

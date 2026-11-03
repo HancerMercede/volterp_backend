@@ -1,8 +1,9 @@
+using Volterp.Domain.Abstractions;
 using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Domain.Entities;
 
-public class Supplier : AuditEntity
+public class Supplier : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }

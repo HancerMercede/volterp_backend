@@ -1,8 +1,9 @@
+using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 
 namespace Volterp.Domain.Entities;
 
-public class AccountingTransaction : AuditEntity
+public class AccountingTransaction : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }

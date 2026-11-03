@@ -1,9 +1,10 @@
+using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Domain.Entities;
 
-public class Employee : AuditEntity
+public class Employee : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }

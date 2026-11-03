@@ -1,10 +1,11 @@
+using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
 using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Domain.Entities;
 
-public class User : AuditEntity
+public class User : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
     public string Username { get; set; } = string.Empty;

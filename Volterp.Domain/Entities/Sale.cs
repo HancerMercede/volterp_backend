@@ -1,9 +1,10 @@
+using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
 
 namespace Volterp.Domain.Entities;
 
-public class Sale : AuditEntity
+public class Sale : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
