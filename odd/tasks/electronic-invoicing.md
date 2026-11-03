@@ -51,9 +51,9 @@ Son **10 tipos**. El **32** es el único que admite el flujo resumido **RFCE**, 
 
 ## The strategic decision — build vs. integrate
 
-**Esto es lo que define el plan y hay que decidirlo antes de escribir código.**
+**Decidido (2026-11-03): Option A.** Volterp **no** se certifica como PSFE. Cada cliente se certifica como emisor electrónico con su propio certificado `.p12` a través del PSFE, y Volterp le expone la emisión de sus comprobantes dentro de su propia API. El resto de opciones queda como registro de lo evaluado.
 
-### Option A — Integrar con un PSFE ya certificado (ej. eCF MSeller)
+### Option A — Integrar con un PSFE ya certificado (ej. eCF MSeller) — **DECIDIDO**
 
 `eCF MSeller` es un **PSFE certificado por la DGII** (IT SOLUCLICK SRL, RNC 130862346, software MSeller v1.0 tipo EXTERNO).
 
@@ -79,7 +79,7 @@ Son **10 tipos**. El **32** es el único que admite el flujo resumido **RFCE**, 
 3. Con esa base, **solicitamos la certificación como PSFE** ante la DGII.
 4. Cuando Volterp sea PSFE, **el transporte se mueve a casa** (Option B) y la API interna de Volterp queda estable: el contrato con el cliente no cambia, solo cambia quién firma y quién habla con la DGII.
 
-**Recommendation**: Option C. La fase 0 (dominio fiscal) es idéntica en las tres opciones, así que **empezamos por ahí** sin comprometerse a nada.
+**Decisión**: Option A. La fase 0 (dominio fiscal) es idéntica en las tres opciones, así que se construye igual; lo que cambia es el transporte (fase 3), que queda detrás de una interfaz propia.
 
 > Nota: existe `dgii-ecf` en open source (npm) con firma y envío directo, útil como referencia de la integración propia.
 
@@ -118,7 +118,7 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 
 - **S1** — `Client` debe llevar RNC validado con el formato real de la DGII: **9 dígitos** para persona jurídica (RNC con dígito verificador módulo 11, pesos 7-9-8-6-5-4-3-2) o **11 dígitos** para persona física (cédula, dígito verificador Luhn, más las cédulas históricas de la JCE que no pasan Luhn y siguen siendo válidas). El `ValueObject` anterior validaba 8–15 alfanuméricos y no servía.
 - **S2** — `Company` (emisor) debe llevar RNC con la misma validación, más el nombre legal y la dirección fiscal que exige el e-CF.
-- **S3** — `Product` debe declarar su código de impuesto: gravado (18%), exento o no gravado. Sin esto la línea del comprobante no es válida.
+- **S3** — `Product` debe declarar su código de impuesto según el catálogo de la DGII (`<IndicadorFacturacion>` del "Formato Comprobante Fiscal Electrónico (e-CF) v1.0"): **0** No facturable, **1** ITBIS tasa 1 (18%), **2** ITBIS tasa 2 (16%), **3** ITBIS tasa 3 (0%), **4** Exento. Sin esto la línea del comprobante no es válida. El valor persistido es el código de la DGII; la tasa de cada código la aplica el cálculo de la venta (T4).
 - **S4** — `Sale` debe desglosar el monto: `Subtotal`, `Itbis`, `Total`. El `Total` actual es un único decimal.
 - **S5** — `Sale` debe llevar el tipo de comprobante (E31 crédito fiscal / E32 consumo) y, en E31, el RNC del receptor.
 - **S6** — El sistema debe asignar y controlar la **secuencia de e-NCF por tipo y por emisor**, con control de concurrencia. El e-NCF es `E` + tipo + 10 dígitos, y los rangos no usados se anulan ante la DGII.
@@ -143,7 +143,7 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | T2a | S1 | inline | `cf24711` | VO `Rnc` + `RncType` + `InvalidRncException`: dígito verificador real, normalización de guiones, 33 cédulas históricas. 295/295 tests. |
 | T2b | S1 | inline | `c9cac9c` | `Client.TaxId` (columna nullable: el consumidor final del tipo 32 no tiene) + validación y normalización en `ClientService`. 300/300 tests. |
 | T2c | S2 | inline | `22536df` | Validación y normalización del RNC del emisor en `CompanyService`. 302/302 tests. |
-| T3 | S3 | inline | — | Código de impuesto en `Product`. Pendiente. |
+| T3 | S3 | inline | `ba2e1c7` | `TaxCode` enum con los valores = códigos `<IndicadorFacturacion>` de la DGII (0..4), persistido como int. 273/273 tests. |
 | T4 | S4, S5 | inline | — | Desglose de `Sale` (subtotal/ITBIS/total) + tipo de comprobante + RNC receptor. Pendiente. |
 | T5 | S6 | inline | — | Entidad de secuencia de e-NCF con control de concurrencia. Pendiente. |
 | T6 | S11 | inline | — | Todas las entidades nuevas con `ITenantScoped`. Pendiente. |
@@ -173,9 +173,9 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | T15 | S10 | Recepción de e-CF de terceros y aprobación comercial. |
 | T16 | S12 | Webhooks / polling de estado. |
 
-### Fase 4 — Certificación PSFE (track regulatorio, paralelo, largo)
+### Fase 4 — Certificación PSFE — **fuera de alcance**
 
-Postulación ante la DGII, con los 3 contribuyentes ya certificados. No bloquea las fases 0–3.
+**Decisión del usuario (2026-11-03)**: Volterp no se certifica como PSFE, así que esta fase no se planifica. Si algún día se reconsidera, es un track regulatorio aparte que no bloquea las fases 0–3.
 
 ## Risks
 
@@ -198,6 +198,10 @@ Postulación ante la DGII, con los 3 contribuyentes ya certificados. No bloquea 
 - **L5** (2026-11-03): Se cierra T2. `Client` ya carga su RNC/cédula y `Company` valida el RNC del emisor en cada escritura. El valor se **normaliza a dígitos** antes de persistir: los guiones son solo de presentación, y normalizarlos evita dos filas con el mismo RNC bajo el índice único. Se conservó `string` en las entidades (igual que `Company.Email`) en vez de un VO tipado, porque `Company.TaxId` ya tiene filas persistidas con valores que no son RNC y una migración de datos sería destructiva; la validación vive en el service, que es donde el template pide que viva (`Ensure` + `TryParse`).
 
 - **L6** (2026-11-03): El usuario fija la directiva de calidad del suite: "debemos ser muy meticulosos con los test: calidad ante cantidad". Criterio aplicado: un test sobrevive solo si puede fallar por una razón que le importa al producto; se elimina lo que solo afirma que un setter de una línea guardó lo que se le pasó, lo que re-verifica la herencia de una excepción y lo que re-verifica el lenguaje. Resultado: **302 → 265 tests**, 8 archivos, `b8d4d57` (`test: prune low-value assertions`), 265/265 verdes. Se conservaron los tests que sí fijan reglas: la matriz de transición de roles de `User.ChangeRole`, las guardas de stock de `Product`, los overrides de `Money` con distinta moneda, la igualdad de `Currency` (que el compilador no puede garantizar al ser un `int` persistido) y los 5 casos de valor de `Rnc`. Dos hallazgos colaterales quedan abiertos y **no** se tocaron por estar fuera de alcance: `Client.Activate()`/`Deactivate()` parecen código muerto (el `ClientService` asigna `IsActive` directamente), y `PurchaseService`/`SaleService` devuelven `Right(null)` en not-found mientras `CompanyService` devuelve `Left(error)` — inconsistencia de contrato entre servicios.
+
+- **L7** (2026-11-03, verbatim): "aunque enfatizo no voy a certificarme yo de momento quiero que los clientes pueden emitir comprobantes fiscales electronicos por medio de mi sistema" — **queda decidido Option A**: Volterp no se certifica como PSFE; los clientes certifican su propio emisor con su `.p12` a través del PSFE y emiten desde la API de Volterp. El modelo fiscal (Fase 0) no cambia; el transporte de la Fase 3 se implementa contra el PSFE detrás de una interfaz propia. En la misma corrida se **corrige S3** contra el catálogo oficial (`<IndicadorFacturacion>` del "Formato e-CF v1.0"): hay **tres** tasas de ITBIS (18%, 16%, 0%) y no una sola; el 0% es la tasa 3 y no un "no gravado"; y hay una quinta categoría, "No facturable". Implementar solo el 18% habría generado e-CF inválidos. T3 cierra con el enum `TaxCode` (`ba2e1c7`).
+
+- **L8** (2026-11-03, verbatim): "vamos a ver si respetas el codigo no inventes cosas no me ensucies mi codigo debe seguir la misma forma" y "no vamos a crear codigo simplemente para rellenar huecos / aqui validamos y refactorizamos y vemos que podemos extender y reutilizar". **Regla de trabajo para el resto del plan**: antes de escribir un tipo nuevo, validar primero qué existe y si se puede extender o reutilizar. Aplicado en T3: se descartó un `TaxCode` como VO (con su excepción y su `ValueConverter`) porque el dominio ya tiene la forma para esto — las 6 clasificaciones son enums (`Currency`, `UserRole`, `SaleStatus`, `TransactionType`, `EntityStatus`, `RncType`) y los VOs (`Email`, `Money`, `Rnc`) son para valores con formato o aritmética. La diferencia que decide: `Rnc` es un valor arbitrario que hay que **verificar** con un algoritmo (módulo 11 / Luhn) y por eso es VO; `TaxCode` es un valor de una lista **cerrada** de 5 códigos y por eso es enum. También se descartó un `Enum.IsDefined` en el service: no hay ningún enum validado así en el repo y el `JsonStringEnumConverter` ya rechaza los valores desconocidos en el borde de la API.
 
 ## Relevant Files
 
