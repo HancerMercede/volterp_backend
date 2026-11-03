@@ -209,7 +209,7 @@ En vez de crear `docs/multitenancy.md` separado (se solapaba con este plan), los
 
 ### TL;DR
 
-- New tenant-scoped entity? Add `Guid CompanyId`. `VolterpDbContext.OnModelCreating` picks it up via reflection and applies `HasQueryFilter` automatically.
+- New tenant-scoped entity? Implement `ITenantScoped` — it carries `Guid CompanyId`, so the compiler guarantees both. `VolterpDbContext.OnModelCreating` filters every `ITenantScoped` type, and `TenantScopeGuard` fails the app start if an entity carries a `CompanyId` without declaring it.
 - New endpoint? Use `BaseController.GetCurrentUserCompanyId()`. It throws `UnauthorizedException` (401) if the JWT lacks the `companyId` claim.
 - Cross-tenant admin? Wrap in `IsSuperAdminOnly()` (already in `BaseController`) and pair with `IgnoreQueryFilters()` deliberately.
 - Background job? N/A — Volterp is sync ERP, no async jobs.
@@ -221,7 +221,9 @@ En vez de crear `docs/multitenancy.md` separado (se solapaba con este plan), los
 | `ITenantContext` | Read-only access to current `CompanyId` + `IsUnrestricted` (design-time only) | `Volterp.Application/Abstractions/ITenantContext.cs` |
 | `HttpTenantContext` | Production impl: reads JWT `companyId` claim (Guid in `N` format) | `Volterp.Api/Http/HttpTenantContext.cs` |
 | `NullTenantContext` | No-op for design-time (migrations, seeders) | `Volterp.Application/Abstractions/NullTenantContext.cs` |
-| `VolterpDbContext.OnModelCreating` | Applies `HasQueryFilter` per entity via reflection; `Company` excluded, `SaleItem`/`PurchaseItem` use navigation filters | `Volterp.Infrastructure/Data/VolterpDbContext.cs` |
+| `ITenantScoped` | Declares tenant membership and carries `Guid CompanyId`, so the compiler guarantees both | `Volterp.Domain/Abstractions/ITenantScoped.cs` |
+| `TenantScopeGuard` | Fails the model build when an entity carries a `CompanyId` without declaring `ITenantScoped` | `Volterp.Infrastructure/Data/TenantScopeGuard.cs` |
+| `VolterpDbContext.OnModelCreating` | Applies `HasQueryFilter` to every `ITenantScoped` type; `Company` excluded, `SaleItem`/`PurchaseItem` use navigation filters | `Volterp.Infrastructure/Data/VolterpDbContext.cs` |
 | `BaseController.GetCurrentUserCompanyId` | Throws 401 when JWT lacks the claim | `Volterp.Api/Controllers/BaseController.cs` |
 
 ### The 3 contexts (status)
@@ -250,9 +252,9 @@ El filtro es `_tenantContext.IsUnrestricted || <predicado de tenant>`. Regla gen
 
 ### Adding a new tenant-scoped entity
 
-1. Add `Guid CompanyId` to the entity.
+1. Implement `ITenantScoped` on the entity. The interface declares `Guid CompanyId { get; set; }`, so the compiler guarantees the property exists — there is no way to declare it wrong.
 2. Add an EF Configuration in `Volterp.Infrastructure/Data/Configurations/` if one does not exist.
-3. Done — `VolterpDbContext.OnModelCreating` reflection picks up the `CompanyId` property and applies the filter automatically.
+3. Done — `VolterpDbContext.OnModelCreating` filters every `ITenantScoped` type automatically, and `TenantScopeGuard` fails the app start if the declaration is missing.
 4. Add an integration test that seeds two tenants and verifies cross-tenant blocking for the new entity.
 
 ### Integration tests pattern
@@ -298,7 +300,9 @@ The fixture (`Volterp.Tests/Integration/ApiFactory.cs`) wires up `WebApplication
 
 | Pitfall | Why it bites | Fix |
 |---|---|---|
-| Capturing `_tenantContext.CompanyId` as a closure-local inside `HasQueryFilter` | EF Core inlines closure-locals as SQL constants at model-build time. The filter locks to the first value seen (typically `null` during `EnsureCreated` outside HTTP). All queries become unfiltered. | Reference the DbContext field directly in the lambda: `e => _tenantContext.CompanyId == null \|\| EF.Property<Guid>(e, "CompanyId") == _tenantContext.CompanyId`. EF Core parameterizes field access per query. |
+| Capturing `_tenantContext.CompanyId` as a closure-local inside `HasQueryFilter` | EF Core inlines closure-locals as SQL constants at model-build time. The filter locks to the first value seen (typically `null` during `EnsureCreated` outside HTTP). All queries become unfiltered. | Reference the DbContext field directly in the lambda: `e => _tenantContext.IsUnrestricted \|\| e.CompanyId == _tenantContext.CompanyId`. EF Core parameterizes field access per query. |
+| Deciding tenant scope by property name (`GetProperty("CompanyId")`) | A typo or a forgotten property leaves the entity unfiltered — no error, no warning, no test. The filter silently stops covering the table. | The entity declares itself with `ITenantScoped`, and `TenantScopeGuard` fails the app start when a `CompanyId` exists without the declaration. |
+| Using `FindProperty` on a non-finalized model to detect tenant scope | EF discovers CLR properties lazily. A standalone `ModelBuilder` has no `CompanyId` until the model is finalized, so the check finds nothing and passes silently. | `TenantScopeGuard` inspects `ClrType` instead of the model, so the check does not depend on EF's discovery timing. The wiring test still asserts on the finalized model. |
 | Forgetting to gate `db.Database.Migrate()` in tests | The startup runs `Migrate()` against the real connection string. In integration tests with SQLite in-memory, this throws because migrations are Postgres-specific. | `Program.cs` already gates with `if (!app.Environment.IsEnvironment("Testing")) db.Database.Migrate();`. Do not remove this gate. |
 | Reading `CompanyId` from `IHttpContextAccessor` in a background job | `HttpContext` is null outside an HTTP request, so `CompanyId` is null. | El filtro ahora **falla cerrado**: un job sin tenant explícito lee 0 filas, no todas. El job debe resolver el tenant de su mensaje y pasarlo a un contexto con `CompanyId` + `IsUnrestricted = false`. |
 | Returning `Guid.Empty` when the claim is missing | Silent data corruption, not 401. | Always go through `BaseController.GetCurrentUserCompanyId()` so missing claims produce 401. |
@@ -438,6 +442,7 @@ Phase 1 cerrada. Esta fase cubre el trabajo futuro opcional listado en `## Next 
 - [x] Task 5 Tier 1 — Remove dead `companyId` parameter en reads (commit `a22a814`)
 - [ ] Task 5 Tier 2 — Remove dead `companyId` parameter en writes (DIFERIDO — espera decisión arquitectónica sobre dónde validar 401 cuando los services dejan de recibir `companyId` parámetro)
 - [x] Task 6 — Fail closed en el filtro de tenant + `ITenantContext.IsUnrestricted` (commit `03c0498`)
+- [x] Task 7 — `ITenantScoped` + `TenantScopeGuard` + filtro por tipo (commit `b10dec5`)
 
 ## Gap analysis (2026-11-03)
 
@@ -447,7 +452,8 @@ Auditoría del estado **real contra el código** (no contra este doc), con 287/2
 
 - **Por qué está así**: la decisión de "Architectural decisions" (línea 23), y el código que muestra el PDF entregado (líneas 899/913), es `ITenantScoped` en `Volterp.Domain/Abstractions`. Cycle 1.3 implementó otra cosa: reflection sobre el **nombre** de la propiedad (`clrType.GetProperty("CompanyId") is not null`). La memoria (#1546) lo registra como decisión consciente —"reflection es el canonical blog approach"— pero nadie cruzó el doc con el código.
 - **Impacto**: el conjunto de entidades filtradas es implícito y verificado por *string*. Una entidad nueva con `CompaniId` (typo) o sin `CompanyId` queda **sin filtro, sin error, sin warning, sin test**. Falla en producción. Tampoco hay forma de expresar "esta entidad NO es tenant-scoped": el único caso (`Company`) está hardcodeado en un `else if`.
-- **Mejora**: `ITenantScoped` como marker interface en `Volterp.Domain/Abstractions` + aserción en model build que falle el arranque si una entidad `ITenantScoped` no tiene `Guid CompanyId`. Convierte un error silencioso de producción en un error de arranque.
+- **Mejora**: `ITenantScoped` en `Volterp.Domain/Abstractions` + guard que falle el arranque si una entidad con `CompanyId` no lo declara. Convierte un error silencioso de producción en un error de arranque.
+- **Estado**: **CERRADO** (Task 7). La interface **no** es un marker vacío: declara `Guid CompanyId { get; set; }`, así que el compilador garantiza que la propiedad existe y el filtro puede usar `e.CompanyId` tipado en lugar de `EF.Property<Guid>(e, "CompanyId")`. `TenantScopeGuard` corre dentro de `OnModelCreating` y lanza `InvalidOperationException` si una entidad del modelo lleva `CompanyId` sin declarar `ITenantScoped`. Las 9 entidades tenant-scoped lo implementan; `Company`, `SaleItem` y `PurchaseItem` siguen como casos explícitos. 292/292 tests verdes, 0 tests existentes modificados.
 
 ### Gap 2 — El filtro falla abierto cuando no hay tenant
 
@@ -474,6 +480,7 @@ Auditoría del estado **real contra el código** (no contra este doc), con 287/2
 - **Por qué está así**: los 3 integration tests de Cycle 1.3 caracterizaban el **mecanismo** (HasQueryFilter end-to-end con HTTP real), no la cobertura por entidad. La regla del doc ("agregá un integration test por cada entidad **nueva**") es prospectiva; nunca hubo backfill.
 - **Impacto**: `DashboardRepository` es el repo con más predicados (17) y **no tiene ningún test de aislamiento**. Con Gap 1 sin resolver, el conjunto filtrado es implícito.
 - **Mejora**: NO 10 archivos de test boilerplate. Un **guard test** que afirme el conjunto de entidades con filtro contra el conjunto esperado (documenta la decisión SÍ/NO en un solo lugar y atrapa entidades nuevas) + 2-3 integration tests sobre el camino navigation-based (`SaleItem`/`PurchaseItem`), que es el único mecanismo no estándar.
+- **Estado**: **PARCIALMENTE CERRADO** (Task 7). `TenantScopeGuardTests.EveryEntityWithCompanyId_HasATenantQueryFilter` afirma el invariante sobre el modelo real (toda entidad con `CompanyId` tiene filtro) y `TenantScopeGuard` hace fallar el arranque si falta la declaración. Sigue abierto: isolation tests propios del camino navigation-based (`SaleItem`/`PurchaseItem`), que hoy solo se ejercitan de rebote al leer una `Sale`.
 
 ### Task 3 (Admin Global) — sigue BLOQUEADO
 
@@ -481,28 +488,30 @@ Sin consumidor cross-tenant, implementarlo es código muerto (viola la regla dur
 
 ### Orden de ejecución
 
-| # | Gap | Tarea | Costo | Riesgo |
-|---|---|---|---|---|
-| 1 | Gap 2 + 3 | `IsUnrestricted` + fail closed | ~50 líneas | Bajo |
-| 2 | Gap 1 | `ITenantScoped` + aserción de model build | ~130 líneas | Medio |
-| 3 | Gap 5 | Guard test + tests de navegación | ~200 líneas | Bajo |
-| 4 | Gap 4 | Service resuelve el tenant; `companyId` sale de las escrituras | ~350 líneas | Medio |
+| # | Gap | Tarea | Costo | Riesgo | Estado |
+|---|---|---|---|---|---|
+| 1 | Gap 2 + 3 | `IsUnrestricted` + fail closed | ~50 líneas | Bajo | ✅ Task 6 |
+| 2 | Gap 1 | `ITenantScoped` + `TenantScopeGuard` + filtro por tipo | ~130 líneas | Medio | ✅ Task 7 |
+| 3 | Gap 5 | Isolation tests del camino navigation-based | ~200 líneas | Bajo | ⏳ parcial |
+| 4 | Gap 4 | Service resuelve el tenant; `companyId` sale de las escrituras | ~350 líneas | Medio | ⏳ pendiente |
 
 ## Next step
 - **Task 6 cerrada** (fail closed, commit `03c0498`): 289/289 tests verdes.
-- **Siguiente**: Gap 1 — `ITenantScoped` + aserción de model build.
-- **Después**: Gap 5 (guard test), Gap 4 (Tier 2).
+- **Task 7 cerrada** (`ITenantScoped` + `TenantScopeGuard`, commit `b10dec5`): 292/292 tests verdes, 0 tests existentes modificados.
+- **Siguiente**: Gap 4 (Tier 2 — el service resuelve el tenant) o el plan de e-CF, según prioridad.
+- **Después**: Gap 5 (isolation tests del camino navigation-based), Task 3 (Admin Global, llega con e-CF).
 - **Task 3 (Admin Global)**: bloqueada hasta que exista vista admin cross-tenant (llega con e-CF).
-- **Trabajo user-owned pendiente**: la branch `refactor/multi-tenant-system` **nunca fue pusheada** — no existe `origin/refactor/multi-tenant-system`. Push + PR quedan bajo ordinary repo policy.
+- **Delivery**: `refactor/multi-tenant-system` ya fue mergeada a `development` por fast-forward (`96ebbbc`) y la branch borrada. `development` está **67 commits adelante de `origin/development` y sin pushear** — el push queda bajo ordinary repo policy, pendiente de resolver la identidad del author.
 - **Working tree**: `ClientService.cs` tiene un cambio propio del usuario (`UpdatedAt` manual → `MarkUpdated()`) sin commitear; fuera del scope de multi-tenant.
 - **Trabajo user-owned pendiente**: schema reset (`dotnet ef database drop --force` + `dotnet ef database update`) — Postgres apagado en sesión 1.2c.
-- **Branch**: `refactor/multi-tenant-system` queda lista para push + PR cuando decidas merge a `development`.
 
 ## Relevant Files (paths relativos al repo)
 - Entities: `Volterp.Domain/Entities/{AccountingTransaction,Category,Client,Company,Employee,Product,Purchase,PurchaseItem,Sale,SaleItem,Supplier,User}.cs`
 - Tenant abstraction: `Volterp.Application/Abstractions/{ITenantContext,NullTenantContext}.cs`, `Volterp.Api/Http/HttpTenantContext.cs`, `Volterp.Application/Common/Claims.cs`
-- DbContext: `Volterp.Infrastructure/Data/VolterpDbContext.cs` (HasQueryFilter via reflection)
+- DbContext: `Volterp.Infrastructure/Data/VolterpDbContext.cs` (HasQueryFilter por `ITenantScoped`)
+- Tenant scope: `Volterp.Domain/Abstractions/ITenantScoped.cs`, `Volterp.Infrastructure/Data/TenantScopeGuard.cs`
 - EF Configurations: `Volterp.Infrastructure/Data/Configurations/*.cs` (13 archivos)
 - Repositories (sin predicates manuales post-1.3): `Volterp.Infrastructure/Repositories/*.cs`
 - Controllers: `Volterp.Api/Controllers/{BaseController,SalesController,SuppliersController,...}.cs`
-- Integration tests: `Volterp.Tests/Integration/{ApiFactory,JwtTestHelper,SupplierTenantIsolationTests}.cs`
+- Integration tests: `Volterp.Tests/Integration/{ApiFactory,JwtTestHelper,SupplierTenantIsolationTests,TenantFilterFailClosedTests}.cs`
+- Scope guard tests: `Volterp.Tests/Infrastructure/TenantScopeGuardTests.cs`
