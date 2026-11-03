@@ -122,7 +122,7 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 - **S4** — `Sale` debe desglosar el monto: `Subtotal`, `Itbis`, `Total`. El `Total` actual es un único decimal. El desglose lo calcula el dominio a partir de las líneas y del código de impuesto de cada una (tasa 18% / 16% / 0%); el `Total` que envía el cliente no es la autoridad.
 - **S5** — `Sale` debe llevar el tipo de comprobante (E31 crédito fiscal / E32 consumo) y, en E31, el RNC del receptor. El RNC del receptor es una foto del `Client.TaxId` del momento de la venta, y una venta de crédito fiscal no se puede completar sin él.
 - **S6** — El sistema debe asignar y controlar la **secuencia de e-NCF por tipo y por emisor**, con control de concurrencia. El e-NCF es `E` + tipo + 10 dígitos, y los rangos no usados se anulan ante la DGII.
-- **S7** — Debe existir una entidad de **certificado del tenant**: metadata (nombre, RNC del emisor, fecha de expiración, estado) y la credencial de acceso al emisor, **cifrada en reposo**. Bajo Option A el `.p12` **no** se persiste en Volterp: vive cifrado con AES-256 en el PSFE. El material sensible **nunca** sale por la API: ni password, ni ruta, ni llave privada, ni contenido del `.p12`.
+- **S7** — Debe existir una entidad de **certificado del tenant**: metadata (nombre, RNC del emisor, fecha de expiración, estado) y la credencial de acceso al emisor, **cifrada en reposo**. Bajo Option A el `.p12` **no** se persiste en Volterp: vive cifrado con AES-256 en el PSFE. El material sensible **nunca** sale por la API: ni password, ni ruta, ni llave privada, ni contenido del `.p12`. La credencial se guarda como **valor cifrado opaco**: bajo Option A es la API key del PSFE y bajo Option B sería el `.p12` sellado con su password, de modo que la decisión estratégica no obliga a rehacer la entidad.
 - **S8** — Debe existir una entidad **e-CF** que persista el comprobante: `eNCF`, tipo, RNC emisor, RNC receptor, XML firmado, TrackId, código de seguridad, QR, fecha de firma, estado y el motivo de rechazo de la DGII.
 - **S9** — El estado del e-CF debe modelar el ciclo real: `Draft → Firmado → Enviado → Aceptado | Rechazado`, con reintento y el motivo de rechazo persistido.
 - **S10** — Debe existir una entidad de **recepción**: e-CF recibidos de terceros (vía RGCE o push de la DGII) y **aprobación comercial** emitida por nosotros.
@@ -130,7 +130,7 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 - **S12** — Auditoría: quién generó, quién firmó, con qué certificado, cuándo, y el historial de envíos y respuestas de la DGII.
 - **S13** — Los paquetes criptográficos con vulnerabilidad conocida (`System.Security.Cryptography.Xml`, `Pkcs`) se actualizan **antes** de escribir cualquier código de firma.
 - **S14** — La capa de transporte (web services de la DGII o API del PSFE) queda detrás de una interfaz propia, para que cambiar de Option A a Option B no toque ni dominio ni controllers.
-- **S15** — Debe existir el tipo de comprobante **nota de crédito** (E33/E34 según la tabla de tipos de este plan; el número y el nombre oficial se reconfirman contra el catálogo antes de implementar). Una venta ya emitida **no se edita ni se borra**: se corrige con nota. Sin esto el ERP no tiene salida fiscal para una venta anulada.
+- **S15** — Debe existir el tipo de comprobante **nota de crédito** (**E34**; E33 es la nota de débito — confirmado el 2026-11-03 contra el set de pruebas de la certificación de dos proveedores independientes). Una venta ya emitida **no se edita ni se borra**: se corrige con nota. Sin esto el ERP no tiene salida fiscal para una venta anulada.
 - **S16** — Un tenant puede tener **varios RNC emisores** (sucursales). El certificado pertenece al **RNC emisor**, no al tenant; por eso la entidad guarda el RNC como snapshot, igual que `Sale.ReceptorTaxId` es el snapshot del `Client.TaxId`.
 
 ## Phases
@@ -152,13 +152,13 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 
 ### Fase 1 — Certificado y credenciales del emisor
 
-| Task | Specs | Notas |
-|---|---|---|
-| T7 | S7 | Entidad de certificado + credencial, cifrado en reposo, metadata pública separada del material sensible. |
-| T8 | S7 | Alta del tenant en el PSFE (o en la DGII si vamos por Option B): cuenta, `.p12`, API key. |
-| T9 | S7 | Tests: el material sensible nunca aparece en ninguna respuesta de la API. |
-| T17 | S15 | Tipo de comprobante de nota de crédito: el enum `SaleDocumentType` crece con el tipo oficial y la venta se corrige con nota, no editando. Reconfirma el número contra el catálogo antes de escribir. |
-| T18 | S16 | Multi-RNC por tenant: el certificado pertenece al RNC emisor; `Company` deja de tener un solo RNC implícito. |
+| Task | Specs | Ruta | Commit | Notas |
+|---|---|---|---|---|
+| T7 | S7 | inline | `6261501` + `622341c` | Entidad `CompanyCertificate` + credencial cifrada en reposo (AES-256-GCM, clave derivada por tenant), metadata pública separada del material sensible. 625 líneas escritas en dos commits: `6261501` núcleo + `622341c` API. 307/307 tests. |
+| T8 | S7 | — | — | Alta del tenant en el PSFE (o en la DGII si vamos por Option B): cuenta, `.p12`, API key. |
+| T9 | S7 | — | — | Tests: el material sensible nunca aparece en ninguna respuesta de la API. T7 ya fija la frontera del DTO (la respuesta serializada no lleva ni el texto claro ni el ciphertext); queda el chequeo de la respuesta HTTP completa. |
+| T17 | S15 | — | — | Tipo de comprobante de nota de crédito: el enum `SaleDocumentType` crece con el tipo oficial y la venta se corrige con nota, no editando. **E34 = Nota de Crédito** (E33 = Nota de Débito), confirmado el 2026-11-03. |
+| T18 | S16 | — | — | Multi-RNC por tenant: el certificado pertenece al RNC emisor; `Company` deja de tener un solo RNC implícito. |
 
 ### Fase 2 — Generación y firma
 
@@ -178,7 +178,7 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | T16 | S12 | Webhooks / polling de estado. |
 
 **Pendientes de verificación con el PSFE (antes de T14)**:
-- ¿Quién asigna la secuencia e-NCF? Si el PSFE firma y numera, `ElectronicInvoiceSequences` deja de asignar números y queda como registro/auditoría local → confirma o desmiente el rol de T5.
+- **Resuelto (2026-11-03) — la secuencia**: el contribuyente solicita en su Oficina Virtual el **rango** de e-NCF por tipo (`Solicitud de Comprobantes Fiscales`, ~10 minutos de aprobación) y el **proveedor asigna los números dentro del rango aprobado** → `ElectronicInvoiceSequences` (T5) sigue siendo la autoridad del número; lo que la DGII autoriza es el rango, no cada número.
 - ¿Permite transferir un certificado a otro PSFE y con qué condiciones? Define el costo comercial de la transición a Option B.
 - SLA de disponibilidad y límites de la API (cuota de e-CF, timeout, reintentos).
 - Qué pasa con el XML retenido a 10 años si se deja de pagar: ¿se puede exportar?
@@ -241,6 +241,15 @@ Se mantiene el plan de fases 0–3 sobre Option A. Cuando Volterp tenga clientes
   - **Pendiente para T8 (no bloquea T7)**: quién asigna la secuencia e-NCF. Si el PSFE firma y numera, `ElectronicInvoiceSequences` deja de asignar números y queda como registro/auditoría local → hay que confirmarlo con el PSFE antes de T14.
   - **Huecos de producto que la revisión de "mi ERP podrá facturar electrónicamente" dejó al descubierto**: (1) solo existen E31 y E32 en `SaleDocumentType` y la DGII define 10 tipos — falta la **nota de crédito**, que es la única salida fiscal de una venta ya emitida (una venta no se edita ni se borra: se corrige con nota) → **S15/T17**; (2) `Company` tiene un solo `TaxId` y un tenant con sucursales tiene varios RNC emisores → **S16/T18**; (3) T8 "alta del tenant en el PSFE" no es un endpoint: es acuerdo comercial, cuentas, precios por comprobante y registro del `.p12` → es **cronograma, no código**.
 
+- **L12** (2026-11-03): T7 cierra la entidad de certificado y la credencial cifrada en reposo (`6261501` núcleo + `622341c` API). Decisiones:
+  - **La credencial se cifra con AES-256-GCM y clave derivada por tenant** (HKDF-SHA256 con el `companyId` como salt) a partir de una clave maestra de configuración (`Encryption:MasterKey`, base64 de 32 bytes). La clave maestra **no se puede rotar en sitio**: cambiarla deja ilegibles todas las credenciales guardadas. La app **no arranca** con una clave ausente o inválida (falla cerrada, no degrada).
+  - **La credencial es un valor opaco**: bajo Option A es la API key del PSFE y bajo Option B sería el `.p12` sellado con su password. La entidad no cambia con la decisión estratégica.
+  - **El material sensible no sale por la API**: el DTO de lectura no tiene dónde alojarlo, y el test serializa la respuesta y verifica que ni el texto claro ni el ciphertext aparecen.
+  - **El RNC del emisor se valida con el VO `Rnc` y se normaliza a dígitos** antes de persistir, igual que `Client.TaxId` y `Company.TaxId`.
+  - **Verificación**: 307/307 tests. Los 16 tests nuevos se validaron además **rompiendo la implementación a propósito** (derivación de clave por tenant anulada → cae el test de aislamiento entre tenants; cifrado reemplazado por texto claro → cae el test de credencial cifrada; ningún otro test se movió). La migración `20261103233836_AddCompanyCertificates` se aplicó y se verificó contra Postgres real, y una sonda temporal confirmó que la columna guardada **no contiene el texto claro** (la sonda se borró después: contenía el password de la base).
+  - **Correcciones de catálogo confirmadas el 2026-11-03** contra el set de pruebas de certificación de dos proveedores independientes: **E34 = Nota de Crédito** y **E33 = Nota de Débito** (la ambigüedad de S15 queda cerrada) y **el contribuyente solicita el rango de e-NCF en su Oficina Virtual, no el proveedor** → el rol de T5 se confirma: la DGII autoriza el rango y el proveedor asigna los números dentro de él.
+  - **Contexto nuevo (el usuario)**: un developer amigo suyo creó su propia API de facturación electrónica y **certifica a sus clientes él mismo, sin terceros**. Eso es exactamente la **Option B** del plan (Volterp como plataforma/proveedor que custodia el `.p12` de cada cliente y firma), y es evidencia de que ese camino lo puede recorrer un independiente, no solo un proveedor grande. Lo que sigue exigiendo la DGII es lo que dice la tabla de caminos: ser emisor electrónico, tener **≥3 contribuyentes ya certificados como emisores electrónicos**, actividad de venta y/o desarrollo de software en el RNC, estar al día con obligaciones tributarias y presentar la solicitud con anexos. Queda **pendiente de decisión del usuario** si se adelanta esa vía (Fase 4) o se mantiene Option A hasta tener clientes emisores.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
@@ -250,6 +259,10 @@ Se mantiene el plan de fases 0–3 sobre Option A. Cuando Volterp tenga clientes
 - `Volterp.Infrastructure/Repositories/ElectronicInvoiceSequenceRepository.cs` — asignación atómica del siguiente número
 - `Volterp.Domain/Enums/SaleDocumentType.cs` — tipo de comprobante de la venta (E31 crédito fiscal / E32 consumo)
 - `Volterp.Domain/Abstractions/ITenantScoped.cs` — declaración de tenant scope de las entidades nuevas
+- `Volterp.Domain/Entities/CompanyCertificate.cs` — certificado del tenant: metadata pública + credencial cifrada
+- `Volterp.Infrastructure/Services/AesCredentialProtector.cs` — cifrado en reposo (AES-256-GCM, clave derivada por tenant)
+- `Volterp.Application/Services/CompanyCertificateService.cs` — alta y lectura; cifra antes de persistir y nunca devuelve la credencial
+- `Volterp.Api/Controllers/CompanyCertificatesController.cs` — endpoints del certificado; la respuesta no lleva material sensible
 - `Volterp.Infrastructure/Data/TenantScopeGuard.cs` — falla el arranque si una entidad con `CompanyId` no declara `ITenantScoped`
 - `Volterp.Application/Services/SaleService.cs` — `CompleteSaleAsync` es hoy el punto donde el e-CF se emitiría; el desglose fiscal se calcula en `Sale.CalculateTotals`
 - `Volterp.Application/Services/ClientService.cs` — alta y persistencia del RNC del receptor
