@@ -1,4 +1,5 @@
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Application.DTOs.ProductDtos;
 
@@ -9,6 +10,7 @@ public record ProductDto : IMapFrom<Product>
     public string Category { get; set; } = string.Empty;
     public string? Description { get; set; }
     public decimal Price { get; set; }
+    public TaxCode TaxCode { get; set; }
     public int Stock { get; set; }
     public Guid? CategoryId { get; set; }
     public Guid CompanyId { get; set; }
@@ -23,6 +25,7 @@ public record ProductDto : IMapFrom<Product>
         Category = source.Category;
         Description = source.Description;
         Price = source.Price.Amount;
+        TaxCode = source.TaxCode;
         Stock = source.Stock;
         CategoryId = source.CategoryId;
         CompanyId = source.CompanyId;

@@ -134,6 +134,16 @@ public class ProductBehaviorTests
             .WithMessage("*quantity*");
     }
 
+    // ===== Tax code =====
+
+    [Fact]
+    public void Product_DefaultTaxCode_IsItbisTasa1()
+    {
+        var product = new Product();
+
+        product.TaxCode.Should().Be(TaxCode.ItbisTasa1);
+    }
+
     // ===== Helpers =====
 
     private static Product CreateProduct(int stock = 10)

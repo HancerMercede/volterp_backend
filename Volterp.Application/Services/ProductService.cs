@@ -49,6 +49,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
                 product.CompanyId = companyId;
                 if (userId.HasValue) product.SetCreatedBy(userId.Value);
                 product.SetPrice(new Money(req.Price, Currency.ARS));
+                product.TaxCode = req.TaxCode;
 
                 await unitOfWork.Products.AddProductAsync(product, ct);
                 await unitOfWork.CommitAsync(ct);
@@ -84,6 +85,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
                     r.Stock = request.Stock;
                     r.CategoryId = request.CategoryId;
                     r.ImageUrl = request.ImageUrl;
+                    r.TaxCode = request.TaxCode;
                     r.UpdatedAt = DateTime.UtcNow;
                     if (userId.HasValue) r.SetUpdatedBy(userId.Value);
                 });

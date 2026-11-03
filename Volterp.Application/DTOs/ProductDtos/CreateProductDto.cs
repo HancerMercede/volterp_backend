@@ -11,7 +11,8 @@ public record CreateProductDto(
     decimal Price,
     int Stock,
     Guid? CategoryId,
-    string? ImageUrl = null
+    string? ImageUrl = null,
+    TaxCode TaxCode = TaxCode.ItbisTasa1
 ):IMapTo<Product>
 {
     public Product MapTo()
@@ -25,8 +26,8 @@ public record CreateProductDto(
            Description = Description,
             Price = new Money(Price, Currency.ARS),
            Stock = Stock,
-           CategoryId = CategoryId,
-           ImageUrl = ImageUrl
+            CategoryId = CategoryId,
+            ImageUrl = ImageUrl
         };
     }
 }

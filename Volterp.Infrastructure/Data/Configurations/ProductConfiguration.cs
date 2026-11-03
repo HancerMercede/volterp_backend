@@ -22,6 +22,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             m.Property(x => x.Currency).HasColumnName("Currency");
         });
         entity.Property(e => e.Stock).HasDefaultValue(0);
+        entity.Property(e => e.TaxCode).HasConversion<int>().IsRequired();
         entity.Property(e => e.IsActive).HasDefaultValue(true);
 
         entity.HasOne(e => e.Company)

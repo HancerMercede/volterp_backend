@@ -291,6 +291,70 @@ public class ProductServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WithTaxCode_PersistsIt()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockCategoriesRepo = new Mock<ICategoryRepository>();
+
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockProductsRepo.Setup(r => r.AddProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Product p, CancellationToken ct) => p);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new ProductService(mockUnitOfWork.Object);
+        var request = new CreateProductDto(
+            Name: "New Product", Category: "Category", Description: "Description",
+            Price: 150, Stock: 25, CategoryId: null, ImageUrl: null, TaxCode: TaxCode.Exento
+        );
+
+        // ACT
+        var result = await service.CreateAsync(request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, ProductDto>.Right>();
+        var dto = ((Either<Error, ProductDto>.Right)result).Value;
+        dto.TaxCode.Should().Be(TaxCode.Exento);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithTaxCode_UpdatesTheProduct()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockCategoriesRepo = new Mock<ICategoryRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Name = "Old Name", CompanyId = Guid7TestValues.CompanyA, Stock = 10, Price = new Money(100, Currency.ARS), Category = "Old Category" };
+
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockProductsRepo.Setup(r => r.UpdateProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new ProductService(mockUnitOfWork.Object);
+        var request = new UpdateProductDto(
+            Name: "New Name", Category: "New Category", Description: "New Desc",
+            Price: 200, Stock: 30, CategoryId: null, IsActive: true, ImageUrl: null, TaxCode: TaxCode.Exento
+        );
+
+        // ACT
+        await service.UpdateAsync(Guid7TestValues.ProductA, request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT
+        product.TaxCode.Should().Be(TaxCode.Exento);
+    }
+
+    [Fact]
     public async Task DeleteAsync_WhenProductNotFound_ThrowsProductNotFoundException()
     {
         // ARRANGE

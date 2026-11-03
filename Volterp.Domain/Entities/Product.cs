@@ -12,6 +12,7 @@ public class Product : AuditEntity, ITenantScoped
     public string Category { get; set; } = string.Empty;
     public int Stock { get; set; }
     public Money Price { get; set; }
+    public TaxCode TaxCode { get; set; } = TaxCode.ItbisTasa1;
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public Guid CompanyId { get; set; }

@@ -12,7 +12,8 @@ public record UpdateProductDto(
     int Stock,
     Guid? CategoryId,
     bool IsActive,
-    string? ImageUrl = null
+    string? ImageUrl = null,
+    TaxCode TaxCode = TaxCode.ItbisTasa1
 ):IMapTo<Product>
 {
     public Product MapTo()
