@@ -26,7 +26,7 @@ public class Company : AuditEntity
     public void Activate() => IsActive = true;
     public void Deactivate() => IsActive = false;
 
-    public void UpdateTaxId(TaxId taxId) => TaxId = taxId.Value;
+    public void UpdateTaxId(Rnc rnc) => TaxId = rnc.Value;
     public void UpdateEmail(Email email) => Email = email.Value;
     public void UpdatePhone(string? phone) => Phone = phone ?? string.Empty;
 }

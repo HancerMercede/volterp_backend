@@ -42,18 +42,18 @@ public class ExceptionTests
     }
 
     [Fact]
-    public void InvalidTaxIdException_ShouldIncludeInvalidValue()
+    public void InvalidRncException_ShouldIncludeInvalidValue()
     {
-        var ex = new InvalidTaxIdException("ABC-1234");
+        var ex = new InvalidRncException("ABC-1234");
 
         ex.InvalidValue.Should().Be("ABC-1234");
         ex.Message.Should().Contain("ABC-1234");
     }
 
     [Fact]
-    public void InvalidTaxIdException_ShouldInheritFromException()
+    public void InvalidRncException_ShouldInheritFromException()
     {
-        var ex = new InvalidTaxIdException("bad");
+        var ex = new InvalidRncException("bad");
 
         ex.Should().BeAssignableTo<Exception>();
     }

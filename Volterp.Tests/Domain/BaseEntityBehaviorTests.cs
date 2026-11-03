@@ -152,11 +152,11 @@ public class BaseEntityBehaviorTests
     public void Company_UpdateTaxId_SetsTaxIdValue()
     {
         var company = new Company();
-        var taxId = new TaxId("ABCD12345678");
+        var rnc = new Rnc("130862346");
 
-        company.UpdateTaxId(taxId);
+        company.UpdateTaxId(rnc);
 
-        company.TaxId.Should().Be("ABCD12345678");
+        company.TaxId.Should().Be("130862346");
     }
 
     [Fact]
