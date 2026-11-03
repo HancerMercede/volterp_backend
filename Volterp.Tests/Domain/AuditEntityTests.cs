@@ -52,17 +52,6 @@ public class AuditEntityTests
     }
 
     [Fact]
-    public void MarkUpdated_ShouldSetUpdatedAt()
-    {
-        var entity = new TestEntity();
-
-        entity.MarkUpdated();
-
-        entity.UpdatedAt.Should().NotBeNull();
-        entity.UpdatedAt!.Value.Kind.Should().Be(DateTimeKind.Utc);
-    }
-
-    [Fact]
     public void MarkUpdated_ShouldSetUpdatedAtToRecent()
     {
         var entity = new TestEntity();

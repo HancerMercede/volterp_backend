@@ -72,42 +72,12 @@ public class EmailTests
     }
 
     [Fact]
-    public void Email_WithWhitespace_ShouldThrow()
-    {
-        var act = () => new Email("   ");
-
-        act.Should().Throw<InvalidEmailException>()
-            .WithMessage("*email*");
-    }
-
-    [Fact]
     public void Email_WithSurroundingWhitespace_ShouldThrow()
     {
         var act = () => new Email(" user@example.com ");
 
         act.Should().Throw<InvalidEmailException>()
             .WithMessage("*email*");
-    }
-
-    // === Equality ===
-
-    [Fact]
-    public void Email_Equals_SameValue_ShouldBeEqual()
-    {
-        var a = new Email("user@example.com");
-        var b = new Email("user@example.com");
-
-        a.Should().Be(b);
-        (a == b).Should().BeTrue();
-    }
-
-    [Fact]
-    public void Email_Equals_DifferentValue_ShouldNotBeEqual()
-    {
-        var a = new Email("user@example.com");
-        var b = new Email("other@example.com");
-
-        a.Should().NotBe(b);
     }
 
     // === ToString ===

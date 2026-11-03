@@ -95,7 +95,7 @@ public class CompanyServiceTests
     }
 
     [Fact]
-    public async Task GetCompanyByIdAsync_WhenNotFound_ReturnsNull()
+    public async Task GetCompanyByIdAsync_WhenNotFound_ReturnsNotFoundError()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -112,6 +112,8 @@ public class CompanyServiceTests
 
         // ASSERT
         result.Should().BeOfType<Either<Error, CompanyDto?>.Left>();
+        var error = ((Either<Error, CompanyDto?>.Left)result).Value;
+        error.Message.Should().Be("company not found");
     }
 
     [Fact]

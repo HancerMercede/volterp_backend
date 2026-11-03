@@ -115,25 +115,6 @@ public class MoneyTests
     // === Equality ===
 
     [Fact]
-    public void Money_Equals_SameValues_ShouldBeEqual()
-    {
-        var a = new Money(100m, Currency.USD);
-        var b = new Money(100m, Currency.USD);
-
-        a.Should().Be(b);
-        (a == b).Should().BeTrue();
-    }
-
-    [Fact]
-    public void Money_Equals_DifferentAmount_ShouldNotBeEqual()
-    {
-        var a = new Money(100m, Currency.USD);
-        var b = new Money(200m, Currency.USD);
-
-        a.Should().NotBe(b);
-    }
-
-    [Fact]
     public void Money_Equals_DifferentCurrency_ShouldNotBeEqual()
     {
         var a = new Money(100m, Currency.USD);

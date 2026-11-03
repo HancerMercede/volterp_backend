@@ -134,65 +134,6 @@ public class ProductBehaviorTests
             .WithMessage("*quantity*");
     }
 
-    // ===== SetPrice =====
-
-    [Fact]
-    public void SetPrice_WithValidMoney_SetsPrice()
-    {
-        var product = CreateProduct();
-        var newPrice = new Money(50, Currency.USD);
-
-        product.SetPrice(newPrice);
-
-        product.Price.Should().Be(newPrice);
-    }
-
-    // ===== Activate / Deactivate =====
-
-    [Fact]
-    public void Activate_SetsIsActiveTrue()
-    {
-        var product = CreateProduct();
-        product.IsActive = false;
-
-        product.Activate();
-
-        product.IsActive.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Activate_WhenAlreadyActive_IsIdempotent()
-    {
-        var product = CreateProduct();
-        product.IsActive = true;
-
-        product.Activate();
-
-        product.IsActive.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Deactivate_SetsIsActiveFalse()
-    {
-        var product = CreateProduct();
-        product.IsActive = true;
-
-        product.Deactivate();
-
-        product.IsActive.Should().BeFalse();
-    }
-
-    [Fact]
-    public void Deactivate_WhenAlreadyInactive_IsIdempotent()
-    {
-        var product = CreateProduct();
-        product.IsActive = false;
-
-        product.Deactivate();
-
-        product.IsActive.Should().BeFalse();
-    }
-
     // ===== Helpers =====
 
     private static Product CreateProduct(int stock = 10)

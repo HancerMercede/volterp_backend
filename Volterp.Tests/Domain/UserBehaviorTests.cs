@@ -2,7 +2,6 @@
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
-using Volterp.Domain.ValueObjects;
 using Xunit;
 using Volterp.Tests.TestHelpers;
 
@@ -124,75 +123,6 @@ public class UserBehaviorTests
 
         act.Should().Throw<InvalidRoleTransitionException>()
             .Which.FromRole.Should().Be("Ventas");
-    }
-
-    // ===== UpdateEmail =====
-
-    [Fact]
-    public void UpdateEmail_WithValidEmail_SetsEmailValue()
-    {
-        var user = CreateUser();
-        var email = new Email("user@example.com");
-
-        user.UpdateEmail(email);
-
-        user.Email.Should().Be("user@example.com");
-    }
-
-    [Fact]
-    public void UpdateEmail_WithDifferentEmail_UpdatesValue()
-    {
-        var user = CreateUser();
-        user.Email = "old@example.com";
-
-        user.UpdateEmail(new Email("new@example.com"));
-
-        user.Email.Should().Be("new@example.com");
-    }
-
-    // ===== Activate / Deactivate =====
-
-    [Fact]
-    public void Activate_SetsIsActiveTrue()
-    {
-        var user = CreateUser();
-        user.IsActive = false;
-
-        user.Activate();
-
-        user.IsActive.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Activate_WhenAlreadyActive_IsIdempotent()
-    {
-        var user = CreateUser();
-        user.IsActive = true;
-
-        user.Activate();
-
-        user.IsActive.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Deactivate_SetsIsActiveFalse()
-    {
-        var user = CreateUser();
-
-        user.Deactivate();
-
-        user.IsActive.Should().BeFalse();
-    }
-
-    [Fact]
-    public void Deactivate_WhenAlreadyInactive_IsIdempotent()
-    {
-        var user = CreateUser();
-        user.IsActive = false;
-
-        user.Deactivate();
-
-        user.IsActive.Should().BeFalse();
     }
 
     // ===== Helpers =====

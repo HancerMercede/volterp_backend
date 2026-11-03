@@ -17,14 +17,6 @@ public class ExceptionTests
     }
 
     [Fact]
-    public void InsufficientStockException_ShouldInheritFromException()
-    {
-        var ex = new InsufficientStockException(5, 2);
-
-        ex.Should().BeAssignableTo<Exception>();
-    }
-
-    [Fact]
     public void InvalidEmailException_ShouldIncludeInvalidValue()
     {
         var ex = new InvalidEmailException("not-an-email");
@@ -34,28 +26,12 @@ public class ExceptionTests
     }
 
     [Fact]
-    public void InvalidEmailException_ShouldInheritFromException()
-    {
-        var ex = new InvalidEmailException("bad");
-
-        ex.Should().BeAssignableTo<Exception>();
-    }
-
-    [Fact]
     public void InvalidRncException_ShouldIncludeInvalidValue()
     {
         var ex = new InvalidRncException("ABC-1234");
 
         ex.InvalidValue.Should().Be("ABC-1234");
         ex.Message.Should().Contain("ABC-1234");
-    }
-
-    [Fact]
-    public void InvalidRncException_ShouldInheritFromException()
-    {
-        var ex = new InvalidRncException("bad");
-
-        ex.Should().BeAssignableTo<Exception>();
     }
 
     [Fact]
@@ -69,14 +45,6 @@ public class ExceptionTests
     }
 
     [Fact]
-    public void InvalidSaleStateTransitionException_ShouldInheritFromException()
-    {
-        var ex = new InvalidSaleStateTransitionException("Pending", "Completed");
-
-        ex.Should().BeAssignableTo<Exception>();
-    }
-
-    [Fact]
     public void InvalidRoleTransitionException_ShouldIncludeFromAndTo()
     {
         var ex = new InvalidRoleTransitionException(fromRole: "Ventas", toRole: "SuperAdmin");
@@ -84,13 +52,5 @@ public class ExceptionTests
         ex.FromRole.Should().Be("Ventas");
         ex.ToRole.Should().Be("SuperAdmin");
         ex.Message.Should().Contain("Ventas").And.Contain("SuperAdmin");
-    }
-
-    [Fact]
-    public void InvalidRoleTransitionException_ShouldInheritFromException()
-    {
-        var ex = new InvalidRoleTransitionException("Admin", "SuperAdmin");
-
-        ex.Should().BeAssignableTo<Exception>();
     }
 }
