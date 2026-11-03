@@ -141,7 +141,8 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 |---|---|---|---|---|
 | T1 | S13 | inline | `a07d51d` | `Cryptography.Xml` y `Pkcs` a 10.0.14, `SQLitePCLRaw.lib.e_sqlite3` a 2.1.14. 0 paquetes vulnerables en los 5 proyectos; 292/292 tests. |
 | T2a | S1 | inline | `cf24711` | VO `Rnc` + `RncType` + `InvalidRncException`: dígito verificador real, normalización de guiones, 33 cédulas históricas. 295/295 tests. |
-| T2b | S1, S2 | inline | — | `Client.TaxId` + validación en los services de `Client` y `Company`. Pendiente. |
+| T2b | S1 | inline | `c9cac9c` | `Client.TaxId` (columna nullable: el consumidor final del tipo 32 no tiene) + validación y normalización en `ClientService`. 300/300 tests. |
+| T2c | S2 | inline | `22536df` | Validación y normalización del RNC del emisor en `CompanyService`. 302/302 tests. |
 | T3 | S3 | inline | — | Código de impuesto en `Product`. Pendiente. |
 | T4 | S4, S5 | inline | — | Desglose de `Sale` (subtotal/ITBIS/total) + tipo de comprobante + RNC receptor. Pendiente. |
 | T5 | S6 | inline | — | Entidad de secuencia de e-NCF con control de concurrencia. Pendiente. |
@@ -193,6 +194,8 @@ Postulación ante la DGII, con los 3 contribuyentes ya certificados. No bloquea 
 - **L2** (2026-11-03): Se cierra el multi-tenant (Gap 1 + fail closed) y se mergea a `development`. El usuario pide "vamos hacer el plan para la facturacion electronica" y crear la branch `feature/electronic-invoicing`.
 - **L3** (2026-11-03): Investigación contra la documentación oficial de la DGII y la API de un PSFE certificado. Se agrega el eje build-vs-integrate al plan: el modelo pedido por el usuario (certificado del cliente, firmado por nuestra API) es exactamente el de un PSFE, y existe uno ya certificado que lo soporta en modo multi-tenant.
 - **L4** (2026-11-03): Se ejecuta T1 y T2a. La investigación contra la **Guía 2 del RNC de la DGII** y contra el validador de referencia `hminaya/SDQ` **corrige S1**: el RNC de persona jurídica tiene **9 dígitos** y el de persona física es la **cédula de 11 dígitos**. **No existe un RNC de 13 dígitos** — ese "13" es el largo del e-NCF (`E` + 2 de tipo + 10 de secuencia). La validación de persona jurídica usa módulo 11 con pesos 7-9-8-6-5-4-3-2 y los restos 0 y 1 se resuelven como 2 y 1; la de persona física usa Luhn, **más 33 cédulas históricas de la JCE** que no pasan Luhn y siguen siendo válidas. También queda confirmado el catálogo de los **10 tipos de e-CF** y que solo **31, 33 y 45** exigen RNC del comprador, y que el **32 es el único con RFCE** (montos < RD$250,000).
+
+- **L5** (2026-11-03): Se cierra T2. `Client` ya carga su RNC/cédula y `Company` valida el RNC del emisor en cada escritura. El valor se **normaliza a dígitos** antes de persistir: los guiones son solo de presentación, y normalizarlos evita dos filas con el mismo RNC bajo el índice único. Se conservó `string` en las entidades (igual que `Company.Email`) en vez de un VO tipado, porque `Company.TaxId` ya tiene filas persistidas con valores que no son RNC y una migración de datos sería destructiva; la validación vive en el service, que es donde el template pide que viva (`Ensure` + `TryParse`).
 
 ## Relevant Files
 
