@@ -119,8 +119,8 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 - **S1** — `Client` debe llevar RNC validado con el formato real de la DGII: **9 dígitos** para persona jurídica (RNC con dígito verificador módulo 11, pesos 7-9-8-6-5-4-3-2) o **11 dígitos** para persona física (cédula, dígito verificador Luhn, más las cédulas históricas de la JCE que no pasan Luhn y siguen siendo válidas). El `ValueObject` anterior validaba 8–15 alfanuméricos y no servía.
 - **S2** — `Company` (emisor) debe llevar RNC con la misma validación, más el nombre legal y la dirección fiscal que exige el e-CF.
 - **S3** — `Product` debe declarar su código de impuesto según el catálogo de la DGII (`<IndicadorFacturacion>` del "Formato Comprobante Fiscal Electrónico (e-CF) v1.0"): **0** No facturable, **1** ITBIS tasa 1 (18%), **2** ITBIS tasa 2 (16%), **3** ITBIS tasa 3 (0%), **4** Exento. Sin esto la línea del comprobante no es válida. El valor persistido es el código de la DGII; la tasa de cada código la aplica el cálculo de la venta (T4).
-- **S4** — `Sale` debe desglosar el monto: `Subtotal`, `Itbis`, `Total`. El `Total` actual es un único decimal.
-- **S5** — `Sale` debe llevar el tipo de comprobante (E31 crédito fiscal / E32 consumo) y, en E31, el RNC del receptor.
+- **S4** — `Sale` debe desglosar el monto: `Subtotal`, `Itbis`, `Total`. El `Total` actual es un único decimal. El desglose lo calcula el dominio a partir de las líneas y del código de impuesto de cada una (tasa 18% / 16% / 0%); el `Total` que envía el cliente no es la autoridad.
+- **S5** — `Sale` debe llevar el tipo de comprobante (E31 crédito fiscal / E32 consumo) y, en E31, el RNC del receptor. El RNC del receptor es una foto del `Client.TaxId` del momento de la venta, y una venta de crédito fiscal no se puede completar sin él.
 - **S6** — El sistema debe asignar y controlar la **secuencia de e-NCF por tipo y por emisor**, con control de concurrencia. El e-NCF es `E` + tipo + 10 dígitos, y los rangos no usados se anulan ante la DGII.
 - **S7** — Debe existir una entidad de **certificado del tenant**: `.p12`, metadata (nombre, RNC, fecha de expiración, estado) y la credencial de acceso al emisor. El material sensible **nunca** sale por la API: ni password, ni ruta, ni llave privada, ni contenido del `.p12`.
 - **S8** — Debe existir una entidad **e-CF** que persista el comprobante: `eNCF`, tipo, RNC emisor, RNC receptor, XML firmado, TrackId, código de seguridad, QR, fecha de firma, estado y el motivo de rechazo de la DGII.
@@ -144,7 +144,7 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | T2b | S1 | inline | `c9cac9c` | `Client.TaxId` (columna nullable: el consumidor final del tipo 32 no tiene) + validación y normalización en `ClientService`. 300/300 tests. |
 | T2c | S2 | inline | `22536df` | Validación y normalización del RNC del emisor en `CompanyService`. 302/302 tests. |
 | T3 | S3 | inline | `ba2e1c7` | `TaxCode` enum con los valores = códigos `<IndicadorFacturacion>` de la DGII (0..4), persistido como int. 273/273 tests. |
-| T4 | S4, S5 | inline | — | Desglose de `Sale` (subtotal/ITBIS/total) + tipo de comprobante + RNC receptor. Pendiente. |
+| T4 | S4, S5 | inline | `eab8081` | `Sale.Subtotal`/`Itbis`/`Total` calculados por el dominio desde las líneas y su código de impuesto; `SaleDocumentType` (E31/E32) con el valor = código DGII; `Sale.ReceptorTaxId` como foto del `Client.TaxId`; una venta de crédito fiscal no se completa sin RNC del receptor. 285/285 tests. |
 | T5 | S6 | inline | — | Entidad de secuencia de e-NCF con control de concurrencia. Pendiente. |
 | T6 | S11 | inline | — | Todas las entidades nuevas con `ITenantScoped`. Pendiente. |
 
@@ -203,12 +203,24 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 
 - **L8** (2026-11-03, verbatim): "vamos a ver si respetas el codigo no inventes cosas no me ensucies mi codigo debe seguir la misma forma" y "no vamos a crear codigo simplemente para rellenar huecos / aqui validamos y refactorizamos y vemos que podemos extender y reutilizar". **Regla de trabajo para el resto del plan**: antes de escribir un tipo nuevo, validar primero qué existe y si se puede extender o reutilizar. Aplicado en T3: se descartó un `TaxCode` como VO (con su excepción y su `ValueConverter`) porque el dominio ya tiene la forma para esto — las 6 clasificaciones son enums (`Currency`, `UserRole`, `SaleStatus`, `TransactionType`, `EntityStatus`, `RncType`) y los VOs (`Email`, `Money`, `Rnc`) son para valores con formato o aritmética. La diferencia que decide: `Rnc` es un valor arbitrario que hay que **verificar** con un algoritmo (módulo 11 / Luhn) y por eso es VO; `TaxCode` es un valor de una lista **cerrada** de 5 códigos y por eso es enum. También se descartó un `Enum.IsDefined` en el service: no hay ningún enum validado así en el repo y el `JsonStringEnumConverter` ya rechaza los valores desconocidos en el borde de la API.
 
+- **L9** (2026-11-03): T4 cierra el desglose fiscal de la venta (`eab8081`). Todas las decisiones de forma se validaron contra el repo antes de escribir (la regla de L8), no después:
+  - **Los montos siguen en `decimal`, no en `Money`.** `Product.Price` sí es `Money`, pero el VO guarda la moneda *dentro* del valor: tres montos la duplicarían en seis columnas. El desglose fiscal de la venta es hoy en DOP y la moneda del comprobante es un tema de la Fase 2 (payload e-CF), no de S4.
+  - **La tasa vive en el dominio**, no en el service: `Sale.TaxRate` es un `switch` exhaustivo sobre `TaxCode` (18% / 16% / 0% / exento / no facturable). Como el enum no tiene un valor 5, el compilador avisa si mañana se agrega una tasa sin definir, y un valor desconocido lanza en vez de tributar en 0%.
+  - **El código de impuesto de la línea sale del producto**, no del request — el producto es la autoridad — y queda *snapshot* en `SaleItem.TaxCode`: el comprobante refleja el momento de la venta, no el precio de catálogo de mañana. Una línea cuyo producto no existe se declara **no facturable** en vez de inventarle una tasa.
+  - **El RNC del receptor sale del `Client.TaxId`** (ya validado con el VO `Rnc` en T2b) y queda *snapshot* en `Sale.ReceptorTaxId`.
+  - **El invariante E31 se hace con `InvalidSaleStateTransitionException`**, la excepción que el repo ya usa para "must have at least one item": ninguna excepción nueva, ninguna forma nueva.
+  - **El servidor pasó a ser la autoridad del total.** Antes `CreateSaleRequest.Total` se persistía tal cual y `SaleService.Update` sobrescribía el total con el del request; ahora el dominio lo calcula y el cliente ya no puede producir una venta cuyo total no cuadre con sus líneas — que es la condición de validez de un e-CF.
+  - **Migración**: EF genera `defaultValue: 0` en columnas int no-null, y 0 es "No facturable" y un tipo de comprobante inválido → corregidos a mano (`DocumentType` → 32, `TaxCode` → 1) y agregado el backfill `Subtotal = Total` para las ventas previas, que no tenían ITBIS.
+  - **Verificación**: 285/285 tests. Los 12 tests nuevos se validaron además **rompiendo la implementación a propósito** (tasa 16% → 0%, invariante E31 desactivado, RNC del receptor sin resolver): cayeron exactamente los 5 tests que deben caer, y ningún otro. La migración no se pudo aplicar contra un Postgres real (no hay Docker ni base de datos levantada en la máquina), igual que la de T3.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
 - `Volterp.Domain/ValueObjects/Rnc.cs` — VO con el dígito verificador real de la DGII
+- `Volterp.Domain/Enums/TaxCode.cs` — código de impuesto DGII por ítem (`IndicadorFacturacion` 0..4)
+- `Volterp.Domain/Enums/SaleDocumentType.cs` — tipo de comprobante de la venta (E31 crédito fiscal / E32 consumo)
 - `Volterp.Domain/Abstractions/ITenantScoped.cs` — declaración de tenant scope de las entidades nuevas
 - `Volterp.Infrastructure/Data/TenantScopeGuard.cs` — falla el arranque si una entidad con `CompanyId` no declara `ITenantScoped`
-- `Volterp.Application/Services/SaleService.cs` — `CompleteSaleAsync` es hoy el punto donde el e-CF se emitiría
+- `Volterp.Application/Services/SaleService.cs` — `CompleteSaleAsync` es hoy el punto donde el e-CF se emitiría; el desglose fiscal se calcula en `Sale.CalculateTotals`
 - `Volterp.Application/Services/ClientService.cs` — alta y persistencia del RNC del receptor
 - `odd/tasks/multi-tenant-isolation.md` — precedente de tracking doc de ODD en este repo
