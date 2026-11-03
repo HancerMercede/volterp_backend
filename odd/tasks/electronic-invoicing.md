@@ -145,8 +145,8 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | T2c | S2 | inline | `22536df` | Validación y normalización del RNC del emisor en `CompanyService`. 302/302 tests. |
 | T3 | S3 | inline | `ba2e1c7` | `TaxCode` enum con los valores = códigos `<IndicadorFacturacion>` de la DGII (0..4), persistido como int. 273/273 tests. |
 | T4 | S4, S5 | inline | `eab8081` | `Sale.Subtotal`/`Itbis`/`Total` calculados por el dominio desde las líneas y su código de impuesto; `SaleDocumentType` (E31/E32) con el valor = código DGII; `Sale.ReceptorTaxId` como foto del `Client.TaxId`; una venta de crédito fiscal no se completa sin RNC del receptor. 285/285 tests. |
-| T5 | S6 | inline | — | Entidad de secuencia de e-NCF con control de concurrencia. Pendiente. |
-| T6 | S11 | inline | — | Todas las entidades nuevas con `ITenantScoped`. Pendiente. |
+| T5 | S6 | inline | `5bff9fa` | `ElectronicInvoiceSequence` por (emisor, tipo) con índice único; la asignación es **una sola sentencia atómica** (`INSERT … ON CONFLICT DO UPDATE … RETURNING`), verificada con 25 llamadas concurrentes contra Postgres real. 291/291 tests. |
+| T6 | S11 | inline | `5bff9fa` | La entidad de T5 declara `ITenantScoped` y el `TenantScopeGuard` falla el arranque si alguna entidad con `CompanyId` no lo declara: el requisito queda garantizado por el guard, no por la convención. Las entidades de la Fase 1 y 2 quedan cubiertas por el mismo guard. |
 
 ### Fase 1 — Certificado y credenciales del emisor
 
@@ -213,11 +213,20 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Migración**: EF genera `defaultValue: 0` en columnas int no-null, y 0 es "No facturable" y un tipo de comprobante inválido → corregidos a mano (`DocumentType` → 32, `TaxCode` → 1) y agregado el backfill `Subtotal = Total` para las ventas previas, que no tenían ITBIS.
   - **Verificación**: 285/285 tests. Los 12 tests nuevos se validaron además **rompiendo la implementación a propósito** (tasa 16% → 0%, invariante E31 desactivado, RNC del receptor sin resolver): cayeron exactamente los 5 tests que deben caer, y ningún otro. La migración no se pudo aplicar contra un Postgres real (no hay Docker ni base de datos levantada en la máquina), igual que la de T3.
 
+- **L10** (2026-11-03): T5 cierra la secuencia de e-NCF por tipo y emisor (`5bff9fa`). Decisiones:
+  - **La fila ES la secuencia**: `ElectronicInvoiceSequences` con índice único en `(CompanyId, DocumentType)` — un emisor, un tipo, un número. Reutiliza `SaleDocumentType` ✓ (no hay enum nuevo ✓): hoy solo se emiten E31 y E32 ✓ y cuando hagan falta los demás tipos se extiende el enum ✓.
+  - **La asignación es UNA sola sentencia atómica** (`INSERT … ON CONFLICT DO UPDATE … RETURNING`) y no un "leer, sumar, guardar" ✗: con dos emisores concurrentes, un leer-modificar-escribir entrega el mismo número dos veces ✗ — y un e-NCF repetido es un comprobante fiscal inválido ✗✗. El `ON CONFLICT` sobre el índice único serializa a los emisores a nivel de fila dentro de la base ✓ (Postgres bloquea la fila durante la sentencia ✓), sin reintentos en la aplicación ✓ ni contador en memoria ✓.
+  - **Los huecos son correctos, no un bug**: la DGII exige anular los rangos no usados ✓, así que un e-NCF reservado y no emitido es un hueco esperado ✓ y no obliga a revertir la transacción de emisión ✓.
+  - **El SQL crudo es deliberado y vive en el repositorio** (la frontera de datos ✓): EF no tiene forma de devolver el valor de un `UPDATE … RETURNING` ✓ — `ExecuteUpdate` devuelve el conteo de filas afectadas, no el nuevo valor ✗. La sentencia es una constante ✓ y filtra por `CompanyId` ✓ (la secuencia es del emisor, no del que llama ✓).
+  - **Verificación**: 291/291 tests. La asignación se probó contra la base real: **25 llamadas concurrentes** (25 contextos y 25 conexiones separadas contra Postgres) devolvieron exactamente 1..25, sin repeticiones ✓. Esa prueba no se commitea porque xUnit 2.9 no tiene skip dinámico ✓ — sin Postgres en CI fallaría ✗; queda el test de integración sobre SQLite (asignación consecutiva ✓, secuencias separadas por tipo ✓ y por emisor ✓) y la evidencia de la prueba real aquí ✓. La migración se aplicó y se verificó contra Postgres ✓.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
 - `Volterp.Domain/ValueObjects/Rnc.cs` — VO con el dígito verificador real de la DGII
 - `Volterp.Domain/Enums/TaxCode.cs` — código de impuesto DGII por ítem (`IndicadorFacturacion` 0..4)
+- `Volterp.Domain/Entities/ElectronicInvoiceSequence.cs` — secuencia de e-NCF por emisor y tipo, y el formato del número (E + 2 + 10)
+- `Volterp.Infrastructure/Repositories/ElectronicInvoiceSequenceRepository.cs` — asignación atómica del siguiente número
 - `Volterp.Domain/Enums/SaleDocumentType.cs` — tipo de comprobante de la venta (E31 crédito fiscal / E32 consumo)
 - `Volterp.Domain/Abstractions/ITenantScoped.cs` — declaración de tenant scope de las entidades nuevas
 - `Volterp.Infrastructure/Data/TenantScopeGuard.cs` — falla el arranque si una entidad con `CompanyId` no declara `ITenantScoped`
