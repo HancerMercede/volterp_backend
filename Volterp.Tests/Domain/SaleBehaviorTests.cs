@@ -54,6 +54,28 @@ public class SaleBehaviorTests
             .WithMessage("*item*");
     }
 
+    [Fact]
+    public void Complete_WhenFiscalCreditWithoutReceptorTaxId_ThrowsInvalidSaleStateTransitionException()
+    {
+        var sale = CreateSale(items: [CreateSaleItem()], documentType: SaleDocumentType.FiscalCredit);
+
+        var act = () => sale.Complete();
+
+        act.Should().Throw<InvalidSaleStateTransitionException>()
+            .WithMessage("*receptor tax id*");
+    }
+
+    [Fact]
+    public void Complete_WhenFiscalCreditWithReceptorTaxId_TransitionsToCompleted()
+    {
+        var sale = CreateSale(items: [CreateSaleItem()], documentType: SaleDocumentType.FiscalCredit);
+        sale.ReceptorTaxId = "101010101";
+
+        sale.Complete();
+
+        sale.Status.Should().Be(SaleStatus.Completed);
+    }
+
     // ===== Cancel =====
 
     [Fact]
@@ -93,7 +115,7 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        sale.AddItem(productId: Guid7TestValues.ProductA, productName: "Product A", quantity: 2, unitPrice: 100);
+        sale.AddItem(productId: Guid7TestValues.ProductA, productName: "Product A", quantity: 2, unitPrice: 100, taxCode: TaxCode.ItbisTasa1);
 
         sale.Items.Should().HaveCount(1);
         sale.Items.First().ProductId.Should().Be(Guid7TestValues.ProductA);
@@ -107,7 +129,7 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        sale.AddItem(productId: Guid7TestValues.ProductA, productName: "Product A", quantity: 3, unitPrice: 50);
+        sale.AddItem(productId: Guid7TestValues.ProductA, productName: "Product A", quantity: 3, unitPrice: 50, taxCode: TaxCode.ItbisTasa1);
 
         sale.Items.First().Subtotal.Should().Be(150);
     }
@@ -120,7 +142,7 @@ public class SaleBehaviorTests
             new SaleItem { ProductId = Guid7TestValues.ProductA, ProductName = "A", Quantity = 1, UnitPrice = 10, Subtotal = 10 }
         ]);
 
-        sale.AddItem(productId: Guid.NewGuid(), productName: "Product B", quantity: 3, unitPrice: 50);
+        sale.AddItem(productId: Guid.NewGuid(), productName: "Product B", quantity: 3, unitPrice: 50, taxCode: TaxCode.ItbisTasa1);
 
         sale.Items.Should().HaveCount(2);
     }
@@ -130,7 +152,7 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        var act = () => sale.AddItem(productId: Guid7TestValues.ProductA, productName: null, quantity: 1, unitPrice: 100);
+        var act = () => sale.AddItem(productId: Guid7TestValues.ProductA, productName: null, quantity: 1, unitPrice: 100, taxCode: TaxCode.ItbisTasa1);
 
         act.Should().NotThrow();
     }
@@ -140,7 +162,7 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        var act = () => sale.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: 0, unitPrice: 100);
+        var act = () => sale.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: 0, unitPrice: 100, taxCode: TaxCode.ItbisTasa1);
 
         act.Should().Throw<ArgumentException>()
             .WithMessage("*quantity*");
@@ -151,7 +173,7 @@ public class SaleBehaviorTests
     {
         var sale = CreateSale(items: []);
 
-        var act = () => sale.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: 1, unitPrice: -50);
+        var act = () => sale.AddItem(productId: Guid7TestValues.ProductA, productName: "P", quantity: 1, unitPrice: -50, taxCode: TaxCode.ItbisTasa1);
 
         act.Should().Throw<ArgumentException>()
             .WithMessage("*price*");
@@ -186,19 +208,105 @@ public class SaleBehaviorTests
         sale.Items.Should().HaveCount(1);
     }
 
+    [Fact]
+    public void RemoveItem_WithTaxedItem_RemovesItsItbisFromTheTotals()
+    {
+        var sale = CreateSale(items: [CreateSaleItem(taxCode: TaxCode.ItbisTasa1, subtotal: 100)]);
+        sale.CalculateTotals();
+
+        sale.RemoveItem(Guid7TestValues.SaleA);
+
+        sale.Subtotal.Should().Be(0);
+        sale.Itbis.Should().Be(0);
+        sale.Total.Should().Be(0);
+    }
+
+    // ===== CalculateTotals =====
+
+    [Fact]
+    public void CalculateTotals_WithItbisTasa1Item_AddsEighteenPercent()
+    {
+        var sale = CreateSale(items: [CreateSaleItem(taxCode: TaxCode.ItbisTasa1, subtotal: 100)]);
+
+        sale.CalculateTotals();
+
+        sale.Subtotal.Should().Be(100);
+        sale.Itbis.Should().Be(18);
+        sale.Total.Should().Be(118);
+    }
+
+    [Fact]
+    public void CalculateTotals_WithItbisTasa2Item_AddsSixteenPercent()
+    {
+        var sale = CreateSale(items: [CreateSaleItem(taxCode: TaxCode.ItbisTasa2, subtotal: 100)]);
+
+        sale.CalculateTotals();
+
+        sale.Subtotal.Should().Be(100);
+        sale.Itbis.Should().Be(16);
+        sale.Total.Should().Be(116);
+    }
+
+    [Theory]
+    [InlineData(TaxCode.ItbisTasa3)]
+    [InlineData(TaxCode.Exento)]
+    [InlineData(TaxCode.NoFacturable)]
+    public void CalculateTotals_WithUntaxedItem_AddsNoItbis(TaxCode taxCode)
+    {
+        var sale = CreateSale(items: [CreateSaleItem(taxCode: taxCode, subtotal: 100)]);
+
+        sale.CalculateTotals();
+
+        sale.Subtotal.Should().Be(100);
+        sale.Itbis.Should().Be(0);
+        sale.Total.Should().Be(100);
+    }
+
+    [Fact]
+    public void CalculateTotals_WithMixedTaxCodes_AddsEachRate()
+    {
+        var sale = CreateSale(items:
+        [
+            CreateSaleItem(taxCode: TaxCode.ItbisTasa1, subtotal: 100),
+            CreateSaleItem(taxCode: TaxCode.ItbisTasa2, subtotal: 100),
+            CreateSaleItem(taxCode: TaxCode.Exento, subtotal: 100)
+        ]);
+
+        sale.CalculateTotals();
+
+        sale.Subtotal.Should().Be(300);
+        sale.Itbis.Should().Be(34);
+        sale.Total.Should().Be(334);
+    }
+
+    [Fact]
+    public void CalculateTotals_RoundsTheItbisOfEachItemToTwoDecimals()
+    {
+        var sale = CreateSale(items: [CreateSaleItem(taxCode: TaxCode.ItbisTasa1, subtotal: 33.33m)]);
+
+        sale.CalculateTotals();
+
+        sale.Itbis.Should().Be(6);
+        sale.Total.Should().Be(39.33m);
+    }
+
     // ===== Helpers =====
 
-    private static Sale CreateSale(List<SaleItem>? items = null, SaleStatus status = SaleStatus.Pending)
+    private static Sale CreateSale(
+        List<SaleItem>? items = null,
+        SaleStatus status = SaleStatus.Pending,
+        SaleDocumentType documentType = SaleDocumentType.Consumer)
     {
         return new Sale
         {
             Id = Guid7TestValues.SaleA,
             Status = status,
+            DocumentType = documentType,
             Items = items ?? [CreateSaleItem()]
         };
     }
 
-    private static SaleItem CreateSaleItem()
+    private static SaleItem CreateSaleItem(TaxCode taxCode = TaxCode.ItbisTasa1, decimal subtotal = 100)
     {
         return new SaleItem
         {
@@ -206,7 +314,8 @@ public class SaleBehaviorTests
             ProductName = "Test Product",
             Quantity = 1,
             UnitPrice = 100,
-            Subtotal = 100
+            Subtotal = subtotal,
+            TaxCode = taxCode
         };
     }
 }

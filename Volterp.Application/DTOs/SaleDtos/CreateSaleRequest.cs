@@ -9,7 +9,8 @@ public record CreateSaleRequest(
     SaleStatus Status,
     decimal Total,
     string? Notes,
-    List<CreateSaleItemRequest> Items
+    List<CreateSaleItemRequest> Items,
+    SaleDocumentType DocumentType = SaleDocumentType.Consumer
 ) : IMapTo<Sale>
 {
     public Sale MapTo()
@@ -17,12 +18,14 @@ public record CreateSaleRequest(
         // CompanyId is NOT copied here — it is set by SaleService.CreateSaleAsync
         // from the companyId parameter (which the controller reads from the JWT).
         // If you see this method writing CompanyId, that is a regression.
+        // Total is NOT copied here — the domain computes Subtotal, Itbis and Total
+        // from the items and the tax code of each one.
         return new Sale
         {
             ClienteId = ClienteId,
             ClienteName = ClienteName,
             Status = Status,
-            Total = Total,
+            DocumentType = DocumentType,
             Notes = Notes,
             Items = Items.Map(i => i.Project())
         };

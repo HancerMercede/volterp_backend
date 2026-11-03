@@ -1,4 +1,6 @@
-﻿namespace Volterp.Application.DTOs.SaleDtos;
+﻿using Volterp.Domain.Enums;
+
+namespace Volterp.Application.DTOs.SaleDtos;
 
 public record SaleItemDto(
     Guid Id,
@@ -9,5 +11,6 @@ public record SaleItemDto(
     string? ProductImageUrl,
     int Quantity,
     decimal UnitPrice,
-    decimal Subtotal
+    decimal Subtotal,
+    TaxCode TaxCode
 );

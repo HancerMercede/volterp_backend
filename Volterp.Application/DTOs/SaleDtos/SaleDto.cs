@@ -10,6 +10,10 @@ public record SaleDto:IMapFrom<Sale>
     public Guid? ClienteId { get; set; }
     public string? ClienteName { get; set; }
     public SaleStatus Status { get; set; }
+    public SaleDocumentType DocumentType { get; set; }
+    public string? ReceptorTaxId { get; set; }
+    public decimal Subtotal { get; set; }
+    public decimal Itbis { get; set; }
     public decimal Total { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
@@ -23,6 +27,10 @@ public record SaleDto:IMapFrom<Sale>
         ClienteId = source.ClienteId;
         ClienteName = source.ClienteName;
         Status = source.Status;
+        DocumentType = source.DocumentType;
+        ReceptorTaxId = source.ReceptorTaxId;
+        Subtotal = source.Subtotal;
+        Itbis = source.Itbis;
         Total = source.Total;
         Notes = source.Notes;
         CreatedAt = source.CreatedAt;
@@ -42,12 +50,7 @@ public record SaleDto:IMapFrom<Sale>
                 x.ProductImageUrl,
                 x.Quantity,
                 x.UnitPrice,
-                x.Subtotal));
+                x.Subtotal,
+                x.TaxCode));
     }
 }
-
-
-
-
-
-

@@ -8,5 +8,6 @@ public record UpdateSaleRequest(
     SaleStatus Status,
     decimal Total,
     string? Notes,
-    List<CreateSaleItemRequest> Items
+    List<CreateSaleItemRequest> Items,
+    SaleDocumentType DocumentType = SaleDocumentType.Consumer
 );

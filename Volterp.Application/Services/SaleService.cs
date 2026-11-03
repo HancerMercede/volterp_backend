@@ -54,10 +54,20 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                 foreach (var item in sale.Items)
                 {
                     if (!productMap.TryGetValue(item.ProductId, out var product))
+                    {
+                        // The tax code comes from the product. Without it the line
+                        // cannot be taxed, so it is declared not taxable instead of
+                        // inventing a rate.
+                        item.TaxCode = TaxCode.NoFacturable;
                         continue;
+                    }
 
                     product.DeductStock(item.Quantity);
+                    item.TaxCode = product.TaxCode;
                 }
+
+                await ResolveReceptorTaxIdAsync(sale, ct);
+                sale.CalculateTotals();
 
                 await unitOfWork.Sales.AddSaleAsync(sale, ct);
                 await unitOfWork.CommitAsync(ct);
@@ -110,18 +120,28 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                 }
                 
                 var newItems = request.Items.Map(i => i.Project());
-                
+
+                foreach (var item in newItems)
+                {
+                    item.TaxCode = productMap.TryGetValue(item.ProductId, out var product)
+                        ? product.TaxCode
+                        : TaxCode.NoFacturable;
+                }
+
                 sale.Apply(s =>
                 {
                     s.ClienteId = request.ClienteId;
                     s.ClienteName = request.ClienteName;
                     s.Status = request.Status;
-                    s.Total = request.Total;
+                    s.DocumentType = request.DocumentType;
                     s.Notes = request.Notes;
                     s.UpdatedAt = DateTime.UtcNow;
                     if (userId.HasValue) s.SetUpdatedBy(userId.Value);
                     s.Items = newItems;
                 });
+
+                await ResolveReceptorTaxIdAsync(sale, ct);
+                sale.CalculateTotals();
 
                 await unitOfWork.Sales.UpdateSaleAsync(sale, ct);
                 await unitOfWork.CommitAsync(ct);
@@ -201,5 +221,15 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                 return new Unit();
             }, ex => new Error(ex.Message))
             .Run();
+    }
+
+    private async Task ResolveReceptorTaxIdAsync(Sale sale, CancellationToken ct)
+    {
+        if (sale.ClienteId is null)
+            return;
+
+        var client = await unitOfWork.Clients.GetClientByIdAsync(sale.ClienteId.Value, ct);
+
+        sale.ReceptorTaxId = client?.TaxId;
     }
 }

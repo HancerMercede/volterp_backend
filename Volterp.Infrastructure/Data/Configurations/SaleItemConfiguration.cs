@@ -18,6 +18,7 @@ public class SaleItemConfiguration : IEntityTypeConfiguration<SaleItem>
         entity.Property(e => e.ProductImageUrl).HasColumnType("text");
         entity.Property(e => e.UnitPrice).HasPrecision(18, 2);
         entity.Property(e => e.Subtotal).HasPrecision(18, 2);
+        entity.Property(e => e.TaxCode).HasConversion<int>().IsRequired();
 
         entity.HasOne(e => e.Sale)
             .WithMany(s => s.Items)

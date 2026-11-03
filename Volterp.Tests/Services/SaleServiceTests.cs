@@ -87,6 +87,102 @@ public class  SaleServiceTests
     }
 
     [Fact]
+    public async Task CreateSaleAsync_WithTaxedProduct_ComputesSubtotalItbisAndTotal()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product
+        {
+            Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA,
+            Name = "Test Product", TaxCode = TaxCode.ItbisTasa2
+        };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Sale s, CancellationToken ct) => s);
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        var request = new CreateSaleRequest(
+            ClienteId: null, ClienteName: "Test Client",
+            Status: SaleStatus.Pending, Total: 500, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 5, 100, 500)
+            }
+        );
+
+        // ACT
+        var result = await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT - the domain computes the breakdown, the request total is not trusted
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+        dto.Subtotal.Should().Be(500);
+        dto.Itbis.Should().Be(80);
+        dto.Total.Should().Be(580);
+        dto.Items.Should().ContainSingle().Which.TaxCode.Should().Be(TaxCode.ItbisTasa2);
+    }
+
+    [Fact]
+    public async Task CreateSaleAsync_WithFiscalCreditAndClientTaxId_CopiesTheReceptorTaxId()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockClientsRepo = new Mock<IClientRepository>();
+
+        var product = new Product
+        {
+            Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA,
+            Name = "Test Product", TaxCode = TaxCode.ItbisTasa1
+        };
+        var client = new Client
+        {
+            Id = Guid7TestValues.ClientA, CompanyId = Guid7TestValues.CompanyA,
+            Name = "Test Client", TaxId = "101010101"
+        };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockClientsRepo.Setup(r => r.GetClientByIdAsync(Guid7TestValues.ClientA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(client);
+        mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Sale s, CancellationToken ct) => s);
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Clients).Returns(mockClientsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        var request = new CreateSaleRequest(
+            ClienteId: Guid7TestValues.ClientA, ClienteName: "Test Client",
+            Status: SaleStatus.Pending, Total: 100, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 1, 100, 100)
+            },
+            DocumentType: SaleDocumentType.FiscalCredit
+        );
+
+        // ACT
+        var result = await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+        dto.DocumentType.Should().Be(SaleDocumentType.FiscalCredit);
+        dto.ReceptorTaxId.Should().Be("101010101");
+    }
+
+    [Fact]
     public async Task CompleteSaleAsync_WithValidInput_SetsStatusToCompleted()
     {
         // ARRANGE

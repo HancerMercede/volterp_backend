@@ -14,6 +14,11 @@ public class Sale : AuditEntity, ITenantScoped
     
     public SaleStatus Status { get; set; } = SaleStatus.Pending;
     
+    public SaleDocumentType DocumentType { get; set; } = SaleDocumentType.Consumer;
+    public string? ReceptorTaxId { get; set; }
+    
+    public decimal Subtotal { get; set; }
+    public decimal Itbis { get; set; }
     public decimal Total { get; set; }
     
     public string? Notes { get; set; }
@@ -31,6 +36,11 @@ public class Sale : AuditEntity, ITenantScoped
                 Status.ToString(), SaleStatus.Completed.ToString(),
                 "Sale must have at least one item before completion.");
 
+        if (DocumentType == SaleDocumentType.FiscalCredit && string.IsNullOrWhiteSpace(ReceptorTaxId))
+            throw new InvalidSaleStateTransitionException(
+                Status.ToString(), SaleStatus.Completed.ToString(),
+                "Sale must have the receptor tax id to be completed as a fiscal credit.");
+
         Status = SaleStatus.Completed;
     }
 
@@ -42,7 +52,7 @@ public class Sale : AuditEntity, ITenantScoped
         Status = SaleStatus.Cancelled;
     }
 
-    public void AddItem(Guid productId, string? productName, int quantity, decimal unitPrice)
+    public void AddItem(Guid productId, string? productName, int quantity, decimal unitPrice, TaxCode taxCode)
     {
         if (quantity <= 0)
             throw new ArgumentException("Quantity must be positive.", nameof(quantity));
@@ -58,10 +68,11 @@ public class Sale : AuditEntity, ITenantScoped
             ProductName = productName ?? string.Empty,
             Quantity = quantity,
             UnitPrice = unitPrice,
-            Subtotal = subtotal
+            Subtotal = subtotal,
+            TaxCode = taxCode
         });
 
-        Total += subtotal;
+        CalculateTotals();
     }
 
     public void RemoveItem(Guid productId)
@@ -70,9 +81,36 @@ public class Sale : AuditEntity, ITenantScoped
         if (item is null)
             return;
 
-        Total -= item.Subtotal;
         Items.Remove(item);
+
+        CalculateTotals();
     }
+
+    public void CalculateTotals()
+    {
+        var subtotal = 0m;
+        var itbis = 0m;
+
+        foreach (var item in Items)
+        {
+            subtotal += item.Subtotal;
+            itbis += decimal.Round(item.Subtotal * TaxRate(item.TaxCode), 2);
+        }
+
+        Subtotal = decimal.Round(subtotal, 2);
+        Itbis = decimal.Round(itbis, 2);
+        Total = Subtotal + Itbis;
+    }
+
+    private static decimal TaxRate(TaxCode taxCode) => taxCode switch
+    {
+        TaxCode.ItbisTasa1 => 0.18m,
+        TaxCode.ItbisTasa2 => 0.16m,
+        TaxCode.ItbisTasa3 => 0m,
+        TaxCode.Exento => 0m,
+        TaxCode.NoFacturable => 0m,
+        _ => throw new ArgumentOutOfRangeException(nameof(taxCode), taxCode, "Unknown tax code.")
+    };
 }
 
 
@@ -90,6 +128,7 @@ public class SaleItem
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
     public decimal Subtotal { get; set; }
+    public TaxCode TaxCode { get; set; } = TaxCode.ItbisTasa1;
 
     public Sale Sale { get; set; } = null!;
 }
