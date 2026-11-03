@@ -79,7 +79,7 @@ Son **10 tipos**. El **32** es el único que admite el flujo resumido **RFCE**, 
 3. Con esa base, **solicitamos la certificación como PSFE** ante la DGII.
 4. Cuando Volterp sea PSFE, **el transporte se mueve a casa** (Option B) y la API interna de Volterp queda estable: el contrato con el cliente no cambia, solo cambia quién firma y quién habla con la DGII.
 
-**Decisión**: Option A. La fase 0 (dominio fiscal) es idéntica en las tres opciones, así que se construye igual; lo que cambia es el transporte (fase 3), que queda detrás de una interfaz propia.
+**Decisión (2026-11-03, confirmada por el usuario)**: **Option A ahora, nuestra propia implementación después.** El plan de fases 0–3 se construye sobre Option A (eCF MSeller como PSFE). La certificación de Volterp como PSFE pasa de "fuera de alcance" a **segunda etapa, disparada por tener clientes emisores**; el contrato con el cliente no cambia porque el transporte vive detrás de S14. La fase 0 (dominio fiscal) es idéntica en las tres opciones, así que se construye igual; lo que cambia es el transporte (fase 3), que queda detrás de una interfaz propia.
 
 > Nota: existe `dgii-ecf` en open source (npm) con firma y envío directo, útil como referencia de la integración propia.
 
@@ -122,7 +122,7 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 - **S4** — `Sale` debe desglosar el monto: `Subtotal`, `Itbis`, `Total`. El `Total` actual es un único decimal. El desglose lo calcula el dominio a partir de las líneas y del código de impuesto de cada una (tasa 18% / 16% / 0%); el `Total` que envía el cliente no es la autoridad.
 - **S5** — `Sale` debe llevar el tipo de comprobante (E31 crédito fiscal / E32 consumo) y, en E31, el RNC del receptor. El RNC del receptor es una foto del `Client.TaxId` del momento de la venta, y una venta de crédito fiscal no se puede completar sin él.
 - **S6** — El sistema debe asignar y controlar la **secuencia de e-NCF por tipo y por emisor**, con control de concurrencia. El e-NCF es `E` + tipo + 10 dígitos, y los rangos no usados se anulan ante la DGII.
-- **S7** — Debe existir una entidad de **certificado del tenant**: `.p12`, metadata (nombre, RNC, fecha de expiración, estado) y la credencial de acceso al emisor. El material sensible **nunca** sale por la API: ni password, ni ruta, ni llave privada, ni contenido del `.p12`.
+- **S7** — Debe existir una entidad de **certificado del tenant**: metadata (nombre, RNC del emisor, fecha de expiración, estado) y la credencial de acceso al emisor, **cifrada en reposo**. Bajo Option A el `.p12` **no** se persiste en Volterp: vive cifrado con AES-256 en el PSFE. El material sensible **nunca** sale por la API: ni password, ni ruta, ni llave privada, ni contenido del `.p12`.
 - **S8** — Debe existir una entidad **e-CF** que persista el comprobante: `eNCF`, tipo, RNC emisor, RNC receptor, XML firmado, TrackId, código de seguridad, QR, fecha de firma, estado y el motivo de rechazo de la DGII.
 - **S9** — El estado del e-CF debe modelar el ciclo real: `Draft → Firmado → Enviado → Aceptado | Rechazado`, con reintento y el motivo de rechazo persistido.
 - **S10** — Debe existir una entidad de **recepción**: e-CF recibidos de terceros (vía RGCE o push de la DGII) y **aprobación comercial** emitida por nosotros.
@@ -130,6 +130,8 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 - **S12** — Auditoría: quién generó, quién firmó, con qué certificado, cuándo, y el historial de envíos y respuestas de la DGII.
 - **S13** — Los paquetes criptográficos con vulnerabilidad conocida (`System.Security.Cryptography.Xml`, `Pkcs`) se actualizan **antes** de escribir cualquier código de firma.
 - **S14** — La capa de transporte (web services de la DGII o API del PSFE) queda detrás de una interfaz propia, para que cambiar de Option A a Option B no toque ni dominio ni controllers.
+- **S15** — Debe existir el tipo de comprobante **nota de crédito** (E33/E34 según la tabla de tipos de este plan; el número y el nombre oficial se reconfirman contra el catálogo antes de implementar). Una venta ya emitida **no se edita ni se borra**: se corrige con nota. Sin esto el ERP no tiene salida fiscal para una venta anulada.
+- **S16** — Un tenant puede tener **varios RNC emisores** (sucursales). El certificado pertenece al **RNC emisor**, no al tenant; por eso la entidad guarda el RNC como snapshot, igual que `Sale.ReceptorTaxId` es el snapshot del `Client.TaxId`.
 
 ## Phases
 
@@ -155,6 +157,8 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | T7 | S7 | Entidad de certificado + credencial, cifrado en reposo, metadata pública separada del material sensible. |
 | T8 | S7 | Alta del tenant en el PSFE (o en la DGII si vamos por Option B): cuenta, `.p12`, API key. |
 | T9 | S7 | Tests: el material sensible nunca aparece en ninguna respuesta de la API. |
+| T17 | S15 | Tipo de comprobante de nota de crédito: el enum `SaleDocumentType` crece con el tipo oficial y la venta se corrige con nota, no editando. Reconfirma el número contra el catálogo antes de escribir. |
+| T18 | S16 | Multi-RNC por tenant: el certificado pertenece al RNC emisor; `Company` deja de tener un solo RNC implícito. |
 
 ### Fase 2 — Generación y firma
 
@@ -173,9 +177,19 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | T15 | S10 | Recepción de e-CF de terceros y aprobación comercial. |
 | T16 | S12 | Webhooks / polling de estado. |
 
-### Fase 4 — Certificación PSFE — **fuera de alcance**
+**Pendientes de verificación con el PSFE (antes de T14)**:
+- ¿Quién asigna la secuencia e-NCF? Si el PSFE firma y numera, `ElectronicInvoiceSequences` deja de asignar números y queda como registro/auditoría local → confirma o desmiente el rol de T5.
+- ¿Permite transferir un certificado a otro PSFE y con qué condiciones? Define el costo comercial de la transición a Option B.
+- SLA de disponibilidad y límites de la API (cuota de e-CF, timeout, reintentos).
+- Qué pasa con el XML retenido a 10 años si se deja de pagar: ¿se puede exportar?
 
-**Decisión del usuario (2026-11-03)**: Volterp no se certifica como PSFE, así que esta fase no se planifica. Si algún día se reconsidera, es un track regulatorio aparte que no bloquea las fases 0–3.
+### Fase 4 — Certificación PSFE — **segunda etapa, disparada por tener clientes**
+
+**Decisión del usuario (2026-11-03, verbatim)**: "Ok sigamos con la opcion A por el momento luego que ya tengamos los clientes pasamos a utilizar nuestra propia implementacion".
+
+Se mantiene el plan de fases 0–3 sobre Option A. Cuando Volterp tenga clientes emisores, se solicita la certificación como PSFE y el transporte se muda a casa (Option B) **sin cambiar el contrato con el cliente** (S14).
+
+**Consecuencia que el plan anterior no cubría**: bajo Option B, el `.p12` y el password de cada cliente deben pasar de la custodia del PSFE a nuestro Postgres. Eso exige acción y consentimiento de cada cliente y reintroduce el riesgo que Option A evita (un leak de nuestra base = identidad fiscal del cliente comprometida). **La custodia de credenciales es una migración comercial, no un cambio de código.**
 
 ## Risks
 
@@ -219,6 +233,13 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Los huecos son correctos, no un bug**: la DGII exige anular los rangos no usados ✓, así que un e-NCF reservado y no emitido es un hueco esperado ✓ y no obliga a revertir la transacción de emisión ✓.
   - **El SQL crudo es deliberado y vive en el repositorio** (la frontera de datos ✓): EF no tiene forma de devolver el valor de un `UPDATE … RETURNING` ✓ — `ExecuteUpdate` devuelve el conteo de filas afectadas, no el nuevo valor ✗. La sentencia es una constante ✓ y filtra por `CompanyId` ✓ (la secuencia es del emisor, no del que llama ✓).
   - **Verificación**: 291/291 tests. La asignación se probó contra la base real: **25 llamadas concurrentes** (25 contextos y 25 conexiones separadas contra Postgres) devolvieron exactamente 1..25, sin repeticiones ✓. Esa prueba no se commitea porque xUnit 2.9 no tiene skip dinámico ✓ — sin Postgres en CI fallaría ✗; queda el test de integración sobre SQLite (asignación consecutiva ✓, secuencias separadas por tipo ✓ y por emisor ✓) y la evidencia de la prueba real aquí ✓. La migración se aplicó y se verificó contra Postgres ✓.
+
+- **L11** (2026-11-03, verbatim): "Ok sigamos con la opcion A por el momento luego que ya tengamos los clientes pasamos a utilizar nuestra propia implementacion". **Rumbo re-confirmado**: Option A ahora, certificación propia después. La Fase 4 deja de ser "fuera de alcance" y pasa a **segunda etapa disparada por tener clientes emisores**. Se agregan **S15** (nota de crédito) y **S16** (multi-RNC por tenant), y las tareas **T17** y **T18** los cubren.
+  - **El PSFE es un rol de la DGII, no una empresa**: con Option A lo ejerce un tercero (IT SOLUCLICK SRL con eCF MSeller, tipo EXTERNO). Ser PSFE no exime de que cada contribuyente certifique su propio emisor y reciba **su** `.p12` — son dos credenciales distintas que no se sustituyen entre sí.
+  - **Consecuencia no cubierta por el plan anterior**: la transición a Option B **no es solo mover el transporte**. El `.p12` y el password de cada cliente deben pasar de la custodia del PSFE a nuestro Postgres → requiere acción y consentimiento de cada cliente → y reintroduce el riesgo que Option A evita (un leak de nuestra base = identidad fiscal del cliente comprometida). **La custodia de credenciales es una migración comercial, no un cambio de código.** Por eso S14 mantiene estable el contrato con el cliente, pero la decisión de PSFE propio tiene un costo de_CLIENTES, no solo un costo técnico.
+  - **S7 se corrige** según Option A: el `.p12` **no** se persiste en Volterp (vive cifrado con AES-256 en el PSFE); nosotros guardamos la **credencial del emisor cifrada en reposo** y su metadata pública (nombre, RNC del emisor, expiración, estado).
+  - **Pendiente para T8 (no bloquea T7)**: quién asigna la secuencia e-NCF. Si el PSFE firma y numera, `ElectronicInvoiceSequences` deja de asignar números y queda como registro/auditoría local → hay que confirmarlo con el PSFE antes de T14.
+  - **Huecos de producto que la revisión de "mi ERP podrá facturar electrónicamente" dejó al descubierto**: (1) solo existen E31 y E32 en `SaleDocumentType` y la DGII define 10 tipos — falta la **nota de crédito**, que es la única salida fiscal de una venta ya emitida (una venta no se edita ni se borra: se corrige con nota) → **S15/T17**; (2) `Company` tiene un solo `TaxId` y un tenant con sucursales tiene varios RNC emisores → **S16/T18**; (3) T8 "alta del tenant en el PSFE" no es un endpoint: es acuerdo comercial, cuentas, precios por comprobante y registro del `.p12` → es **cronograma, no código**.
 
 ## Relevant Files
 
