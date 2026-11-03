@@ -24,6 +24,7 @@ public class VolterpDbContext(
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<AccountingTransaction> AccountingTransactions => Set<AccountingTransaction>();
     public DbSet<Client> Clients => Set<Client>();
+    public DbSet<ElectronicInvoiceSequence> ElectronicInvoiceSequences => Set<ElectronicInvoiceSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

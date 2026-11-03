@@ -277,6 +277,41 @@ namespace Volterp.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoiceSequence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CurrentSequence")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "DocumentType")
+                        .IsUnique();
+
+                    b.ToTable("ElectronicInvoiceSequences");
+                });
+
             modelBuilder.Entity("Volterp.Domain.Entities.Employee", b =>
                 {
                     b.Property<Guid>("Id")
@@ -852,6 +887,17 @@ namespace Volterp.Infrastructure.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoiceSequence", b =>
+                {
+                    b.HasOne("Volterp.Domain.Entities.Company", "Company")
+                        .WithMany("ElectronicInvoiceSequences")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("Volterp.Domain.Entities.Employee", b =>
                 {
                     b.HasOne("Volterp.Domain.Entities.Company", "Company")
@@ -964,6 +1010,8 @@ namespace Volterp.Infrastructure.Migrations
                     b.Navigation("AccountingTransactions");
 
                     b.Navigation("Categories");
+
+                    b.Navigation("ElectronicInvoiceSequences");
 
                     b.Navigation("Employees");
 
