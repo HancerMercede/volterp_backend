@@ -13,7 +13,8 @@ public record CreateClientDto
     DateTime? CreatedAt,
     DateTime? UpdatedAt,
     Guid? CreatedBy,
-    Guid? UpdatedBy
+    Guid? UpdatedBy,
+    string? TaxId = null
 ): IMapTo<Client>
 {
     public Client MapTo()
@@ -24,6 +25,7 @@ public record CreateClientDto
             Email = Email,
             Phone = Phone,
             Address = Address,
+            TaxId = TaxId,
             ImageUrl = ImageUrl,
             IsActive = true,
             CreatedAt = DateTime.UtcNow

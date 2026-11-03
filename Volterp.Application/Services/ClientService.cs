@@ -4,6 +4,7 @@ using Volterp.Application.DTOs.ClientDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
+using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Application.Services;
 
@@ -37,7 +38,15 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .Ensure(x=> !string.IsNullOrEmpty(x.Email), new Error("The email is required."))
             .Ensure(x=> !string.IsNullOrEmpty(x.Phone), new Error("The phone is required."))
             .Ensure(x=> !string.IsNullOrEmpty(x.Address), new Error("The address is required."))
+            .Ensure(x => x.TaxId is null || Rnc.TryParse(x.TaxId, out _), new Error("The tax id must be a valid RNC or citizen ID."))
             .Map(x => x.Project())
+            .Map(client =>
+            {
+                if (client.TaxId is not null)
+                    client.UpdateTaxId(new Rnc(client.TaxId));
+
+                return client;
+            })
             .FlatMap(async client =>
             {
                 client.CompanyId = companyId;
@@ -56,6 +65,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .Try(async () => await unitOfWork.Clients.GetClientByIdAsync(id, ct))
             .MapLeft(error => new Error(error.Message))
             .Ensure(client => client is not null, new Error("User not found."))
+            .Ensure(client => request.TaxId is null || Rnc.TryParse(request.TaxId, out _), new Error("The tax id must be a valid RNC or citizen ID."))
             .Map(client =>
             {
                 client.Apply(c =>
@@ -67,6 +77,10 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
                     c?.IsActive = request.IsActive;
                     c?.UpdatedAt = DateTime.UtcNow;
                     c?.ImageUrl = request.ImageUrl;
+                    if (request.TaxId is null)
+                        c?.TaxId = null;
+                    else
+                        c?.UpdateTaxId(new Rnc(request.TaxId));
                     if (userId.HasValue) c?.SetUpdatedBy(userId.Value);
                 });
                 return client;

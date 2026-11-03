@@ -10,6 +10,7 @@ public class Client : AuditEntity, ITenantScoped
     public string? Email { get; set; }
     public string? Phone { get; set; } = string.Empty;
     public string? Address { get; set; } = string.Empty;
+    public string? TaxId { get; set; }
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public Guid CompanyId { get; set; }
@@ -20,4 +21,5 @@ public class Client : AuditEntity, ITenantScoped
 
     public void UpdateEmail(Email email) => Email = email.Value;
     public void UpdatePhone(string? phone) => Phone = phone ?? string.Empty;
+    public void UpdateTaxId(Rnc rnc) => TaxId = rnc.Value;
 }

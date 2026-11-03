@@ -8,6 +8,7 @@ public record ClientDto:IMapFrom<Client>
     public  string Email { get; set; } = string.Empty;
     public  string Phone { get; set; } = string.Empty;
     public  string Address { get; set; } = string.Empty;
+    public string? TaxId { get; set; }
     public string? ImageUrl  { get; set; }
     public bool IsActive  { get; set; }
     public DateTime? CreatedAt  { get; set; }
@@ -22,6 +23,7 @@ public record ClientDto:IMapFrom<Client>
         Email = source.Email;
         Phone = source.Phone;
         Address = source.Address;
+        TaxId = source.TaxId;
         ImageUrl = source.ImageUrl;
         IsActive = source.IsActive;
         CreatedAt = source.CreatedAt;

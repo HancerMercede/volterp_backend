@@ -15,6 +15,7 @@ public class ClientConfiguration:IEntityTypeConfiguration<Client>
         builder.Property(c => c.Email).IsRequired().HasMaxLength(100);
         builder.Property(c => c.Phone).IsRequired().HasMaxLength(70);
         builder.Property(c => c.Address).IsRequired().HasMaxLength(200);
+        builder.Property(c => c.TaxId).HasMaxLength(20);
         builder.Property(c => c.CompanyId).IsRequired();
     }
 }

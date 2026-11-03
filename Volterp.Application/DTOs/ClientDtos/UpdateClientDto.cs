@@ -13,7 +13,8 @@ public record UpdateClientDto
     DateTime? CreatedAt,
     DateTime? UpdatedAt,
     Guid? CreatedBy,
-    Guid? UpdatedBy
+    Guid? UpdatedBy,
+    string? TaxId = null
 ):IMapTo<Client>
 {
     public Client MapTo()
@@ -24,6 +25,7 @@ public record UpdateClientDto
             Email = Email,
             Phone = Phone,
             Address = Address,
+            TaxId = TaxId,
             ImageUrl = ImageUrl,
             IsActive = IsActive,
         };
