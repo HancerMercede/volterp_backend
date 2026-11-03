@@ -15,4 +15,6 @@ public sealed class HttpTenantContext(IHttpContextAccessor httpContextAccessor) 
             return Guid.TryParse(claim, out var id) ? id : null;
         }
     }
+
+    public bool IsUnrestricted => false;
 }

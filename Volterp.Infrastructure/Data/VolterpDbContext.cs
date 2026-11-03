@@ -39,12 +39,12 @@ public class VolterpDbContext(
             if (clrType == typeof(SaleItem))
             {
                 modelBuilder.Entity<SaleItem>()
-                    .HasQueryFilter(e => _tenantContext.CompanyId == null || e.Sale.CompanyId == _tenantContext.CompanyId);
+                    .HasQueryFilter(e => _tenantContext.IsUnrestricted || e.Sale.CompanyId == _tenantContext.CompanyId);
             }
             else if (clrType == typeof(PurchaseItem))
             {
                 modelBuilder.Entity<PurchaseItem>()
-                    .HasQueryFilter(e => _tenantContext.CompanyId == null || e.Purchase.CompanyId == _tenantContext.CompanyId);
+                    .HasQueryFilter(e => _tenantContext.IsUnrestricted || e.Purchase.CompanyId == _tenantContext.CompanyId);
             }
             else if (clrType == typeof(Company))
             {
@@ -68,6 +68,6 @@ public class VolterpDbContext(
     private void ApplyDirectFilterGeneric<TEntity>(ModelBuilder modelBuilder) where TEntity : class
     {
         modelBuilder.Entity<TEntity>()
-            .HasQueryFilter(e => _tenantContext.CompanyId == null || EF.Property<Guid>(e, "CompanyId") == _tenantContext.CompanyId);
+            .HasQueryFilter(e => _tenantContext.IsUnrestricted || EF.Property<Guid>(e, "CompanyId") == _tenantContext.CompanyId);
     }
 }
