@@ -34,14 +34,20 @@ RNC · contribuyente con obligaciones tributarias a su cargo · **certificado di
 - Identificador de **13 caracteres**: `E` + 2 dígitos de tipo + 10 de secuencial. Ejemplo `E310000000001`.
 - Tipos (par NCF electrónico):
 
-| e-CF | NCF | Nombre |
-|---|---|---|
-| E31 | B01 | Crédito Fiscal — el comprador tiene RNC |
-| E32 | B02 | Consumo — consumidor final, sin RNC |
-| E33 | B03 | Nota de débito |
-| E34 | B04 | Nota de crédito |
-| E41 | B11 | Compras con retención |
-| E43–E47 | — | Otros tipos (gastos menores, exento, etc.) — confirmar contra la documentación técnica vigente |
+| e-CF | NCF | Nombre | Emite | Exige RNC del comprador |
+|---|---|---|---|---|
+| E31 | B01 | Factura de Crédito Fiscal Electrónica | vendedor | **sí** |
+| E32 | B02 | Factura de Consumo Electrónica | vendedor | no |
+| E33 | B03 | Nota de Débito Electrónica | vendedor | **sí** |
+| E34 | B04 | Nota de Crédito Electrónica | vendedor | no |
+| E41 | B11 | Comprobante Electrónico de Compras | comprador | no |
+| E43 | — | Comprobante Electrónico para Gastos Menores | comprador | no |
+| E44 | — | Comprobante Electrónico para Regímenes Especiales | vendedor | no |
+| E45 | — | Comprobante Electrónico Gubernamental | vendedor | **sí** |
+| E46 | — | Comprobante Electrónico para Exportaciones | vendedor | no |
+| E47 | — | Comprobante Electrónico para Pagos al Exterior | comprador | no |
+
+Son **10 tipos**. El **32** es el único que admite el flujo resumido **RFCE**, para montos por debajo de RD$250,000.
 
 ## The strategic decision — build vs. integrate
 
@@ -96,7 +102,7 @@ El repo de Nurbansoft ya no está en la máquina; queda en memoria (#144–#152)
 | Gap | Impacto fiscal |
 |---|---|
 | `Client` no tiene `TaxId`/RNC | **Bloqueante**: E31 exige el RNC del comprador |
-| `Company.TaxId` valida 8–15 alfanuméricos | No es validación de RNC real (11 o 13 dígitos) |
+| `Company.TaxId` valida 8–15 alfanuméricos | No es validación de RNC real (9 dígitos de persona jurídica o 11 de cédula) |
 | `Sale` sin NCF, sin `Itbis`, sin desglose de taxes, sin flag "consumidor final" | No se puede construir el e-CF |
 | `Sale.Total` es un único `decimal` | El e-CF exige subtotal + ITBIS + total |
 | `Product` sin código de impuesto (gravado 18% / exento) | El detalle de la línea lo exige |
@@ -110,7 +116,7 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 
 ## Specs
 
-- **S1** — `Client` debe llevar RNC validado con el formato real (11 dígitos Persona Física/Jurídica, 13 dígitos RNC de persona jurídica). El `ValueObject` actual valida 8–15 alfanuméricos y no sirve.
+- **S1** — `Client` debe llevar RNC validado con el formato real de la DGII: **9 dígitos** para persona jurídica (RNC con dígito verificador módulo 11, pesos 7-9-8-6-5-4-3-2) o **11 dígitos** para persona física (cédula, dígito verificador Luhn, más las cédulas históricas de la JCE que no pasan Luhn y siguen siendo válidas). El `ValueObject` anterior validaba 8–15 alfanuméricos y no servía.
 - **S2** — `Company` (emisor) debe llevar RNC con la misma validación, más el nombre legal y la dirección fiscal que exige el e-CF.
 - **S3** — `Product` debe declarar su código de impuesto: gravado (18%), exento o no gravado. Sin esto la línea del comprobante no es válida.
 - **S4** — `Sale` debe desglosar el monto: `Subtotal`, `Itbis`, `Total`. El `Total` actual es un único decimal.
@@ -131,14 +137,15 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 
 El trabajo que le da valor al producto aunque la integración se demore: Volterp sabe construir el comprobante fiscal.
 
-| Task | Specs | Ruta | Notes |
-|---|---|---|---|
-| T1 | S13 | inline | Subir los paquetes criptográficos vulnerables. |
-| T2 | S1, S2 | inline | ValueObject de RNC real + `Client.TaxId` + `Company.TaxId`. |
-| T3 | S3 | inline | Código de impuesto en `Product`. |
-| T4 | S4, S5 | inline | Desglose de `Sale` (subtotal/ITBIS/total) + tipo de comprobante + RNC receptor. |
-| T5 | S6 | inline | Entidad de secuencia de e-NCF con control de concurrencia. |
-| T6 | S11 | inline | Todas las entidades nuevas con `ITenantScoped`. |
+| Task | Specs | Ruta | Commit | Notes |
+|---|---|---|---|---|
+| T1 | S13 | inline | `a07d51d` | `Cryptography.Xml` y `Pkcs` a 10.0.14, `SQLitePCLRaw.lib.e_sqlite3` a 2.1.14. 0 paquetes vulnerables en los 5 proyectos; 292/292 tests. |
+| T2a | S1 | inline | `cf24711` | VO `Rnc` + `RncType` + `InvalidRncException`: dígito verificador real, normalización de guiones, 33 cédulas históricas. 295/295 tests. |
+| T2b | S1, S2 | inline | — | `Client.TaxId` + validación en los services de `Client` y `Company`. Pendiente. |
+| T3 | S3 | inline | — | Código de impuesto en `Product`. Pendiente. |
+| T4 | S4, S5 | inline | — | Desglose de `Sale` (subtotal/ITBIS/total) + tipo de comprobante + RNC receptor. Pendiente. |
+| T5 | S6 | inline | — | Entidad de secuencia de e-NCF con control de concurrencia. Pendiente. |
+| T6 | S11 | inline | — | Todas las entidades nuevas con `ITenantScoped`. Pendiente. |
 
 ### Fase 1 — Certificado y credenciales del emisor
 
@@ -185,11 +192,12 @@ Postulación ante la DGII, con los 3 contribuyentes ya certificados. No bloquea 
 - **L1** (2026-11-03, verbatim): "Champ recuerdas la informacion de como implementamos la facturacion electronica en Nurbansoft, quiero que lo hagamos en Volterp y que investiguemos como podemos hacerlo nosotros por el momento siendo emisores informales, ya que los clientes pueden ser ellos los certificados y que puedan emitir sus ecf o comprabantes fiscales pero por medio de nuestra api o sistema. pero antes de hacer eso validame en que punto estamos con la implementacion del multi-tenant de este sistema si esta completo o nos falta algo en base a lo que ya hemos trabajado en memoria tenemos mucha informacion"
 - **L2** (2026-11-03): Se cierra el multi-tenant (Gap 1 + fail closed) y se mergea a `development`. El usuario pide "vamos hacer el plan para la facturacion electronica" y crear la branch `feature/electronic-invoicing`.
 - **L3** (2026-11-03): Investigación contra la documentación oficial de la DGII y la API de un PSFE certificado. Se agrega el eje build-vs-integrate al plan: el modelo pedido por el usuario (certificado del cliente, firmado por nuestra API) es exactamente el de un PSFE, y existe uno ya certificado que lo soporta en modo multi-tenant.
+- **L4** (2026-11-03): Se ejecuta T1 y T2a. La investigación contra la **Guía 2 del RNC de la DGII** y contra el validador de referencia `hminaya/SDQ` **corrige S1**: el RNC de persona jurídica tiene **9 dígitos** y el de persona física es la **cédula de 11 dígitos**. **No existe un RNC de 13 dígitos** — ese "13" es el largo del e-NCF (`E` + 2 de tipo + 10 de secuencia). La validación de persona jurídica usa módulo 11 con pesos 7-9-8-6-5-4-3-2 y los restos 0 y 1 se resuelven como 2 y 1; la de persona física usa Luhn, **más 33 cédulas históricas de la JCE** que no pasan Luhn y siguen siendo válidas. También queda confirmado el catálogo de los **10 tipos de e-CF** y que solo **31, 33 y 45** exigen RNC del comprador, y que el **32 es el único con RFCE** (montos < RD$250,000).
 
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
-- `Volterp.Domain/ValueObjects/TaxId.cs` — validación de RNC a reemplazar
+- `Volterp.Domain/ValueObjects/Rnc.cs` — VO con el dígito verificador real de la DGII
 - `Volterp.Domain/Abstractions/ITenantScoped.cs` — declaración de tenant scope de las entidades nuevas
 - `Volterp.Infrastructure/Data/TenantScopeGuard.cs` — falla el arranque si una entidad con `CompanyId` no declara `ITenantScoped`
 - `Volterp.Application/Services/SaleService.cs` — `CompleteSaleAsync` es hoy el punto donde el e-CF se emitiría
