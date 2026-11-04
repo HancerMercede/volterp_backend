@@ -4,6 +4,7 @@ using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Application.Services;
 

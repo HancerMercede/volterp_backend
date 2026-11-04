@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Volterp.ElectronicInvoicing</PackageId>
+    <Description>Electronic fiscal invoicing (e-CF) engine for the DGII: XMLDSig signing, e-CF XML generation and the DGII web services transport. Deliberately free of any Volterp ERP dependency so third parties can consume it on their own.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.14" />
+  </ItemGroup>
+
+</Project>

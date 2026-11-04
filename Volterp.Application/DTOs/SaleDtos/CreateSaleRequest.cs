@@ -1,5 +1,6 @@
 ﻿using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Application.DTOs.SaleDtos;
 
@@ -10,7 +11,7 @@ public record CreateSaleRequest(
     decimal Total,
     string? Notes,
     List<CreateSaleItemRequest> Items,
-    SaleDocumentType DocumentType = SaleDocumentType.Consumer
+    EcfDocumentType DocumentType = EcfDocumentType.Consumer
 ) : IMapTo<Sale>
 {
     public Sale MapTo()

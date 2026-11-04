@@ -1,5 +1,6 @@
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Application.DTOs.SaleDtos;
 
@@ -10,7 +11,7 @@ public record SaleDto:IMapFrom<Sale>
     public Guid? ClienteId { get; set; }
     public string? ClienteName { get; set; }
     public SaleStatus Status { get; set; }
-    public SaleDocumentType DocumentType { get; set; }
+    public EcfDocumentType DocumentType { get; set; }
     public string? ReceptorTaxId { get; set; }
     public decimal Subtotal { get; set; }
     public decimal Itbis { get; set; }

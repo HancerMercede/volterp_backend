@@ -37,5 +37,6 @@
     <ProjectReference Include="..\Volterp.Application\Volterp.Application.csproj" />
     <ProjectReference Include="..\Volterp.Infrastructure\Volterp.Infrastructure.csproj" />
     <ProjectReference Include="..\Volterp.Api\Volterp.Api.csproj" />
+    <ProjectReference Include="..\Volterp.ElectronicInvoicing\Volterp.ElectronicInvoicing.csproj" />
   </ItemGroup>
 </Project>

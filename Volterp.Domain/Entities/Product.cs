@@ -2,6 +2,7 @@ using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
 using Volterp.Domain.ValueObjects;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Domain.Entities;
 

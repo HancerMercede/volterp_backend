@@ -5,6 +5,7 @@ using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Infrastructure.Data;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Infrastructure.Repositories;
 
@@ -24,7 +25,7 @@ public class ElectronicInvoiceSequenceRepository(VolterpDbContext context)
         RETURNING "CurrentSequence";
         """;
 
-    public async Task<int> NextSequenceAsync(Guid companyId, SaleDocumentType documentType, CancellationToken ct = default)
+    public async Task<int> NextSequenceAsync(Guid companyId, EcfDocumentType documentType, CancellationToken ct = default)
     {
         var connection = context.Database.GetDbConnection();
 

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Volterp.Domain.Entities;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Infrastructure.Data.Configurations;
 

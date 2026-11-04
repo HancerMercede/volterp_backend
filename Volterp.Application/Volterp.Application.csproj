@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Volterp.Domain\Volterp.Domain.csproj" />
+    <ProjectReference Include="..\Volterp.ElectronicInvoicing\Volterp.ElectronicInvoicing.csproj" />
   </ItemGroup>
 
   <ItemGroup>

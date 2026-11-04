@@ -53,6 +53,8 @@ Son **10 tipos**. El **32** es el único que admite el flujo resumido **RFCE**, 
 
 **Decidido (2026-11-03): Option A.** Volterp **no** se certifica como PSFE. Cada cliente se certifica como emisor electrónico con su propio certificado `.p12` a través del PSFE, y Volterp le expone la emisión de sus comprobantes dentro de su propia API. El resto de opciones queda como registro de lo evaluado.
 
+**Revisado (2026-11-04): el modelo propio de tu colega — "nosotros la comunicación, el cliente su firma y sus credenciales" — es el que vamos a construir.** Option A (integrarse con la API de un PSFE) **deja de ser el camino de transporte** y pasa a quedar solo como registro de lo evaluado. Ver "El modelo confirmado" abajo y L14.
+
 ### Option A — Integrar con un PSFE ya certificado (ej. eCF MSeller) — **DECIDIDO**
 
 `eCF MSeller` es un **PSFE certificado por la DGII** (IT SOLUCLICK SRL, RNC 130862346, software MSeller v1.0 tipo EXTERNO).
@@ -82,6 +84,66 @@ Son **10 tipos**. El **32** es el único que admite el flujo resumido **RFCE**, 
 **Decisión (2026-11-03, confirmada por el usuario)**: **Option A ahora, nuestra propia implementación después.** El plan de fases 0–3 se construye sobre Option A (eCF MSeller como PSFE). La certificación de Volterp como PSFE pasa de "fuera de alcance" a **segunda etapa, disparada por tener clientes emisores**; el contrato con el cliente no cambia porque el transporte vive detrás de S14. La fase 0 (dominio fiscal) es idéntica en las tres opciones, así que se construye igual; lo que cambia es el transporte (fase 3), que queda detrás de una interfaz propia.
 
 > Nota: existe `dgii-ecf` en open source (npm) con firma y envío directo, útil como referencia de la integración propia.
+
+## El modelo confirmado (2026-11-04) — nosotros la comunicación, el cliente su firma
+
+**Es lo que hace el colega del usuario, y es el modelo que se va a construir.** Cada cliente es un **emisor electrónico** que se certifica ante la DGII por la vía de **sistema de desarrollo propio**: conserva sus **credenciales de la DGII** (usuario administrador de e-CF) y su **certificado digital**, y nosotros nos limitamos a **hablar con la DGII** y a **firmar con el certificado del cliente**.
+
+Evidencia que lo respalda (verificada contra la documentación de dos proveedores, #1821): en el **Portal de Certificación de la DGII**, el contribuyente registra el software que usará como **"Tipo EXTERNO"** con los datos del proveedor (RNC, razón social, nombre comercial) y **las URLs del proveedor** para **recepción** y **aprobación comercial**. Esas URLs serían las de nuestra API. O sea: **el modelo de nuestro colega es el que la DGII tiene previsto para un software que se registra como proveedor externo** — no es un atajo ni una excepción.
+
+Lo que esto cambia en el plan:
+
+| | Plan anterior (Option A) | Modelo confirmado |
+|---|---|---|
+| Transporte | API HTTP de un PSFE (eCF MSeller) | **Web services de la DGII**, directos |
+| Quién firma | El PSFE, con el `.p12` del cliente | **Nosotros, con el `.p12` del cliente** |
+| Custodia del `.p12` | Cifrado en el PSFE | **Cifrado en nuestro Postgres** (T7 ya resuelve esto) |
+| URLs de recepción/aprobación | Las del PSFE | **Las de nuestra API** (la DGII nos llama) |
+| T12 (firma) | Opcional, la hacía el PSFE | **Núcleo y primera** |
+| T14 (transporte) | Cliente HTTP de MSeller | **Cliente de los web services de la DGII** |
+| Fase 4 (certificar PSFE) | Segunda etapa | **Por confirmar** (ver la pregunta abierta abajo) |
+
+**Dos consecuencias que no estaban en el plan y hay que absorber:**
+
+1. **Nuestra API pasa a ser superficie pública que la DGII consume.** Con el modelo confirmado, el cliente registra **nuestras URLs** de recepción y aprobación comercial en su certificación → **T15 deja de ser una fase tardía y entra en el camino crítico**: la certificación del cliente depende de que esos endpoints ya existan y funcionen. Esto también cambia la postura de seguridad de nuestra API (la DGII entra a ella).
+2. **S7 necesita una segunda credencial.** Hoy la entidad guarda **un** valor cifrado opaco. Con este modelo el emisor tiene **dos** secretos: el **certificado de firma** (`.p12` + password) y la **credencial de usuario administrador de e-CF**, que es con la que se pide la **semilla** que autentica las llamadas a los web services. Son credenciales distintas con ciclo de vida distinto.
+
+**Lo que ya está construido y no se tira a la basura**: T7 (`CompanyCertificate`, metadata pública + credencial cifrada en reposo con AES-256-GCM y clave derivada por tenant) es **exactamente** la base para custodiar el `.p12` del cliente. Bajo Option A la credencial cifrada era la API key del PSFE; bajo este modelo es el certificado del cliente. **La entidad no cambia** — ese era el propósito de haberla designed como valor opaco desde el inicio.
+
+**Pregunta abierta, con dueño: la certificación PSFE.** Todo el planteo de "nosotros firmamos por varios contribuyentes" choca de frente con el requisito de la DGII de certificarse como PSFE (≥3 contribuyentes ya certificados como emisores electrónicos, actividad de software en el RNC, al día con tributación, solicitud con anexos). El colega del usuario opera este modelo para sus clientes, así que **la pregunta no es理论ica**: hay que confirmarle **a él** si se certificó como PSFE o si sus clientes lo registran como proveedor "Tipo EXTERNO" **sin** que él tenga certificación PSFE. Esa respuesta decide si la Fase 4 existe. `dgii.gov.do` sigue inaccesible desde esta máquina, así que no se puede cerrar desde la documentación.
+
+## Arquitectura — la library portable (2026-11-04)
+
+**Decisión del usuario (2026-11-04, verbatim)**: "la arquitectura la vamos a hacer como un proyecto separado un class lib aparte para que si en un futuro queremos vender el servicio a terceros lo puedan consumir" y "pero dentro de la misma solucion".
+
+**Qué es**: un proyecto de class library nuevo, `Volterp.ElectronicInvoicing`, **dentro de `Volterp.slnx`** y con su propio proyecto de tests (`Volterp.ElectronicInvoicing.Tests`).
+
+**La regla que la hace vendible**: la library **no referencia ningún otro proyecto de Volterp** — ni Domain, ni Application, ni Infrastructure, ni Api. Cero dependencias de ERP. Un tercero que quiera emitir e-CF referencia **solo** esta library, construye el documento en términos DGII y firma. Sin arrastrar nuestro dominio de ventas, productos ni clientes.
+
+**Qué vive adentro** (todo lo que es *protocolo* y no *ERP*):
+
+| En la library | Por qué |
+|---|---|
+| `EcfDocumentType` (los 10 tipos oficiales) y `TaxCode` (el `IndicadorFacturacion`) | Son catálogos **de la DGII**, no del ERP. Tenerlos en dos lados es la vía corta a un comprobante inválido |
+| `IEcfSigner` + `XmlDsigEcfSigner` | La firma no depende de nuestras ventas |
+| `ISigningCertificateProvider` | El puerto por el que el anfitrión entrega el `.p12` del emisor. Se indexa por **RNC emisor**, no por tenant, porque un tenant puede emitir por varias sucursales (S16) |
+| (T11) `EcfXmlBuilder` | El XML del e-CF es formato de la DGII |
+| (T14) transporte contra los web services de la DGII | Idem |
+
+**Qué se queda en Volterp** (todo lo que es *persistencia* o *ERP*):
+
+| En el ERP | Por qué |
+|---|---|
+| `ElectronicInvoice` (entidad e-CF) | Es persistencia con `CompanyId` → tiene que vivir donde vive el `TenantScopeGuard` |
+| `CompanyCertificate` | Custodia del `.p12` cifrado, por tenant |
+| `ElectronicInvoiceSequence` | Asignación atómica del e-NCF, por tenant y emisor |
+| `Sale`, `Product`, `Client`, `Company` | El ERP. `Sale.DocumentType` ahora es `EcfDocumentType` y `Product.TaxCode` es `TaxCode`: **los tipos vienen de la library** |
+
+**La dirección de dependencias**: `Volterp.Domain → Volterp.ElectronicInvoicing` (y Application, Infrastructure, Tests también la referencian explícitamente, sin apoyarse en la transitiva). La library no depende de nadie. Eso es lo que hace que un tercero pueda consumirla sin arrastrar el ERP.
+
+**Consecuencia que hay que aceptar**: `Volterp.Domain` pasa a depender de un proyecto que también es un producto publicable. Es un precio consciente: la alternativa era duplicar los catálogos de la DGII, y esa duplicación se paga en un comprobante fiscal rechazado.
+
+**Lo que esta arquitectura NO arregla**: el paso a producción sigue exigiendo el mismo trámite y el mismo trabajo técnico. La library cambia **dónde vive el código**, no **cuánto falta**.
 
 ## What Nurbansoft already did (reference implementation, not on disk)
 
@@ -122,16 +184,17 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 - **S4** — `Sale` debe desglosar el monto: `Subtotal`, `Itbis`, `Total`. El `Total` actual es un único decimal. El desglose lo calcula el dominio a partir de las líneas y del código de impuesto de cada una (tasa 18% / 16% / 0%); el `Total` que envía el cliente no es la autoridad.
 - **S5** — `Sale` debe llevar el tipo de comprobante (E31 crédito fiscal / E32 consumo) y, en E31, el RNC del receptor. El RNC del receptor es una foto del `Client.TaxId` del momento de la venta, y una venta de crédito fiscal no se puede completar sin él.
 - **S6** — El sistema debe asignar y controlar la **secuencia de e-NCF por tipo y por emisor**, con control de concurrencia. El e-NCF es `E` + tipo + 10 dígitos, y los rangos no usados se anulan ante la DGII.
-- **S7** — Debe existir una entidad de **certificado del tenant**: metadata (nombre, RNC del emisor, fecha de expiración, estado) y la credencial de acceso al emisor, **cifrada en reposo**. Bajo Option A el `.p12` **no** se persiste en Volterp: vive cifrado con AES-256 en el PSFE. El material sensible **nunca** sale por la API: ni password, ni ruta, ni llave privada, ni contenido del `.p12`. La credencial se guarda como **valor cifrado opaco**: bajo Option A es la API key del PSFE y bajo Option B sería el `.p12` sellado con su password, de modo que la decisión estratégica no obliga a rehacer la entidad.
-- **S8** — Debe existir una entidad **e-CF** que persista el comprobante: `eNCF`, tipo, RNC emisor, RNC receptor, XML firmado, TrackId, código de seguridad, QR, fecha de firma, estado y el motivo de rechazo de la DGII.
-- **S9** — El estado del e-CF debe modelar el ciclo real: `Draft → Firmado → Enviado → Aceptado | Rechazado`, con reintento y el motivo de rechazo persistido.
-- **S10** — Debe existir una entidad de **recepción**: e-CF recibidos de terceros (vía RGCE o push de la DGII) y **aprobación comercial** emitida por nosotros.
+- **S7** — Debe existir una entidad de **certificado del tenant**: metadata (nombre, RNC del emisor, fecha de expiración, estado) y la credencial de acceso al emisor, **cifrada en reposo**. El material sensible **nunca** sale por la API: ni password, ni ruta, ni llave privada, ni contenido del `.p12`. La credencial se guarda como **valor cifrado opaco**, de modo que la decisión estratégica no obliga a rehacer la entidad. **Corregido (2026-11-04, modelo confirmado)**: el `.p12` **sí** se persiste en Volterp — es lo que el emisor nos entrega para que firmemos — y por eso la credencial cifrada es el certificado del cliente, no una API key de un tercero. **Además hace falta una segunda credencial por emisor**: la del **usuario administrador de e-CF**, que es con la que se pide la semilla que autentica las llamadas a los web services. Son dos secretos con ciclo de vida distinto, y la entidad actual tiene un solo campo `EncryptedCredential` → **S7 queda por refinar** (un campo, dos credenciales cifradas, o dos entidades).
+- **S8** — Debe existir una entidad **e-CF** que persista el comprobante: `eNCF`, tipo, RNC emisor, RNC receptor, XML firmado, TrackId, código de seguridad, QR, fecha de firma, estado y el motivo de rechazo de la DGII. **Ampliado (2026-11-04, Guía 6)**: el **QR** no es una imagen genérica — codifica un **URL de verificación** que lleva estos datos: RNC emisor, razón social emisor, RNC comprador, razón social comprador, e-NCF, fecha de emisión, total de ITBIS, monto total y estado. Y el **código de seguridad** (7 caracteres, p. ej. `WkT3Sa`) no es decorativo: la DGII verifica el e-CF con la tupla **RNC + e-NCF + RNC comprador + código de seguridad** → si el QR o el código no se generan igual que la DGII espera, el comprobante es inválido para el receptor y para la consulta pública.
+- **S9** — El estado del e-CF debe modelar el ciclo real: `Draft → Firmado → Enviado → Aceptado | Rechazado`, con reintento y el motivo de rechazo persistido. **Corregido (2026-11-04, contra la "Guía 6 Facturación Electrónica" de la DGII, descargada y leída)**: la DGII define **cinco** estados de veredicto, no dos — **Aceptado**, **Rechazado**, **Aceptado condicional** ("el e-CF tiene validez para fines fiscales, pero existe una irregularidad que no amerita el rechazo, pero que debe observarse y/o corregirse para la emisión de futuros comprobantes"), **En proceso** (la DGII está validando: hay que consultar de nuevo) y **Anulado** (remitido por el contribuyente en el formato de anulación). Our tres estados internos (`Draft`/`Firmado`/`Enviado`) son previos al veredicto; los cinco de la DGII son el resultado. **"Aceptado condicional" no puede reducirse a "Aceptado"**: es el estado que más traga en un ERP, porque hay que corregir la causa raíz antes de la siguiente emisión.
+- **S10** — Debe existir una entidad de **recepción**: e-CF recibidos de terceros (vía RGCE o push de la DGII) y **aprobación comercial** emitida por nosotros. **Corregido (2026-11-04, modelo confirmado)**: esto no es solo una entidad interna — el cliente registra **nuestras URLs** de recepción y de aprobación comercial en su certificación ante la DGII, así que **nuestra API expone endpoints públicos que la DGII consume**. Eso los pone en el **camino crítico** de la certificación del cliente y cambia la postura de seguridad de la API (la DGII entra a ella).
 - **S11** — Toda entidad nueva de este dominio implementa `ITenantScoped`. El guard de arranque es la garantía, no una convención.
 - **S12** — Auditoría: quién generó, quién firmó, con qué certificado, cuándo, y el historial de envíos y respuestas de la DGII.
 - **S13** — Los paquetes criptográficos con vulnerabilidad conocida (`System.Security.Cryptography.Xml`, `Pkcs`) se actualizan **antes** de escribir cualquier código de firma.
 - **S14** — La capa de transporte (web services de la DGII o API del PSFE) queda detrás de una interfaz propia, para que cambiar de Option A a Option B no toque ni dominio ni controllers.
 - **S15** — Debe existir el tipo de comprobante **nota de crédito** (**E34**; E33 es la nota de débito — confirmado el 2026-11-03 contra el set de pruebas de la certificación de dos proveedores independientes). Una venta ya emitida **no se edita ni se borra**: se corrige con nota. Sin esto el ERP no tiene salida fiscal para una venta anulada.
 - **S16** — Un tenant puede tener **varios RNC emisores** (sucursales). El certificado pertenece al **RNC emisor**, no al tenant; por eso la entidad guarda el RNC como snapshot, igual que `Sale.ReceptorTaxId` es el snapshot del `Client.TaxId`.
+- **S17** — Debe existir la **Representación Impresa (RI)** del e-CF. **Nuevo (2026-11-04, Guía 6 de la DGII)**: el receptor **no electrónico** recibe la RI en papel, y la RI cumple el Decreto 254-06 y la Norma General 06-2018. La RI **no es una copia del XML**: es un documento con layout propio que incluye RNC y razón social del emisor, dirección, fecha de emisión y de vencimiento, tipo de comprobante con el e-NCF, RNC y razón social del cliente, la tabla de líneas (cantidad, descripción, unidad de medida, precio, ITBIS, valor), Subtotal Gravado, Total ITBIS, Total, **Código de Seguridad**, **Fecha de Firma Digital** y el **QR**. **Impacto de producto**: el tipo 32 (consumo) no exige RNC del comprador, así que su receptor es típicamente no electrónico → **toda venta de consumo necesita una RI imprimible**, y hoy no hay nada que la genere.
 
 ## Phases
 
@@ -155,7 +218,7 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | Task | Specs | Ruta | Commit | Notas |
 |---|---|---|---|---|
 | T7 | S7 | inline | `6261501` + `622341c` | Entidad `CompanyCertificate` + credencial cifrada en reposo (AES-256-GCM, clave derivada por tenant), metadata pública separada del material sensible. 625 líneas escritas en dos commits: `6261501` núcleo + `622341c` API. 312/312 tests. |
-| T8 | S7 | — | — | Alta del tenant en el PSFE (o en la DGII si vamos por Option B): cuenta, `.p12`, API key. |
+| T8 | S7 | — | — | **Cambiado (2026-11-04)**: alta del emisor ante la DGII por la vía de **sistema de desarrollo propio**. El cliente se certifica como emisor electrónico en el Portal de Certificación de la DGII registrándonos como software **"Tipo EXTERNO"** con nuestros datos y **nuestras URLs de recepción y aprobación comercial**; el cliente nos entrega su `.p12` + password y su credencial de usuario administrador de e-CF. No es un endpoint: es un proceso + acuerdo comercial. **Depende de T14 y T15 vivos** (el cliente registra URLs que tienen que funcionar). |
 | T9 | S7 | inline | `714117f` | **Cerrado.** Tests: el material sensible nunca aparece en ninguna respuesta de la API. La fila quedó desactualizada: el chequeo de la respuesta HTTP completa ya existe en `CompanyCertificateIntegrationTests` — 6 tests de integración prueban que el body HTTP no lleva ni el texto claro ni el ciphertext, que la fila guardada sí queda cifrada, que otro tenant no puede ni leer ni listar el certificado y que un no-admin no puede crearlo. |
 | T17 | S15 | — | — | Tipo de comprobante de nota de crédito: el enum `SaleDocumentType` crece con el tipo oficial y la venta se corrige con nota, no editando. **E34 = Nota de Crédito** (E33 = Nota de Débito), confirmado el 2026-11-03. |
 | T18 | S16 | — | — | Multi-RNC por tenant: el certificado pertenece al RNC emisor; `Company` deja de tener un solo RNC implícito. |
@@ -164,42 +227,48 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 
 | Task | Specs | Notas |
 |---|---|---|
-| T10 | S8, S9 | Entidad e-CF + máquina de estados fiscal. |
+| T10 | S8, S9 | Entidad e-CF + máquina de estados fiscal. **Los 5 veredictos de la DGII** (Aceptado, Rechazado, Aceptado condicional, En proceso, Anulado), no 2. |
 | T11 | S8, S12 | Generación del payload e-CF desde una `Sale` + historial. |
-| T12 | S8 | Firma. Con Option A, la firma la hace el PSFE; con Option B, `XmlDsig` + RSA-SHA256 + Enveloped Signature. |
+| T12 | S8 | **Firma — núcleo y primera.** `XmlDsig` + RSA-SHA256 + Enveloped Signature + Digest SHA256, con el `.p12` del cliente (custodiado cifrado por T7). Es el trabajo que Nurbansoft diseñó pero nunca implementó, y es el que hoy hace el colega del usuario. **Es la pieza más difícil de todo el plan.** |
 | T13 | S9 | Envío, idempotencia y manejo de rechazo de la DGII. |
+| T19 | S17 | **Nuevo (2026-11-04)**: generación de la **Representación Impresa** del e-CF (plantilla con los datos del Decreto 254-06 y la NG 06-2018, QR y código de seguridad), para el receptor no electrónico. Es lo que recibe el cliente final de una venta de consumo. |
 
 ### Fase 3 — Transporte
 
 | Task | Specs | Notas |
 |---|---|---|
-| T14 | S14 | Interfaz de transporte + implementación contra el PSFE (Option A). |
-| T15 | S10 | Recepción de e-CF de terceros y aprobación comercial. |
+| T14 | S14 | **Cambiado (2026-11-04)**: interfaz de transporte + implementación **contra los web services de la DGII**, no contra la API de un PSFE. Los 5 endpoints del blueprint de Nurbansoft: `GET /fe/autenticacion/api/semilla` · `POST /fe/autenticacion/api/validacioncertificado` · `POST /fe/envio/api/ecf` · `POST /fe/recepcion/api/ecf` · `POST /fe/aprobacioncomercial/api/ecf`. |
+| T15 | S10 | **Ahora en el camino crítico**: recepción de e-CF de terceros y aprobación comercial, **expuestas como endpoints públicos de nuestra API** — el cliente las registra en su certificación (S10). |
 | T16 | S12 | Webhooks / polling de estado. |
 
-**Pendientes de verificación con el PSFE (antes de T14)**:
+**Pendientes de verificación con la DGII (antes de T14)**:
 - **Resuelto (2026-11-03) — la secuencia**: el contribuyente solicita en su Oficina Virtual el **rango** de e-NCF por tipo (`Solicitud de Comprobantes Fiscales`, ~10 minutos de aprobación) y el **proveedor asigna los números dentro del rango aprobado** → `ElectronicInvoiceSequences` (T5) sigue siendo la autoridad del número; lo que la DGII autoriza es el rango, no cada número.
-- ¿Permite transferir un certificado a otro PSFE y con qué condiciones? Define el costo comercial de la transición a Option B.
-- SLA de disponibilidad y límites de la API (cuota de e-CF, timeout, reintentos).
-- Qué pasa con el XML retenido a 10 años si se deja de pagar: ¿se puede exportar?
+- **Abierto (2026-11-04) — ¿la certificación PSFE es exigida para operar este modelo?** Ver Fase 4. Dueño: el usuario, preguntándoselo al colega que opera el modelo en producción.
+- **Abierto (2026-11-04) — la autenticación de la semilla**: qué credencial exige `GET /fe/autenticacion/api/semilla` y si alcanza con cachear la semilla o hay que guardar el usuario administrador del cliente. De esto depende la forma final de S7.
+- **Abierto — el set de pruebas de la DGII**: hay que conseguir el juego de pruebas de la certificación (formato XML del e-CF v1.0, XSD, casos de validación) para poder verificar la firma y el payload sin producción.
 
-### Fase 4 — Certificación PSFE — **segunda etapa, disparada por tener clientes**
+### Fase 4 — Certificación PSFE — **reabierta por el modelo confirmado (2026-11-04)**
 
 **Decisión del usuario (2026-11-03, verbatim)**: "Ok sigamos con la opcion A por el momento luego que ya tengamos los clientes pasamos a utilizar nuestra propia implementacion".
 
-Se mantiene el plan de fases 0–3 sobre Option A. Cuando Volterp tenga clientes emisores, se solicita la certificación como PSFE y el transporte se muda a casa (Option B) **sin cambiar el contrato con el cliente** (S14).
+**Revisado (2026-11-04)**: con el modelo confirmado (nosotros la comunicación, el cliente su firma y sus credenciales), Volterp hace exactamente lo que hace un PSFE — firma por varios contribuyentes. La pregunta que queda abierta es si la DGII exige o no esa certificación para operar así. **No se puede cerrar desde la documentación** (`dgii.gov.do` inaccesible desde esta máquina) y queda **pendiente de confirmar con el colega del usuario**, que opera este modelo en producción.
 
-**Consecuencia que el plan anterior no cubría**: bajo Option B, el `.p12` y el password de cada cliente deben pasar de la custodia del PSFE a nuestro Postgres. Eso exige acción y consentimiento de cada cliente y reintroduce el riesgo que Option A evita (un leak de nuestra base = identidad fiscal del cliente comprometida). **La custodia de credenciales es una migración comercial, no un cambio de código.**
+- **Si la DGII no lo exige** (lo que sugiere el modelo del colega): la Fase 4 desaparece del plan y no hay ningún trámite esperando. El bootstrap de los 3 contribuyentes (Option C) deja de ser necesario.
+- **Si la DGII sí lo exige**: vuelve la Fase 4 con su bootstrap (3 contribuyentes ya certificados como emisores electrónicos) y su solicitud con anexos, y **eso es un camino crítico de meses** → hay que arrancarlo **en paralelo**, no al final.
+- **Lo que no cambia en ningún escenario**: el trabajo técnico de T12 (firma) y T14 (transporte) es idéntico. La certificación es un **trámite**, no una dependencia de código → **se puede construir la implementación mientras el trámite avanza**, y por eso ninguna de las dos ramas bloquea el desarrollo.
+
+**Consecuencia del modelo confirmado que el plan anterior no cubría**: el `.p12` y el password de cada cliente pasan a estar **en nuestro Postgres**, no en el PSFE. Eso reintroduce el riesgo que Option A evitaba (un leak de nuestra base = identidad fiscal del cliente comprometida) — pero **es exactamente el riesgo que T7 ya está mitigate**: credencial cifrada en reposo con AES-256-GCM, clave derivada por tenant, app que falla cerrada si la clave falta, y material sensible que nunca sale por la API. Lo que falta en T7 no es la seguridad de la credencial, es el **modelado de la segunda credencial** (S7).
 
 ## Risks
 
 | Riesgo | Impacto | Mitigación |
 |---|---|---|
-| **Plazo del 15-nov-2026** | 12 días. Ninguna fase completa entra en ese plazo | Fase 0 no depende de la DGII. Los clientes que no lleguen a tiempo usan el Facturador Gratuito; Volterp entra después con el ERP yaConstruido |
-| **Guardar llave privada del cliente** | Un leak = la identidad fiscal de un cliente, comprometida | Option A: el `.p12` vive cifrado en el PSFE (AES-256), nosotros solo guardamos la API key. Option B: cifrado por tenant con clave en KMS/HSM + rotación |
-| **No certificarnos como PSFE a tiempo** | Volterp no puede emitir en nombre de clientes | Option A como puente; bootstrap de los 3 contribuyentes para el PSFE propio |
-| **Servicios de un tercero** | Dependencia de precio y de disponibilidad del PSFE | La interfaz de transporte (S14) aisla la decisión. El producto no depende del proveedor, la implementación sí |
-| **Numeração de NCF mal gestionada** | Secuencias duplicadas = comprobantes fiscales inválidos | Secuencia por tipo y emisor con control de concurrencia y prueba de unicidad |
+| **Plazo del 15-nov-2026** | **11 días** (hoy 2026-11-04). Con el modelo confirmado las piezas pesadas (T12 firma, T14 transporte) son nuestras y **ninguna fase completa entra en el plazo** | Fase 0 no depende de la DGII. Los clientes que no lleguen a tiempo usan el Facturador Gratuito. El plazo real de Volterp hay que definirlo explícitamente, no heredarlo del plan |
+| **T12 es la pieza más difícil y no hay precedente en el repo** | XMLDSig + Enveloped Signature + Digest SHA256 es donde más se puede fallar en silencio (un XML mal firmado no se ve hasta que la DGII lo rechaza) | Firmar **contra el set de pruebas de la DGII**, nunca contra producción. Nurbansoft lo diseñó y nunca lo implementó: es la trampa conocida del plan |
+| **Guardar llave privada del cliente** | Un leak = la identidad fiscal de un cliente, comprometida. **Bajo el modelo confirmado el `.p12` es nuestro**, no del PSFE | Ya está mitigado por T7: AES-256-GCM, clave derivada por tenant, app que falla cerrada sin clave, material sensible que nunca sale por la API. Falta el key id para poder rotar la clave maestra en sitio |
+| **Nuestra API pasa a ser superficie pública que la DGII consume** | Los endpoints de recepción y aprobación comercial los llama la DGII, no el usuario → nueva superficie de ataque y nueva postura de autenticación | Es el precio del modelo confirmado y **no es evitable**: el cliente registra nuestras URLs en su certificación. T15 tiene que diseñarse con esa amenaza desde el día uno |
+| **¿Certificación PSFE exigida para operar este modelo?** | Si la DGII la exige, es un camino crítico de meses que no depende de nuestro código | Pregunta abierta con dueño (el usuario, vía su colega). **No bloquea el desarrollo**: T12 y T14 son idénticos en los dos escenarios, así que se avanza mientras el trámite se aclara |
+| **Numeração de NCF mal gestionada** | Secuencias duplicadas = comprobantes fiscales inválidos | Secuencia por tipo y emisor con control de concurrencia y prueba de unicidad (T5, ya hecho) |
 | **Certificado expirado** | El cliente deja de poder emitir sin avisar | Alerta de vencimiento con antelación; el estado del certificado bloquea el envío con mensaje claro |
 
 ## Log
@@ -264,6 +333,25 @@ Se mantiene el plan de fases 0–3 sobre Option A. Cuando Volterp tenga clientes
   - **Lo que ninguna decisión cambia**: la certificación es un **trámite con plazos de la DGII**, no una dependencia de código. El trabajo técnico pesado —la firma XMLDSig (T12) y el cliente de los web services de la DGII— **se puede construir y probar antes** de la certificación (contra el set de pruebas de la DGII). Lo que la certificación bloquea es el **uso comercial para terceros**, no el desarrollo. Esa distinción es la que hace viable construir la implementación propia en paralelo en vez de esperarla.
   - **Pendiente de decisión del usuario**: qué vía se toma. La tabla de fases sigue con Option A; este requerimiento pide "mi propia implementación", lo que **reabre la decisión de la Fase 4** y, con ella, el orden de T12 y T14. Ninguna tarea de código se arranca hasta que esa decisión esté tomada.
 
+- **L14** (2026-11-04, verbatim): "Mi colega me comento ayer que el basicamente lo que hace es hacer la comunicacion con la dgii pero que la firma y todo eso de los xml los hace con los certificados de los clientes ellos mismos tienen sus credenciales de la dgii y el solo provee la comunicacion por el momento es eso lo que necesitamos".
+  - **El modelo queda confirmado y el plan se reescribe alrededor de él**: Volterp **no** se integra con la API de un PSFE. Volterp **habla con la DGII** y **firma con el certificado del cliente**; el cliente conserva sus credenciales de la DGII. Option A (eCF MSeller) deja de ser el camino de transporte y queda solo como registro de lo evaluado.
+  - **Evidencia que lo respalda, y no es una suposición**: verificada contra la documentación de dos proveedores (#1821), en el **Portal de Certificación de la DGII** el contribuyente registra el software que va a usar como **"Tipo EXTERNO"**, con los datos del proveedor (RNC, razón social, nombre comercial) y **las URLs del proveedor para recepción y aprobación comercial**. Ese es exactamente el rol que describe el colega: el software es el proveedor externo, el contribuyente conserva su certificado y sus credenciales. **El modelo del colega es el que la DGII tiene previsto para un software registrado como proveedor externo.**
+  - **Cambios aplicados al plan**: T14 pasa de "cliente de la API de MSeller" a **"cliente de los web services de la DGII"** (los 5 endpoints del blueprint de Nurbansoft); **T12 (firma) deja de ser opcional y pasa a ser la primera pieza**; T15 (recepción + aprobación comercial) **entra al camino crítico** porque el cliente registra **nuestras URLs** en su certificación; T8 pasa de "alta en el PSFE" a "certificación del cliente por sistema de desarrollo propio, registrándonos como Tipo EXTERNO"; y **S7 se reescribe** (ver abajo).
+  - **S7 se refina**: la credencial cifrada que T7 ya guarda **es el certificado del cliente** (bajo Option A habría sido la API key del PSFE — la entidad no cambia, que era el punto de designedla como valor opaco desde el inicio). Pero el emisor tiene **dos** secretos: el **`.p12` + password** (para firmar) y la **credencial de usuario administrador de e-CF** (para pedir la semilla que autentica los web services). La entidad actual tiene **un** campo `EncryptedCredential` → **S7 queda pendiente de forma**: un campo con dos credenciales cifradas, o dos entidades.
+  - **Lo que el modelo agrega y hay que absorber**: nuestra API **deja de ser solo para nuestros clientes** — expone endpoints públicos que **la DGII consume**. Es el precio del modelo y no es evitable, porque el cliente registra nuestras URLs. Eso cambia la postura de seguridad de la API y pone a T15 en el camino crítico de la certificación del cliente.
+  - **Pregunta abierta con dueño**: ¿la DGII exige certificación PSFE para operar así? No se puede cerrar desde la documentación (`dgii.gov.do` inaccesible desde esta máquina) y **la persona que mejor lo puede responder es el colega**, que lo hace en producción: hay que preguntarle si él se certificó como PSFE o si sus clientes lo registran como proveedor "Tipo EXTERNO" **sin** certificación PSFE. Esa respuesta decide si la Fase 4 existe.
+  - **Consecuencia del plazo, sin adornos**: con el modelo confirmado las dos piezas más pesadas (T12 y T14) son nuestras, y **ninguna de las dos está empezada**. Con 11 días para el 15-nov-2026, **Volterp no emite en producción antes del plazo**. Los clientes que no lleguen a tiempo usan el Facturador Gratuito de la DGII. El plan deja de fingir que hay un camino corto y el plazo real hay que fijarlo explícitamente.
+  - **Pendiente de decisión del usuario**: el orden de arranque. Con T10-T16 sin empezar, la secuencia candidata es T17+T18 (cerrar Fase 1, barato) → T10+T11 (dominio e-CF, sin dependencia de la DGII) → **T12 (firma)** → T13 → T14 → T15. Lo que no se puede hacer es empezar por T14 sin T12: sin firma no hay nada que enviar.
+
+- **L15** (2026-11-04, verbatim): "valida esta informacion contra lo que la dgii pide y en que posicion nos coloca ya que tenemos poco tiempo para salir al mercado, tambien debemos adapatar el front con todas las mejoras" · "si hay un front pero luego trabajamos con eso vamos a crear nuestra implementacion con el proceso de la dgii no podemos perder tiempo" · "la arquitectura la vamos a hacer como un proyecto separado un class lib aparte para que si en un futuro queremos vender el servicio a terceros lo puedan consumir" · "pero dentro de la misma solucion" · "valida tambien contra las memorias de NurbanSoft ahi hay mucha tela que cortar" · "pero ya terminamos el plan?"
+  - **El plan NO está terminado**: 10 de 19 tareas de código. La Fase 0 (dominio fiscal) está cerrada, pero **la Fase 2 y la Fase 3 — lo único que emite un comprobante — están en cero**. Y el frontend no existe en este repo (es otro repositorio): la adaptación del front es trabajo abierto, no hecho.
+  - **Validación contra la DGII (Guía 6 descargada y leída)**: el modelo del colega **resiste**. La Guía 6 confirma las tres vías como opciones **del emisor** ("Los emisores de e-CF deben ser previamente autorizados por DGII y utilizar un sistema que permita generar y recibir el formato de especificación... Sistema de desarrollo propio / A través de Proveedores... / Facturador Gratuito") → un software registrado como **Tipo EXTERNO** que el contribuyente certifica es exactamente la vía de **sistema de desarrollo propio**, que es la que no exige ser PSFE. **Confirma los 10 tipos de e-CF**, la estructura `E + tipo + 10 dígitos`, y los 7 requisitos de emisor electrónico.
+  - **Dos correcciones que salieron de esa lectura**: (1) **S9 estaba mal** — la DGII define **cinco** veredictos (Aceptado, Rechazado, **Aceptado condicional**, **En proceso**, **Anulado**), no dos; el "aceptado condicional" es el que más traga en un ERP porque hay que corregir la causa raíz; (2) **hueco de producto nuevo (S17/T19)**: la **Representación Impresa (RI)** es obligatoria para el receptor **no electrónico**, con layout propio (datos del emisor y del cliente, tabla de líneas, Subtotal Gravado, Total ITBIS, Total, código de seguridad, fecha de firma digital y QR) → **toda venta de consumo necesita una RI imprimible y hoy no hay nada que la genere**.
+  - **Validación contra las memorias de Nurbansoft** (proyecto `recnah`, #144–#152 — "mucha tela" confirmada): la capa **INBOUND ya estaba hecha y funcionando**: los 4 endpoints (`GET /fe/autenticacion/api/semilla` · `POST /fe/autenticacion/api/validacioncertificado` · `POST /fe/recepcion/api/ecf` · `POST /fe/aprobacioncomercial/api/ecf`), 3 tablas (`AuthenticationSeed`, `EcfReceived`, `EcfCommercialApproval`) y la lógica de **validación de firma, certificado y token**. La semilla devuelve **XML, no JSON** (`<Semilla><Valor/><Fecha/></Semilla>`) — un bug que ahí costó un ciclo. Dos trampas de EF: Core pluraliza el `DbSet` (`AuthenticationSeeds` en vez de `AuthenticationSeed`) y la columna de RNC tuvo que crecer de `NVARCHAR(20)` a `NVARCHAR(500)` por valores encriptados. La **firma** ("Firma XML DGII", #148) quedó **diseñada y nunca implementada**: es exactamente T12, y su diseño ya era el correcto (certificado automático por `CustomerId`, nunca exponer password/ruta/llave privada, preservar el XML original, **validar la firma generada**, historial y auditoría).
+  - **T12 cerrado** (`XmlDsigEcfSigner` en la library nueva): firma enveloped sobre el documento completo, RSA-SHA256, digest SHA-256, C14N, `KeyInfo` con el certificado del emisor para que el receptor pueda validar sin conocerlo de antemano, y **fail-closed**: la firma se verifica antes de devolverse, así que nunca sale una firma inválida. **10/10 tests nuevos + 312/312 los preexistentes**. **Evidencia de que los tests fijan reglas y no alazar**: (a) cambiar el método de firma a RSA-SHA1 → cae **exactamente 1** test (`Sign_UsesTheProfileTheDgiiRequires`) y los otros 9 quedan verdes; (b) quitar el transform enveloped → caen 8 en cascada, y la cascada **es la prueba del guard**: el firmador lanza y no devuelve nada, en vez de devolver una firma que no verifica.
+  - **Arquitectura**: `Volterp.ElectronicInvoicing` + `Volterp.ElectronicInvoicing.Tests`, dentro de la misma solución, **sin referenciar ningún otro proyecto de Volterp** → consumible por terceros. Los catálogos de la DGII (`TaxCode`, `EcfDocumentType`) se mudaron a la library y `SaleDocumentType` se eliminó: **un solo enum de tipos, con los 10 oficiales** → **T17 (nota de crédito E34) queda resuelto de regalo**, porque el enum ya lo trae. Los 312 tests preexistentes siguen verdes después del movimiento.
+  - **Pendiente de confirmación con el colega** (no bloquea el código): si la DGII exige certificación PSFE para operar este modelo. La library hace el mismo trabajo técnico en los dos escenarios, así que la respuesta cambia el trámite, no el código.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
@@ -281,3 +369,24 @@ Se mantiene el plan de fases 0–3 sobre Option A. Cuando Volterp tenga clientes
 - `Volterp.Application/Services/SaleService.cs` — `CompleteSaleAsync` es hoy el punto donde el e-CF se emitiría; el desglose fiscal se calcula en `Sale.CalculateTotals`
 - `Volterp.Application/Services/ClientService.cs` — alta y persistencia del RNC del receptor
 - `odd/tasks/multi-tenant-isolation.md` — precedente de tracking doc de ODD en este repo
+
+## La library portable
+
+- `Volterp.ElectronicInvoicing/Volterp.ElectronicInvoicing.csproj` — la class library vendible: **sin referenciar ningún otro proyecto de Volterp**
+- `Volterp.ElectronicInvoicing/EcfDocumentType.cs` — los 10 tipos de e-CF de la DGII (sustituye a `SaleDocumentType`)
+- `Volterp.ElectronicInvoicing/TaxCode.cs` — el `IndicadorFacturacion` de la DGII (movido desde `Volterp.Domain.Enums`)
+- `Volterp.ElectronicInvoicing/Abstractions/IEcfSigner.cs` — el contrato de firma
+- `Volterp.ElectronicInvoicing/Abstractions/ISigningCertificateProvider.cs` — el puerto del `.p12` del emisor, indexado por RNC emisor
+- `Volterp.ElectronicInvoicing/Signing/XmlDsigEcfSigner.cs` — **T12**: firma enveloped RSA-SHA256, digest SHA-256, fail-closed
+- `Volterp.ElectronicInvoicing.Tests/Signing/XmlDsigEcfSignerTests.cs` — 10 tests del firmador
+
+## Reference documents (oficiales, para T12 / T14 / T15)
+
+- ✅ **"Guía del Contribuyente No. 6 — Facturación Electrónica"** — **descargada y leída** (2,5 MB, `dgii.gov.do/publicacionesOficiales/bibliotecaVirtual/contribuyentes/facturacion/Documents/Facturación%20Electrónica/6%20Guia%20Facturacion%20Electronica.pdf`). Es la que valida el modelo, los 10 tipos, los 7 requisitos de emisor electrónico, los 5 estados del e-CF, la RI, el QR, el código de seguridad y los plazos.
+- ⬜ **"Formato Comprobante Fiscal Electrónico (e-CF) V 1.0"** — DGII, modificado 30/10/2025, 2,2MB → la estructura XML del comprobante, el `IndicadorFacturacion` (base de S3) y el `Encabezado` con los 13 caracteres del e-NCF. **Es el siguiente paso: sin él no se puede escribir T11.**
+- ⬜ **"Firmado de e-CF"** — DGII, modificado 22/11/2023, 1,2MB → especificación demostrativa de firma con certificado digital. **Referencia directa de T12.** T12 quedó implementado con el perfil estándar (RSA-SHA256, digest SHA-256, enveloped, C14N) que es el que usa todo proveedor, pero **falta confirmar la canonicalización exacta** (C14N inclusiva vs. exclusiva) contra este documento.
+- ⬜ **"Descripción Técnica Servicios Emisores Electrónicos"** — DGII, modificado 29/05/2026, 1,6MB → el contrato de los web services (semilla, envío, recepción, aprobación comercial). **Es el documento que T14 implementa.**
+- ⬜ **"Descripción Técnica Servicios DGII"** — DGII, modificado 29/05/2026, 2,3MB → el otro lado del contrato: lo que la DGII espera de nosotros.
+- ⬜ **"Proceso de Certificación para ser Emisor Electrónico"** — DGII, modificado 19/08/2025, 1,6MB → el paso a paso de la certificación del cliente (la vía "Tipo EXTERNO" de T8).
+- ⬜ **"Instructivo de Contingencia de Facturación Electrónica"** — DGII, modificado 15/10/2026 → qué hacer cuando la DGII no está disponible (parte de T13).
+- **Ojo**: los PDF de la biblioteca de `documentacionSobreE-CF.aspx` **no se descargan por la ruta directa** (dan 404); solo baja el que vive en `publicacionesOficiales/bibliotecaVirtual/...`. Los que faltan hay que bajarlos a mano desde el navegador.

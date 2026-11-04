@@ -1,6 +1,7 @@
 using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Domain.Entities;
 
@@ -14,7 +15,7 @@ public class Sale : AuditEntity, ITenantScoped
     
     public SaleStatus Status { get; set; } = SaleStatus.Pending;
     
-    public SaleDocumentType DocumentType { get; set; } = SaleDocumentType.Consumer;
+    public EcfDocumentType DocumentType { get; set; } = EcfDocumentType.Consumer;
     public string? ReceptorTaxId { get; set; }
     
     public decimal Subtotal { get; set; }
@@ -36,7 +37,7 @@ public class Sale : AuditEntity, ITenantScoped
                 Status.ToString(), SaleStatus.Completed.ToString(),
                 "Sale must have at least one item before completion.");
 
-        if (DocumentType == SaleDocumentType.FiscalCredit && string.IsNullOrWhiteSpace(ReceptorTaxId))
+        if (DocumentType == EcfDocumentType.FiscalCredit && string.IsNullOrWhiteSpace(ReceptorTaxId))
             throw new InvalidSaleStateTransitionException(
                 Status.ToString(), SaleStatus.Completed.ToString(),
                 "Sale must have the receptor tax id to be completed as a fiscal credit.");

@@ -6,6 +6,7 @@ using Volterp.Domain.Enums;
 using Volterp.Infrastructure.Data;
 using Volterp.Infrastructure.Repositories;
 using Xunit;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Tests.Integration;
 
@@ -17,8 +18,8 @@ public class ElectronicInvoiceSequenceRepositoryTests
         await using var fixture = new SequenceFixture();
         await fixture.InitializeAsync();
 
-        var first = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, SaleDocumentType.FiscalCredit);
-        var second = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, SaleDocumentType.FiscalCredit);
+        var first = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, EcfDocumentType.FiscalCredit);
+        var second = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, EcfDocumentType.FiscalCredit);
 
         first.Should().Be(1);
         second.Should().Be(2);
@@ -30,8 +31,8 @@ public class ElectronicInvoiceSequenceRepositoryTests
         await using var fixture = new SequenceFixture();
         await fixture.InitializeAsync();
 
-        var fiscalCredit = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, SaleDocumentType.FiscalCredit);
-        var consumer = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, SaleDocumentType.Consumer);
+        var fiscalCredit = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, EcfDocumentType.FiscalCredit);
+        var consumer = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, EcfDocumentType.Consumer);
 
         fiscalCredit.Should().Be(1);
         consumer.Should().Be(1);
@@ -46,8 +47,8 @@ public class ElectronicInvoiceSequenceRepositoryTests
         var otherCompanyId = Guid.CreateVersion7();
         await fixture.AddCompanyAsync(otherCompanyId);
 
-        var mine = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, SaleDocumentType.FiscalCredit);
-        var theirs = await fixture.Repository.NextSequenceAsync(otherCompanyId, SaleDocumentType.FiscalCredit);
+        var mine = await fixture.Repository.NextSequenceAsync(fixture.CompanyId, EcfDocumentType.FiscalCredit);
+        var theirs = await fixture.Repository.NextSequenceAsync(otherCompanyId, EcfDocumentType.FiscalCredit);
 
         mine.Should().Be(1);
         theirs.Should().Be(1);

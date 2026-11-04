@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Volterp.ElectronicInvoicing\Volterp.ElectronicInvoicing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MapFlow" Version="1.2.0" />
   </ItemGroup>
 

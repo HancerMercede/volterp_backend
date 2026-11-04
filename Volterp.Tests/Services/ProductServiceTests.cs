@@ -12,6 +12,7 @@ using Volterp.Domain.Enums;
 using Volterp.Domain.ValueObjects;
 using Xunit;
 using Volterp.Tests.TestHelpers;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Tests.Services;
 

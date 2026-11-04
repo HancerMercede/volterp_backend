@@ -10,6 +10,7 @@ using Volterp.Domain.Enums;
 using Xunit;
 using Volterp.Tests.TestHelpers;
 using Volterp.Application.DTOs.SaleDtos;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Tests.Services;
 
@@ -169,7 +170,7 @@ public class  SaleServiceTests
             {
                 new(Guid7TestValues.ProductA, "Test Product", null, null, null, 1, 100, 100)
             },
-            DocumentType: SaleDocumentType.FiscalCredit
+            DocumentType: EcfDocumentType.FiscalCredit
         );
 
         // ACT
@@ -178,7 +179,7 @@ public class  SaleServiceTests
         // ASSERT
         result.Should().BeOfType<Either<Error, SaleDto>.Right>();
         var dto = ((Either<Error, SaleDto>.Right)result).Value;
-        dto.DocumentType.Should().Be(SaleDocumentType.FiscalCredit);
+        dto.DocumentType.Should().Be(EcfDocumentType.FiscalCredit);
         dto.ReceptorTaxId.Should().Be("101010101");
     }
 

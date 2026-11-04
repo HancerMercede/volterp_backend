@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Volterp.Domain.Enums;
 using Xunit;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Tests.ValueObjects;
 

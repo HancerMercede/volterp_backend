@@ -7,6 +7,7 @@ using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Domain.ValueObjects;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Application.Services;
 

@@ -4,6 +4,7 @@ using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
 using Xunit;
 using Volterp.Tests.TestHelpers;
+using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Tests.Domain;
 
@@ -57,7 +58,7 @@ public class SaleBehaviorTests
     [Fact]
     public void Complete_WhenFiscalCreditWithoutReceptorTaxId_ThrowsInvalidSaleStateTransitionException()
     {
-        var sale = CreateSale(items: [CreateSaleItem()], documentType: SaleDocumentType.FiscalCredit);
+        var sale = CreateSale(items: [CreateSaleItem()], documentType: EcfDocumentType.FiscalCredit);
 
         var act = () => sale.Complete();
 
@@ -68,7 +69,7 @@ public class SaleBehaviorTests
     [Fact]
     public void Complete_WhenFiscalCreditWithReceptorTaxId_TransitionsToCompleted()
     {
-        var sale = CreateSale(items: [CreateSaleItem()], documentType: SaleDocumentType.FiscalCredit);
+        var sale = CreateSale(items: [CreateSaleItem()], documentType: EcfDocumentType.FiscalCredit);
         sale.ReceptorTaxId = "101010101";
 
         sale.Complete();
@@ -295,7 +296,7 @@ public class SaleBehaviorTests
     private static Sale CreateSale(
         List<SaleItem>? items = null,
         SaleStatus status = SaleStatus.Pending,
-        SaleDocumentType documentType = SaleDocumentType.Consumer)
+        EcfDocumentType documentType = EcfDocumentType.Consumer)
     {
         return new Sale
         {
