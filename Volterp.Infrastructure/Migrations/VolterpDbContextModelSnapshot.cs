@@ -325,6 +325,100 @@ namespace Volterp.Infrastructure.Migrations
                     b.ToTable("CompanyCertificates");
                 });
 
+            modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ENCF")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
+
+                    b.Property<string>("IssuerTaxId")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
+
+                    b.Property<decimal>("Itbis")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("QrUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ReceiverTaxId")
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SecurityCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SignedXml")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("TrackId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VerdictNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("SaleId");
+
+                    b.HasIndex("IssuerTaxId", "ENCF")
+                        .IsUnique();
+
+                    b.ToTable("ElectronicInvoices");
+                });
+
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoiceSequence", b =>
                 {
                     b.Property<Guid>("Id")
@@ -946,6 +1040,25 @@ namespace Volterp.Infrastructure.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoice", b =>
+                {
+                    b.HasOne("Volterp.Domain.Entities.Company", "Company")
+                        .WithMany("ElectronicInvoices")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Volterp.Domain.Entities.Sale", "Sale")
+                        .WithMany("ElectronicInvoices")
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+
+                    b.Navigation("Sale");
+                });
+
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoiceSequence", b =>
                 {
                     b.HasOne("Volterp.Domain.Entities.Company", "Company")
@@ -1074,6 +1187,8 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.Navigation("ElectronicInvoiceSequences");
 
+                    b.Navigation("ElectronicInvoices");
+
                     b.Navigation("Employees");
 
                     b.Navigation("Products");
@@ -1094,6 +1209,8 @@ namespace Volterp.Infrastructure.Migrations
 
             modelBuilder.Entity("Volterp.Domain.Entities.Sale", b =>
                 {
+                    b.Navigation("ElectronicInvoices");
+
                     b.Navigation("Items");
                 });
 #pragma warning restore 612, 618

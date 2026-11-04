@@ -26,6 +26,7 @@ public class Sale : AuditEntity, ITenantScoped
     
     public Company Company { get; set; } = null!;
     public ICollection<SaleItem> Items { get; set; } = new List<SaleItem>();
+    public ICollection<ElectronicInvoice> ElectronicInvoices { get; set; } = new List<ElectronicInvoice>();
 
     public void Complete()
     {
