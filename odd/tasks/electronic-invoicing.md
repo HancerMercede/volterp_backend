@@ -371,6 +371,7 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Lo que el XSD reveló sobre el firmador**: el esquema termina en `<xs:any minOccurs="1"/>`, o sea **la ranura de la firma es obligatoria** → un documento sin firmar es inválido por definición. La validación tiene dos modos: `Validate` (exige la firma, para el documento firmado) y `ValidateUnsigned` (para el documento recién escrito, con la ranura sustituida por un marcador).
   - **Bug real encontrado y corregido**: el writer escribía sobre un `StringBuilder`, así que la declaración XML salía como `encoding="utf-16"` mientras los bytes viajan en UTF-8 → la DGII lo rechazaría. Ahora escribe sobre un `MemoryStream` con UTF-8 sin BOM.
   - **Pendiente de T11**: el mapeo `Sale` → modelo neutral en la capa Application y el cálculo de los totales según las tasas de ITBIS (el `IndicadorFacturacion` del ítem ya las codifica: 1 = tasa 1, 2 = tasa 2, 3 = tasa 3, 4 = exento).
+  - **Assessment de RDD sobre los commits nuevos** (`aad71fb`, `7da7f2e`, `3235fe7`): `risk: medium`, `review_due: false` (`under_budget`), 147 paths / 29.489 líneas acumuladas desde `d08a830`. **No hay revisión que correr todavía**: la frontera de revisión se fija por porción al abrir el pull request, no sobre la rama acumulada.
 
 ## Relevant Files
 
