@@ -2,6 +2,7 @@ using EitherWay;
 using Volterp.Application.DTOs;
 using Volterp.Application.DTOs.ClientDtos;
 using Volterp.Application.Exceptions.AppErrors;
+using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Domain.ValueObjects;
@@ -36,6 +37,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .FromRight(request)
             .Ensure(x=> !string.IsNullOrEmpty(x.Name), new Error("The name is required."))
             .Ensure(x=> !string.IsNullOrEmpty(x.Email), new Error("The email is required."))
+            .Ensure(x=>x.Email.IsValidEmail(), new Error("It is not a valid email."))
             .Ensure(x=> !string.IsNullOrEmpty(x.Phone), new Error("The phone is required."))
             .Ensure(x=> !string.IsNullOrEmpty(x.Address), new Error("The address is required."))
             .Ensure(x => x.TaxId is null || Rnc.TryParse(x.TaxId, out _), new Error("The tax id must be a valid RNC or citizen ID."))
@@ -75,14 +77,15 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
                     c?.Phone = request.Phone;
                     c?.Address = request.Address;
                     c?.IsActive = request.IsActive;
-                    c?.UpdatedAt = DateTime.UtcNow;
                     c?.ImageUrl = request.ImageUrl;
                     if (request.TaxId is null)
                         c?.TaxId = null;
                     else
                         c?.UpdateTaxId(new Rnc(request.TaxId));
+                    c?.MarkUpdated();
                     if (userId.HasValue) c?.SetUpdatedBy(userId.Value);
                 });
+
                 return client;
             }).FlatMap(async client =>
             {
