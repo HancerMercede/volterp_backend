@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
+using System.Text;
 using System.Xml;
 using FluentAssertions;
 using Volterp.ElectronicInvoicing.Signing;
@@ -10,8 +11,6 @@ namespace Volterp.ElectronicInvoicing.Tests.Signing;
 
 public class XmlDsigEcfSignerTests
 {
-    private const string Password = "volterp-test-password";
-
     private const string Ecf = """
         <?xml version="1.0" encoding="utf-8"?>
         <e-CF Version="1.0">
@@ -109,6 +108,17 @@ public class XmlDsigEcfSignerTests
     }
 
     [Fact]
+    public void Sign_ProducesTheSameDigestForADocumentThatArrivesFormatted()
+    {
+        using var certificate = CreateCertificate();
+
+        var signed = _signer.Sign(Ecf, certificate);
+        var formatted = _signer.Sign(Format(Ecf), certificate);
+
+        DigestOf(formatted).Should().Be(DigestOf(signed));
+    }
+
+    [Fact]
     public void Sign_ThrowsWhenTheCertificateHasNoPrivateKey()
     {
         using var certificate = CreateCertificate();
@@ -159,22 +169,29 @@ public class XmlDsigEcfSignerTests
         return signedXml;
     }
 
-    private static X509Certificate2 CreateCertificate(string commonName = "Volterp Test Emisor")
+    private static string DigestOf(string signed)
     {
-        using var rsa = RSA.Create(2048);
-        var request = new CertificateRequest(
-            $"CN={commonName}, C=DO",
-            rsa,
-            HashAlgorithmName.SHA256,
-            RSASignaturePadding.Pkcs1);
+        var document = new XmlDocument { PreserveWhitespace = true };
+        document.LoadXml(signed);
 
-        var certificate = request.CreateSelfSigned(
-            DateTimeOffset.UtcNow.AddDays(-1),
-            DateTimeOffset.UtcNow.AddDays(365));
-
-        return X509CertificateLoader.LoadPkcs12(
-            certificate.Export(X509ContentType.Pfx, Password),
-            Password,
-            X509KeyStorageFlags.EphemeralKeySet);
+        var digest = document.GetElementsByTagName("DigestValue", SignedXml.XmlDsigNamespaceUrl);
+        return digest[0]!.InnerText;
     }
+
+    private static string Format(string xml)
+    {
+        var document = new XmlDocument { PreserveWhitespace = true };
+        document.LoadXml(xml);
+
+        var builder = new StringBuilder();
+        using (var writer = XmlWriter.Create(builder, new XmlWriterSettings { Indent = true }))
+        {
+            document.Save(writer);
+        }
+
+        return builder.ToString();
+    }
+
+    private static X509Certificate2 CreateCertificate(string commonName = "Volterp Test Emisor")
+        => TestCertificate.Create(commonName);
 }

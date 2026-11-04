@@ -25,8 +25,11 @@ public sealed class XmlDsigEcfSigner : IEcfSigner
         if (rsa is null)
             throw new CryptographicException("The signing certificate does not carry an RSA private key.");
 
-        // Whitespace is part of what gets digested, so it must survive the round trip.
-        var document = new XmlDocument { PreserveWhitespace = true };
+        // The DGII discards the whitespace before it digests the document, so
+        // the digest is computed over the same content on both sides: a
+        // document that arrives formatted produces the same signature as one
+        // that does not.
+        var document = new XmlDocument { PreserveWhitespace = false };
         document.LoadXml(xml);
 
         var signedXml = new SignedXml(document) { SigningKey = rsa };
@@ -63,7 +66,7 @@ public sealed class XmlDsigEcfSigner : IEcfSigner
         ArgumentException.ThrowIfNullOrWhiteSpace(signedXml);
         ArgumentNullException.ThrowIfNull(certificate);
 
-        var document = new XmlDocument { PreserveWhitespace = true };
+        var document = new XmlDocument { PreserveWhitespace = false };
         document.LoadXml(signedXml);
 
         var signature = document.DocumentElement?.GetElementsByTagName("Signature", SignedXml.XmlDsigNamespaceUrl);
