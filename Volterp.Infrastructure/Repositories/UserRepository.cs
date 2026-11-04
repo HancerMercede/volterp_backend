@@ -1,5 +1,3 @@
-using Microsoft.VisualBasic;
-using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Infrastructure.Data;
@@ -15,7 +13,7 @@ public class UserRepository(VolterpDbContext context)
     public async Task<User?> GetByUserByEmailAsync(string email, CancellationToken ct = default)
         =>  await GetByCondictionsAsync(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase), ct);
 
-    public new async Task<User?> GetUserByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<User?> GetUserByIdAsync(Guid id, CancellationToken ct = default)
         => await GetByIdAsync(id, ct);
 
     public async Task<PagedResult<User>> GetAllAsync(int pageNumber,
