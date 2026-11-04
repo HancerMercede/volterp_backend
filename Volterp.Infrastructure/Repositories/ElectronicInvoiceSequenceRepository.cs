@@ -3,7 +3,6 @@ using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
-using Volterp.Domain.Enums;
 using Volterp.Infrastructure.Data;
 using Volterp.ElectronicInvoicing;
 

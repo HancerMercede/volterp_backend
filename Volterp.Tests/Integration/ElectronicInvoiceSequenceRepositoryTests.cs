@@ -2,7 +2,6 @@ using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Volterp.Domain.Entities;
-using Volterp.Domain.Enums;
 using Volterp.Infrastructure.Data;
 using Volterp.Infrastructure.Repositories;
 using Xunit;

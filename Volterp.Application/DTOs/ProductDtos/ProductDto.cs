@@ -1,5 +1,4 @@
 using Volterp.Domain.Entities;
-using Volterp.Domain.Enums;
 using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Application.DTOs.ProductDtos;

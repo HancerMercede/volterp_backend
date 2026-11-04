@@ -1,7 +1,6 @@
 using EitherWay;
 using Volterp.Application.DTOs.CompanyCertificateDtos;
 using Volterp.Application.Exceptions.AppErrors;
-using Volterp.Application.Helpers;
 
 namespace Volterp.Application.Interfaces;
 

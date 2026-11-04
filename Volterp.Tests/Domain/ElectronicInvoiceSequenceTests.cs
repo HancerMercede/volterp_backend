@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Volterp.Domain.Entities;
-using Volterp.Domain.Enums;
 using Xunit;
 using Volterp.ElectronicInvoicing;
 
