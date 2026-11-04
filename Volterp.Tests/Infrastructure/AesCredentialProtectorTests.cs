@@ -54,22 +54,30 @@ public class AesCredentialProtectorTests
     }
 
     [Fact]
-    public void Unprotect_WithATamperedCiphertext_Fails()
+    public void Unprotect_WithATamperedOrMalformedCiphertext_Fails()
     {
         var protector = new AesCredentialProtector(MasterKey);
         var protectedValue = protector.Protect(Guid7TestValues.CompanyA, Credential);
 
         var act = () => protector.Unprotect(Guid7TestValues.CompanyA, Tamper(protectedValue));
-
         act.Should().Throw<CryptographicException>();
+
+        var truncated = () => protector.Unprotect(Guid7TestValues.CompanyA, "v1:" + Convert.ToBase64String(new byte[8]));
+        truncated.Should().Throw<CryptographicException>();
+
+        var withoutVersion = () => protector.Unprotect(Guid7TestValues.CompanyA, Credential);
+        withoutVersion.Should().Throw<CryptographicException>();
     }
 
     [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
     [InlineData("not-a-base64-key!!")]
     [InlineData("c2hvcnQ=")]
-    public void Constructor_WithAMasterKeyThatIsNotA256BitKey_Fails(string masterKey)
+    public void Constructor_WithAMasterKeyThatIsNotUsable_Fails(string? masterKey)
     {
-        var act = () => new AesCredentialProtector(masterKey);
+        var act = () => new AesCredentialProtector(masterKey!);
 
         act.Should().Throw<InvalidOperationException>();
     }

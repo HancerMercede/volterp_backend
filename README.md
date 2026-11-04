@@ -114,7 +114,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Sales** | CRUD `/api/sales` |
 | **Purchases** | CRUD `/api/purchases` |
 | **Companies** | CRUD `/api/companies` |
-| **Company Certificates** | `GET /api/company-certificates`, `POST /api/company-certificates` (admin) |
+| **Company Certificates** | `GET /api/CompanyCertificates`, `POST /api/CompanyCertificates` (admin) |
 | **Accounting** | CRUD `/api/accounting-transactions` |
 
 ## Related
