@@ -120,8 +120,7 @@ The demo dataset must be redistributed so each period — today, this week, this
 | T9 | S5 | delegated | Frontend: `dashboardService` sends both params, store holds both scopes and refetches, hook consumes the response | done |
 | T10 | S1, S3, S4 | delegated | Frontend: wire the header pills to the global scope and the chart tabs to the chart window; remove the hard-coded donut total | done |
 | T11 | S1-S9 | delegated | Frontend tests: store refetch on scope change, service query params, component wiring | done — 198 tests pass, 4 new |
-| T12 | S2-S8 | inline | Seam check: full backend suite, full frontend suite, live end-to-end against the running API proving each period returns distinct, non-zero data | pending |
-| T12 | S2-S8 | inline | Seam check: full backend suite, full frontend suite, live end-to-end against the running API proving each period returns distinct, non-zero data | pending |
+| T12 | S2-S8 | inline | Seam check: full backend suite, full frontend suite, live end-to-end against the running API proving each period returns distinct, non-zero data | done — verified live |
 
 Route evidence: T4-T7 (backend) and T8-T11 (frontend) run as two parallel delegated writers — two independent units of behavior in two repositories with disjoint edit surfaces. T1-T3 and T12 stay inline: they define the contract both writers depend on, and they are the seam.
 
@@ -175,6 +174,27 @@ Verification evidence (2026-11-05, work unit 3):
 - Frontend: `npx vitest run` → `Test Files 20 passed (20)`, `Tests 198 passed (198)`; `npm run build` → `tsc -b && vite build` clean.
 - The writers reported RED before GREEN per rule. The parent re-ran both suites independently and confirmed the counts above.
 - The backend writer reported that Postgres was not listening on 5432. The parent checked and that was wrong: the container `volterp-db` was up, so the seam check runs against the seeded demo data.
+
+Independent verification (2026-11-05). The parent's Risk line named high-risk item 1 (a migration that adds a column to existing tables and rewrites the demo rows) and item 3 (the response semantics of `GET /api/dashboard` change for existing consumers), so one independent verifier ran after the change's own checks.
+
+Verdict: **no blockers**, and S1 through S9 all satisfied. What it proved:
+
+- The stock metrics are byte-identical across periods while the flow metrics move, and the reminders and the activity feed do not change with the scope.
+- The chart window moves the chart and nothing else: the data, the stats, the categories, the top products, the reminders and the activities are identical between two chart windows.
+- An unknown period or chart period returns HTTP 400 naming the accepted values; a blank value means the documented default; the values are case-insensitive.
+- The business date of all 155 rows agrees with the business timezone rule applied to its `CreatedAt`, with no sentinel dates and no mismatches.
+- A rejected request changes nothing: the per-table md5 was identical before and after four 400s and two 200s.
+- The baseline build, extracted with `git archive 87a5479` into a scratch directory outside both workspaces, answered `GET /api/products`, `/api/clients` and `/api/sales` byte-identically to the current build on the same database. The contract change is confined to `GET /api/dashboard`.
+- Tenant isolation holds: the figures of `demo.admin1` and `demo.admin2` match their own company's rows exactly, with no overlap.
+- The frontend diff renames and deletes nothing that already existed.
+
+Advisories that were deliberately not acted on, and why:
+
+- `src/data/mockData.ts` still holds the fabricated `ventas: 145660`. It is unreferenced, it predates the feature, and the editing constraint forbids deleting existing code.
+- The migration backfill resolves the business timezone through the IANA id while the application uses the fixed UTC-04:00 offset. Both agree for every row that exists; they would only diverge for a row from before the Dominican Republic abolished daylight saving time.
+- `ReminderDto.Count` widened from `int` to `decimal`. The only consumer of `/api/dashboard` is this frontend.
+
+The one real gap the verifier found was closed: the writer's tests derived the expected month boundary from `ReportingPeriod.StartOfMonth`, a circular oracle that cannot detect a wrong calendar definition. `Volterp.Tests/Domain/ReportingPeriodCalendarSemanticsTests.cs` now pins the window semantics against literals, and `src/test/components/KpiCardChangeRendering.test.tsx` pins that an undefined comparison renders as `"—"` and never as a percentage.
 
 Audit findings (2026-11-05): both filter groups are dead UI — `activePeriod` only toggles a CSS class in `Dashboard.tsx:25,50-60` and `SalesChart.tsx:37,44-52`; neither triggers a refetch. The backend accepts no query parameters (`DashboardController.cs:9`) and every aggregate is all-time except the chart, which is hard-coded to 7 daily buckets (`DashboardRepository.cs:53-87`). No `DateRange`/`Period`/`DateOnly` primitive exists in `Volterp.Domain`.
 
