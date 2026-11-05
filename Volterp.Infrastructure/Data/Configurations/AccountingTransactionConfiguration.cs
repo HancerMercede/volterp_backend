@@ -17,6 +17,7 @@ public class AccountingTransactionConfiguration : IEntityTypeConfiguration<Accou
         entity.HasIndex(e => e.Category);
         entity.HasIndex(e => e.Status);
 
+        entity.Property(e => e.Code).HasMaxLength(50);
         entity.Property(e => e.TransactionType).HasConversion<string>().HasMaxLength(50).IsRequired();
         entity.Property(e => e.Amount).HasPrecision(18, 2).IsRequired();
         entity.Property(e => e.Description).HasMaxLength(500).IsRequired();

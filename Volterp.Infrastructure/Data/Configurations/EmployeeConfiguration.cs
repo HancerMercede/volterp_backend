@@ -16,6 +16,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         entity.HasIndex(e => e.Status);
         entity.HasIndex(e => e.Department);
 
+        entity.Property(e => e.Code).HasMaxLength(50);
         entity.Property(e => e.FirstName).HasMaxLength(200).IsRequired();
         entity.Property(e => e.LastName).HasMaxLength(200).IsRequired();
         entity.Property(e => e.Email).HasMaxLength(200);

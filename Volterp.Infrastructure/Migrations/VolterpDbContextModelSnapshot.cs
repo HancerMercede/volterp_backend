@@ -38,6 +38,11 @@ namespace Volterp.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
@@ -92,6 +97,9 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("TransactionDate");
 
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique();
+
                     b.ToTable("AccountingTransactions");
                 });
 
@@ -100,6 +108,11 @@ namespace Volterp.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
@@ -130,7 +143,8 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique();
 
                     b.HasIndex("Name", "CompanyId")
                         .IsUnique();
@@ -148,6 +162,11 @@ namespace Volterp.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
@@ -191,12 +210,48 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
-
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique();
+
                     b.ToTable("Clients", (string)null);
+                });
+
+            modelBuilder.Entity("Volterp.Domain.Entities.CodeSequence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CurrentValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "EntityType")
+                        .IsUnique();
+
+                    b.ToTable("CodeSequences");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Company", b =>
@@ -476,6 +531,11 @@ namespace Volterp.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
@@ -558,6 +618,9 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("Status");
 
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique();
+
                     b.ToTable("Employees");
                 });
 
@@ -574,6 +637,11 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.Property<Guid?>("CategoryId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
@@ -635,6 +703,9 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique();
+
                     b.ToTable("Products");
                 });
 
@@ -643,6 +714,11 @@ namespace Volterp.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
@@ -688,6 +764,9 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("SupplierId");
+
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique();
 
                     b.ToTable("Purchases");
                 });
@@ -747,6 +826,11 @@ namespace Volterp.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
@@ -794,6 +878,9 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique();
 
                     b.ToTable("Sales");
                 });
@@ -865,6 +952,11 @@ namespace Volterp.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
@@ -916,6 +1008,9 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("Name");
 
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique();
+
                     b.ToTable("Suppliers");
                 });
 
@@ -924,6 +1019,11 @@ namespace Volterp.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
@@ -971,12 +1071,13 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
-
                     b.HasIndex("Email")
                         .IsUnique();
 
                     b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
                     b.ToTable("Users");
@@ -985,6 +1086,7 @@ namespace Volterp.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("00000002-0000-0000-0000-000000000001"),
+                            Code = "Usu-001",
                             CompanyId = new Guid("00000001-0000-0000-0000-000000000001"),
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "admin@hm.com",
@@ -1024,6 +1126,17 @@ namespace Volterp.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("Volterp.Domain.Entities.CodeSequence", b =>
+                {
+                    b.HasOne("Volterp.Domain.Entities.Company", "Company")
+                        .WithMany("CodeSequences")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Company");
@@ -1184,6 +1297,8 @@ namespace Volterp.Infrastructure.Migrations
                     b.Navigation("Categories");
 
                     b.Navigation("Certificates");
+
+                    b.Navigation("CodeSequences");
 
                     b.Navigation("ElectronicInvoiceSequences");
 

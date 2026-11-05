@@ -13,6 +13,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         entity.HasIndex(e => e.Username).IsUnique();
         entity.HasIndex(e => e.Email).IsUnique();
         entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
+        entity.Property(e => e.Code).HasMaxLength(50);
         entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
         entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
         entity.Property(e => e.PasswordHash).IsRequired();
@@ -27,6 +28,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         entity.HasData(new User
         {
             Id = new Guid("00000002-0000-0000-0000-000000000001"),
+            // The seeded admin is the first user of its company, so the backfill
+            // of the AddEntityCodes migration numbers it "Usu-001". Declaring the
+            // same code here keeps the seed and the backfill in agreement: EF
+            // re-emits this row as an UpdateData, and an empty code would wipe
+            // the one the migration assigned.
+            Code = "Usu-001",
             Username = "admin",
             PasswordHash = "$2a$12$XLgan9fXGIGfO.UcBuUweegkVWrYJqDgOZY48h4/udZJyNASNol3O",
             Email = "admin@hm.com",
