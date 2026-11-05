@@ -117,7 +117,7 @@ public class WireContractTests
 
         var json = """
         {
-          "id": 5,
+          "id": "0192b9c7-b6a3-7def-8c5e-1f2a3b4c5e01",
           "companyId": 999,
           "name": "Cross-tenant attempt",
           "email": "x@example.com",
