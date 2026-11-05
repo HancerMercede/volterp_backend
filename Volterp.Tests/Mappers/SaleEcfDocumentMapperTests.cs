@@ -180,7 +180,7 @@ public class SaleEcfDocumentMapperTests
         var otherCompany = Company();
         otherCompany.Id = Guid.NewGuid();
 
-        var act = () => SaleEcfDocumentMapper.Map(Sale(), otherCompany, Issuance());
+        var act = () => SaleEcfDocumentMapper.Map(SaleWithOneLine(), otherCompany, Issuance());
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*company*");
     }
