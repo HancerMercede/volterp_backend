@@ -33,6 +33,9 @@ public class CompanyCertificateService(IUnitOfWork unitOfWork, ICredentialProtec
     {
         var credential = request.Credential;
 
+        // The credential stays opaque here on purpose: it is the encrypted
+        // value of the issuer, and what it carries is decided by the host that
+        // signs with it, not by the API that stores it.
         return await EitherAsync<Error, CreateCompanyCertificateDto>
             .FromRight(request)
             .Ensure(r => !string.IsNullOrWhiteSpace(r.Name), new Error("The name is required."))

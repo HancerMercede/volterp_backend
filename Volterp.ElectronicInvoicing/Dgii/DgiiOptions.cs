@@ -5,6 +5,9 @@ namespace Volterp.ElectronicInvoicing.Dgii;
 /// </summary>
 public sealed class DgiiOptions
 {
+    /// <summary>The configuration section the host binds the options from.</summary>
+    public const string SectionName = "Dgii";
+
     /// <summary>The DGII host. Every service lives under it, one path segment per service.</summary>
     public string BaseUrl { get; set; } = "https://ecf.dgii.gov.do";
 

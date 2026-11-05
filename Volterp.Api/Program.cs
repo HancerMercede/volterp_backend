@@ -32,6 +32,7 @@ ServiceExtensions.ConfigureUnitOfWork(builder.Services);
 ServiceExtensions.ConfigureServiceManager(builder.Services);
 ServiceExtensions.ConfigureJwt(builder.Services, jwtSettings);
 ServiceExtensions.ConfigureEncryption(builder.Services, encryptionSettings);
+ServiceExtensions.ConfigureElectronicInvoicing(builder.Services, builder.Configuration);
 ServiceExtensions.ConfigureControllers(builder.Services);
 ServiceExtensions.ConfigureCors(builder.Services);
 ServiceExtensions.ConfigureExceptionLogStore(builder.Services);

@@ -15,6 +15,10 @@ using Volterp.Api.Http;
 using Volterp.Application.Abstractions;
 using Volterp.Application.Diagnostics;
 using Volterp.Application.Services;
+using Volterp.ElectronicInvoicing.Abstractions;
+using Volterp.ElectronicInvoicing.Dgii;
+using Volterp.ElectronicInvoicing.Signing;
+using Volterp.ElectronicInvoicing.Xml;
 using Volterp.Infrastructure.Data;
 using Volterp.Infrastructure.Services;
 using Volterp.Infrastructure.UnitOfWork;
@@ -58,6 +62,24 @@ public static class ServiceExtensions
 
     public static void ConfigureEncryption(IServiceCollection services, EncryptionSettings settings)
         => services.AddSingleton<ICredentialProtector>(new AesCredentialProtector(settings.MasterKey));
+
+    public static void ConfigureElectronicInvoicing(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton<IEcfSigner, XmlDsigEcfSigner>();
+        services.AddSingleton(new EcfXmlWriter());
+
+        var dgiiOptions = new DgiiOptions();
+        configuration.GetSection(DgiiOptions.SectionName).Bind(dgiiOptions);
+        services.AddSingleton(dgiiOptions);
+
+        services.AddHttpClient<IDgiiClient, DgiiClient>();
+        services.AddTransient<DgiiAuthenticator>();
+
+        // The signing certificate is the one secret an issuer has: the DGII
+        // authenticates the web services with the signature of the certificate,
+        // so the host resolves it from the encrypted credential of the company.
+        services.AddScoped<ISigningCertificateProvider, CompanySigningCertificateProvider>();
+    }
 
     public static void ConfigureControllers(IServiceCollection services)
         => services.AddControllers()
