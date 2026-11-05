@@ -71,7 +71,8 @@ Both are case-insensitive strings. An unknown value returns HTTP 400 with the ex
 Response shape changes, both sides updated in the same change:
 
 - `DashboardDataDto` gains `VentasChangePercent`, `ComprasChangePercent`, `ClientesChangePercent`, `UtilidadChangePercent`, all `decimal?`.
-- `SalesChartDto.Day` is renamed to `SalesChartDto.Label`, because a monthly bucket carries a month name, not a day.
+- `CategoryDataDto` gains `Total`, so the donut total comes from the response instead of a hardcoded number.
+- `SalesChartDto.Day` keeps its name. It carries the bucket label: a day name for a daily bucket, a month name for a monthly one. The field name is slightly imprecise for the monthly bucket, and that is accepted on purpose: renaming it would ripple through the DTO, the TypeScript type, the mock, the chart `dataKey` and the tests for no behavioural gain.
 
 A `null` change percentage means the comparison is undefined — the previous period had no value to compare against. The frontend must render it as `"—"`, never as `0%` or a fabricated number.
 
@@ -111,14 +112,15 @@ The demo dataset must be redistributed so each period — today, this week, this
 | T2 | S7 | inline | `Sale.BusinessDate` / `Purchase.BusinessDate` (`DateOnly`) set on every creation path | done — `7a0d153` |
 | T3 | S8, S7 | inline | Forward migration: add `BusinessDate`, backfill from `CreatedAt`, redistribute demo sale/purchase dates across the trailing year incl. today | done — `7a0d153` |
 | T3b | S3, S8 | inline | Extend `BusinessDate` to `Client` and `Product` so every window filter uses one rule, and redistribute their demo dates | done — work unit 2 |
-| T4 | S5, S6 | delegated | `IDashboardService` / `IDashboardRepository` signatures, `DashboardResponse` DTO with change percentages, service pass-through | pending |
-| T5 | S2, S3, S4, S6 | delegated | `DashboardRepository`: scope every flow metric, chart bucketing per window, preceding-period deltas, drop the fabricated `+ 5` | pending |
-| T6 | S5, S9 | delegated | `DashboardController`: bind and validate `period` and `chartPeriod`, 400 on unknown values | pending |
-| T7 | S1-S9 | delegated | Backend tests: domain resolution, repository scoping + bucketing + deltas, controller binding/validation, wire contract | pending |
-| T8 | S1, S6 | delegated | Frontend: period types, real change-percentage plumbing, scope-aware KPI labels, i18n `es`/`en` | pending |
-| T9 | S5 | delegated | Frontend: `dashboardService` sends both params, store holds both scopes and refetches, hook consumes the response | pending |
-| T10 | S1, S3, S4 | delegated | Frontend: wire the header pills to the global scope and the chart tabs to the chart window; remove the hard-coded donut total | pending |
-| T11 | S1-S9 | delegated | Frontend tests: store refetch on scope change, service query params, component wiring | pending |
+| T4 | S5, S6 | delegated | `IDashboardService` / `IDashboardRepository` signatures, `DashboardResponse` DTO with change percentages, service pass-through | done |
+| T5 | S2, S3, S4, S6 | delegated | `DashboardRepository`: scope every flow metric, chart bucketing per window, preceding-period deltas, drop the fabricated `+ 5` | done |
+| T6 | S5, S9 | delegated | `DashboardController`: bind and validate `period` and `chartPeriod`, 400 on unknown values | done |
+| T7 | S1-S9 | delegated | Backend tests: domain resolution, repository scoping + bucketing + deltas, controller binding/validation, wire contract | done — 519 tests pass, 38 new |
+| T8 | S1, S6 | delegated | Frontend: period types, real change-percentage plumbing, scope-aware KPI labels, i18n `es`/`en` | done |
+| T9 | S5 | delegated | Frontend: `dashboardService` sends both params, store holds both scopes and refetches, hook consumes the response | done |
+| T10 | S1, S3, S4 | delegated | Frontend: wire the header pills to the global scope and the chart tabs to the chart window; remove the hard-coded donut total | done |
+| T11 | S1-S9 | delegated | Frontend tests: store refetch on scope change, service query params, component wiring | done — 198 tests pass, 4 new |
+| T12 | S2-S8 | inline | Seam check: full backend suite, full frontend suite, live end-to-end against the running API proving each period returns distinct, non-zero data | pending |
 | T12 | S2-S8 | inline | Seam check: full backend suite, full frontend suite, live end-to-end against the running API proving each period returns distinct, non-zero data | pending |
 
 Route evidence: T4-T7 (backend) and T8-T11 (frontend) run as two parallel delegated writers — two independent units of behavior in two repositories with disjoint edit surfaces. T1-T3 and T12 stay inline: they define the contract both writers depend on, and they are the seam.
@@ -150,6 +152,29 @@ Two observations left open on purpose:
 
 - The demo holds only 5 purchases per company, so over the "Año" window the purchases series is populated in October and November only while the sales series spans April to November. Widening the purchase history is a seed-volume decision, not a correctness problem: the window filter and the buckets are exact either way.
 - `KpiCard.tsx:23` hardcodes the comparison text `"vs mes anterior"`. With a scope of "Hoy" or "Esta semana" that text is a lie, so the comparison label has to follow the scope too (T8).
+
+L6 (2026-11-05, verbatim): "Espera detuve la implementacion porque veo que estas reescribiendo todo en el front te he dicho que no reescribas que edites mejor porque si ya existe algo porque reescribirlo"
+
+Editing constraint, added after the user stopped the first delegation. The user is explicit: existing code is edited, never rewritten, and existing code is never deleted.
+
+- Do not rename any exported symbol, property, prop, CSS class or JSON field that already exists. The `day` field of the chart series keeps its name for exactly this reason.
+- Do not delete existing exports, mocks or constants. `SALES_CHART_DATA`, `CATEGORY_DATA`, `TOP_PRODUCTS_CONFIG`, `DASHBOARD_STATS` and `REMINDERS_CONFIG` stay in `src/domain/dashboard/constants.tsx` even when they are unreferenced. Removing dead code is a separate cleanup, not part of this work.
+- Do not restructure a component, a store or a hook to fit the new behaviour. The scope and the chart window are added to what exists; the shape of what exists does not change.
+- The editable surface is the change and nothing else. A file that needs no change is not in the surface and must not be opened for writing.
+- Every change is a minimal diff against the existing code: same file layout, same naming, same structure, same style.
+
+Correction batch (2026-11-05), after the two writers returned:
+
+- The frontend writer left a `.neutral` class in `src/components/Dashboard/DashboardComponents.module.css` that the cancelled attempt had added and that nothing uses. The file was reverted to `HEAD`; dead CSS from a cancelled attempt does not ship.
+- `src/test/components/Dashboard.test.tsx` was left by the cancelled attempt mocking the chart series with `label` instead of `day`. The file is a good page-level test — it drives the pills, the chart tabs and the donut total against a real fetch mock — so it was kept and corrected to the contract that actually ships.
+- The backend widened `ReminderDto.Count` from `int` to `decimal` because "Facturas por cobrar" now carries the real amount to collect, and the value cannot be a count any more. A single field was carrying two kinds of value, and the client would have had to guess whether a number was a count or money. `ReminderDto.IsAmount` now says so explicitly, and the widget renders the amount as currency.
+
+Verification evidence (2026-11-05, work unit 3):
+
+- Backend: `dotnet test Volterp.Tests` → `Passed! - Failed: 0, Passed: 519, Skipped: 0, Total: 519` (481 before the feature, 38 new).
+- Frontend: `npx vitest run` → `Test Files 20 passed (20)`, `Tests 198 passed (198)`; `npm run build` → `tsc -b && vite build` clean.
+- The writers reported RED before GREEN per rule. The parent re-ran both suites independently and confirmed the counts above.
+- The backend writer reported that Postgres was not listening on 5432. The parent checked and that was wrong: the container `volterp-db` was up, so the seam check runs against the seeded demo data.
 
 Audit findings (2026-11-05): both filter groups are dead UI — `activePeriod` only toggles a CSS class in `Dashboard.tsx:25,50-60` and `SalesChart.tsx:37,44-52`; neither triggers a refetch. The backend accepts no query parameters (`DashboardController.cs:9`) and every aggregate is all-time except the chart, which is hard-coded to 7 daily buckets (`DashboardRepository.cs:53-87`). No `DateRange`/`Period`/`DateOnly` primitive exists in `Volterp.Domain`.
 

@@ -4,10 +4,15 @@ public record DashboardDataDto(
     decimal Ventas,
     decimal Compras,
     int Clientes,
-    decimal Utilidad
-);
+    decimal Utilidad,
+    decimal? VentasChangePercent,
+    decimal? ComprasChangePercent,
+    decimal? ClientesChangePercent,
+    decimal? UtilidadChangePercent);
 
 public record SalesChartDto(
+    // Carries the label of the bucket: the day name for a daily bucket, the short
+    // month name for a monthly one. The field keeps its name for compatibility.
     string Day,
     decimal Sales,
     decimal Purchases
@@ -16,7 +21,10 @@ public record SalesChartDto(
 public record CategoryDataDto(
     string Name,
     int Percent,
-    string Color
+    string Color,
+    // The amount of the category inside the window: the donut total comes from the
+    // response, the client never hardcodes it.
+    decimal Total
 );
 
 public record TopProductDto(
@@ -36,8 +44,11 @@ public record ActivityDto(
 
 public record ReminderDto(
     string Text,
-    int Count,
-    string BadgeColor
+    // A count for the count reminders, the real amount to collect for the receivables one.
+    decimal Count,
+    string BadgeColor,
+    // True when the value is an amount to collect rather than a count of items.
+    bool IsAmount = false
 );
 
 public record DashboardStatsDto(
