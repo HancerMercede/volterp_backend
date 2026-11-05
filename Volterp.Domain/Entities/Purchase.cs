@@ -1,6 +1,7 @@
 using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
+using Volterp.Domain.Time;
 
 namespace Volterp.Domain.Entities;
 
@@ -14,6 +15,13 @@ public class Purchase : AuditEntity, ITenantScoped
     public EntityStatus Status { get; set; } = EntityStatus.Pending;
     public decimal Total { get; set; }
     public string Notes { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The business date this purchase belongs to, resolved in the business timezone.
+    /// Reporting windows and buckets read this column, never the UTC instant.
+    /// </summary>
+    public DateOnly BusinessDate { get; set; } = BusinessCalendar.Today(DateTime.UtcNow);
+
     public Company Company { get; set; } = null!;
     public Supplier? Supplier { get; set; }
     public ICollection<PurchaseItem> Items { get; set; } = new List<PurchaseItem>();

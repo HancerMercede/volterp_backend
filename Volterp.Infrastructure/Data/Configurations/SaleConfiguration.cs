@@ -13,6 +13,7 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         entity.HasIndex(e => e.Status);
         entity.HasIndex(e => e.ClienteId);
         entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
+        entity.HasIndex(e => new { e.CompanyId, e.BusinessDate });
 
         entity.Property(e => e.Code).HasMaxLength(50);
         entity.Property(e => e.ClienteName).HasMaxLength(200);

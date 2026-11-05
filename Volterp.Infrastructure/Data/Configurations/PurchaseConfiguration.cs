@@ -13,6 +13,7 @@ public class PurchaseConfiguration : IEntityTypeConfiguration<Purchase>
         entity.HasIndex(e => e.SupplierId);
         entity.HasIndex(e => e.Status);
         entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
+        entity.HasIndex(e => new { e.CompanyId, e.BusinessDate });
 
         entity.Property(e => e.Code).HasMaxLength(50);
         entity.Property(e => e.SupplierName).HasMaxLength(200);

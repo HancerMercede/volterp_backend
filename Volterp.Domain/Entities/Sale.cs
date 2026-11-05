@@ -1,6 +1,7 @@
 using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
+using Volterp.Domain.Time;
 using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Domain.Entities;
@@ -11,6 +12,12 @@ public class Sale : AuditEntity, ITenantScoped
     public Guid CompanyId { get; set; }
     public string Code { get; set; } = string.Empty;
     
+    /// <summary>
+    /// The business date this sale belongs to, resolved in the business timezone.
+    /// Reporting windows and buckets read this column, never the UTC instant.
+    /// </summary>
+    public DateOnly BusinessDate { get; set; } = BusinessCalendar.Today(DateTime.UtcNow);
+
     public Guid? ClienteId { get; set; }
     public string? ClienteName { get; set; }
     
