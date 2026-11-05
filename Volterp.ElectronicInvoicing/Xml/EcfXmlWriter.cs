@@ -195,9 +195,7 @@ public sealed class EcfXmlWriter
         writer.WriteStartElement("TablaTelefonoEmisor");
         foreach (var phone in issuer.PhoneNumbers)
         {
-            writer.WriteStartElement("TelefonoEmisor");
             WriteElement(writer, schema, "Encabezado/Emisor/TablaTelefonoEmisor/TelefonoEmisor", phone);
-            writer.WriteEndElement();
         }
         writer.WriteEndElement();
     }

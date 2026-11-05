@@ -103,7 +103,7 @@ public class EcfXmlWriterTests
 
         xml.Should().Contain("<MontoTotal>1180.00</MontoTotal>");
         xml.Should().Contain("<MontoGravadoTotal>1000.00</MontoGravadoTotal>");
-        xml.Should().Contain("<MontoItem>1180.00</MontoItem>");
+        xml.Should().Contain("<MontoItem>1000.00</MontoItem>");
     }
 
     [Fact]
@@ -111,12 +111,25 @@ public class EcfXmlWriterTests
     {
         var document = BuildDocument(EcfDocumentType.FiscalCredit) with
         {
-            Items = [BuildItem() with { UnitPrice = 99.999m, Amount = 1180m }]
+            Items = [BuildItem() with { UnitPrice = 99.999m, Amount = 99.999m }]
         };
 
         var xml = _writer.Write(document);
 
         xml.Should().Contain("<PrecioUnitarioItem>99.999</PrecioUnitarioItem>");
+    }
+
+    [Fact]
+    public void Write_EmitsThePhoneNumbersOfTheIssuer()
+    {
+        var document = BuildDocument(EcfDocumentType.FiscalCredit) with
+        {
+            Issuer = BuildIssuer() with { PhoneNumbers = ["809-555-1234"] }
+        };
+
+        var xml = _writer.Write(document);
+
+        xml.Should().Contain("<TablaTelefonoEmisor><TelefonoEmisor>809-555-1234</TelefonoEmisor></TablaTelefonoEmisor>");
     }
 
     [Fact]
@@ -309,7 +322,7 @@ public class EcfXmlWriterTests
         Kind = EcfItemKind.Goods,
         Quantity = 1m,
         UnitPrice = 1000m,
-        Amount = 1180m
+        Amount = 1000m
     };
 
     private static List<string> AreasOf(string xml)
