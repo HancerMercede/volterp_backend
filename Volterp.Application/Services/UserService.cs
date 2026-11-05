@@ -32,9 +32,9 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
     public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
         return await EitherAsync
-            .Try(async() => await unitOfWork.Users.GetByUsernameAsync(request.Username, ct))
+            .Try(async() => await unitOfWork.Users.ExistsByUsernameAsync(request.Username, ct))
             .MapLeft(ex => new Error(ex.Message))
-            .Ensure(user => user is null, new Error("username already exists"))
+            .Ensure(exists => !exists, new Error("username already exists"))
             .Ensure(_ => request.Role != UserRole.SuperAdmin || currentUserService.IsSuperAdmin(),
                 _ => new Error("Only SuperAdmin can create SuperAdmin users"))
             .Map(_ => request.Project())
@@ -112,12 +112,12 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Run();
     }
 
-    public async Task<Either<Error, UserWithPasswordHashDto?>> GetByUsernameAsync(string username, CancellationToken ct = default)
+    public async Task<Either<Error, UserWithPasswordHashDto?>> GetForAuthenticationAsync(string username, CancellationToken ct = default)
     {
         return await EitherAsync<Error, string>
             .FromRight(username)
             .Ensure(u => !string.IsNullOrWhiteSpace(u), new Error("username cannot be empty"))
-            .FlatMap(async u => await unitOfWork.Users.GetByUsernameAsync(u, ct),
+            .FlatMap(async u => await unitOfWork.Users.GetForAuthenticationAsync(u, ct),
                 ex => new Error(ex.Message))
             .Ensure(user => user is not null, new Error("user not found"))
             .Map(user => user?.MapTo<User, UserWithPasswordHashDto>())

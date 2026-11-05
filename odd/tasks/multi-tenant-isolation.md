@@ -306,7 +306,7 @@ The fixture (`Volterp.Tests/Integration/ApiFactory.cs`) wires up `WebApplication
 | Forgetting to gate `db.Database.Migrate()` in tests | The startup runs `Migrate()` against the real connection string. In integration tests with SQLite in-memory, this throws because migrations are Postgres-specific. | `Program.cs` already gates with `if (!app.Environment.IsEnvironment("Testing")) db.Database.Migrate();`. Do not remove this gate. |
 | Reading `CompanyId` from `IHttpContextAccessor` in a background job | `HttpContext` is null outside an HTTP request, so `CompanyId` is null. | El filtro ahora **falla cerrado**: un job sin tenant explícito lee 0 filas, no todas. El job debe resolver el tenant de su mensaje y pasarlo a un contexto con `CompanyId` + `IsUnrestricted = false`. |
 | Returning `Guid.Empty` when the claim is missing | Silent data corruption, not 401. | Always go through `BaseController.GetCurrentUserCompanyId()` so missing claims produce 401. |
-| Calling `IgnoreQueryFilters()` outside admin paths | Bypasses tenant isolation. | If you need it, you are doing admin work. Wrap in `IsSuperAdminOnly()`. |
+| Calling `IgnoreQueryFilters()` outside admin paths | Bypasses tenant isolation. | Two exceptions, both by design: admin work (wrap in `IsSuperAdminOnly()`) and the authentication credential lookup, which runs before the tenant claim exists. |
 
 ## Process rules (lesson learned 2026-09-24)
 
@@ -482,6 +482,12 @@ Auditoría del estado **real contra el código** (no contra este doc), con 287/2
 - **Mejora**: NO 10 archivos de test boilerplate. Un **guard test** que afirme el conjunto de entidades con filtro contra el conjunto esperado (documenta la decisión SÍ/NO en un solo lugar y atrapa entidades nuevas) + 2-3 integration tests sobre el camino navigation-based (`SaleItem`/`PurchaseItem`), que es el único mecanismo no estándar.
 - **Estado**: **PARCIALMENTE CERRADO** (Task 7). `TenantScopeGuardTests.EveryEntityWithCompanyId_HasATenantQueryFilter` afirma el invariante sobre el modelo real (toda entidad con `CompanyId` tiene filtro) y `TenantScopeGuard` hace fallar el arranque si falta la declaración. Sigue abierto: isolation tests propios del camino navigation-based (`SaleItem`/`PurchaseItem`), que hoy solo se ejercitan de rebote al leer una `Sale`.
 
+### Gap 6 — El filtro de tenant alcanzaba la búsqueda de credenciales
+
+- **Por qué está así**: el fail closed (Task 6) filtró `Users` por `CompanyId`, pero el login corre **antes** de que exista el claim `companyId`: `HttpTenantContext` devolvía `CompanyId = null` + `IsUnrestricted = false` → 0 filas → `Either.Left` → 401 "Invalid credentials" con la contraseña correcta. Para el filtro, el usuario no existía.
+- **Impacto**: login roto para todos los tenants y el password nunca llegaba a compararse.
+- **Estado**: **CERRADO**. La búsqueda de credenciales y el chequeo de username duplicado son explícitamente **no tenant-scoped** (`UserRepository.GetForAuthenticationAsync` / `ExistsByUsernameAsync`, con `IgnoreQueryFilters()`): la primera corre antes del claim, la segunda porque el índice único de `Username` es global. Son las dos únicas lecturas cross-tenant del sistema. Test de regresión: `LoginAuthenticationTests` (HTTP end-to-end: credenciales válidas → 200 + token; contraseña inválida → 401).
+
 ### Task 3 (Admin Global) — sigue BLOQUEADO
 
 Sin consumidor cross-tenant, implementarlo es código muerto (viola la regla dura #5). Se desbloquea con la vista admin de e-CF.
@@ -513,5 +519,5 @@ Sin consumidor cross-tenant, implementarlo es código muerto (viola la regla dur
 - EF Configurations: `Volterp.Infrastructure/Data/Configurations/*.cs` (13 archivos)
 - Repositories (sin predicates manuales post-1.3): `Volterp.Infrastructure/Repositories/*.cs`
 - Controllers: `Volterp.Api/Controllers/{BaseController,SalesController,SuppliersController,...}.cs`
-- Integration tests: `Volterp.Tests/Integration/{ApiFactory,JwtTestHelper,SupplierTenantIsolationTests,TenantFilterFailClosedTests}.cs`
+- Integration tests: `Volterp.Tests/Integration/{ApiFactory,JwtTestHelper,SupplierTenantIsolationTests,TenantFilterFailClosedTests,LoginAuthenticationTests}.cs`
 - Scope guard tests: `Volterp.Tests/Infrastructure/TenantScopeGuardTests.cs`

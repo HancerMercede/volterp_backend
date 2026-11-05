@@ -27,7 +27,7 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
     {
-        var userResult = await serviceManager.Users.GetByUsernameAsync(request.Username, ct);
+        var userResult = await serviceManager.Users.GetForAuthenticationAsync(request.Username, ct);
 
         return await userResult.Match<Task<IActionResult>>(
             _ => Task.FromResult<IActionResult>(

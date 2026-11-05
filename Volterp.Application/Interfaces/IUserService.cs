@@ -14,6 +14,6 @@ public interface IUserService
     Task<Either<Error, UserDto>> UpdateAsync(Guid id, UserWithPasswordHashDto request, Guid? userId, CancellationToken ct = default);
     Task<Either<Error, Unit>> DeleteAsync(Guid id, CancellationToken ct = default);
     Task<Either<Error, UserDto?>> GetByEmailAsync(string email, CancellationToken ct = default);
-    Task<Either<Error, UserWithPasswordHashDto?>> GetByUsernameAsync(string username, CancellationToken ct = default);
+    Task<Either<Error, UserWithPasswordHashDto?>> GetForAuthenticationAsync(string username, CancellationToken ct = default);
 
 }

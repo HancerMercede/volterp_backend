@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Infrastructure.Data;
@@ -7,8 +8,18 @@ namespace Volterp.Infrastructure.Repositories;
 public class UserRepository(VolterpDbContext context)
     : RepositoryBase<User>(context), IUserRepository
 {
-    public async Task<User?> GetByUsernameAsync(string username, CancellationToken ct = default)
-        => await GetByCondictionsAsync(u => u.Username == username, ct);
+    // Not tenant-scoped on purpose: authentication runs before the tenant claim exists.
+    public async Task<User?> GetForAuthenticationAsync(string username, CancellationToken ct = default)
+        => await Set()
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Username == username, ct);
+
+    // Not tenant-scoped: the unique index on Username is global.
+    public async Task<bool> ExistsByUsernameAsync(string username, CancellationToken ct = default)
+        => await Set()
+            .IgnoreQueryFilters()
+            .AnyAsync(u => u.Username == username, ct);
 
     public async Task<User?> GetByUserByEmailAsync(string email, CancellationToken ct = default)
         =>  await GetByCondictionsAsync(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase), ct);
