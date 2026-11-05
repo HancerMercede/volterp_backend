@@ -1,4 +1,5 @@
 using Volterp.Domain.Abstractions;
+using Volterp.Domain.Time;
 using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Domain.Entities;
@@ -15,6 +16,13 @@ public class Client : AuditEntity, ITenantScoped
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public Guid CompanyId { get; set; }
+
+    /// <summary>
+    /// The business date this client was registered on, resolved in the business timezone.
+    /// Reporting windows read this column, never the UTC instant.
+    /// </summary>
+    public DateOnly BusinessDate { get; set; } = BusinessCalendar.Today(DateTime.UtcNow);
+
     public Company Company { get; set; } = null!;
 
     public void Activate() => IsActive = true;

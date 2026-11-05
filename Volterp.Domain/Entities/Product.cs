@@ -1,6 +1,7 @@
 using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
+using Volterp.Domain.Time;
 using Volterp.Domain.ValueObjects;
 using Volterp.ElectronicInvoicing;
 
@@ -18,6 +19,13 @@ public class Product : AuditEntity, ITenantScoped
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public Guid CompanyId { get; set; }
+
+    /// <summary>
+    /// The business date this product was registered on, resolved in the business timezone.
+    /// Reporting windows read this column, never the UTC instant.
+    /// </summary>
+    public DateOnly BusinessDate { get; set; } = BusinessCalendar.Today(DateTime.UtcNow);
+
     public bool IsActive { get; set; } = true;
 
     public Guid? CategoryId { get; set; }

@@ -163,6 +163,9 @@ namespace Volterp.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<DateOnly>("BusinessDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -212,6 +215,8 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("CompanyId", "BusinessDate");
 
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
@@ -630,6 +635,9 @@ namespace Volterp.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly>("BusinessDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -702,6 +710,8 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("CompanyId");
+
+                    b.HasIndex("CompanyId", "BusinessDate");
 
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();

@@ -107,9 +107,10 @@ The demo dataset must be redistributed so each period — today, this week, this
 
 | ID | Specs | Route | Description | Status |
 |----|-------|-------|-------------|--------|
-| T1 | S2, S7 | inline | `BusinessCalendar` (fixed UTC-04:00 offset) + `DateRange` value object + `DashboardScope` and `ChartWindow` enums + resolution to concrete local date ranges and preceding periods | pending |
-| T2 | S7 | inline | `Sale.BusinessDate` / `Purchase.BusinessDate` (`DateOnly`) set on every creation path | pending |
-| T3 | S8, S7 | inline | Forward migration: add `BusinessDate`, backfill from `CreatedAt`, redistribute demo sale/purchase dates across the trailing year incl. today | pending |
+| T1 | S2, S7 | inline | `BusinessCalendar` (fixed UTC-04:00 offset) + `DateRange` value object + `DashboardScope` and `ChartWindow` enums + resolution to concrete local date ranges and preceding periods | done — `7a0d153` |
+| T2 | S7 | inline | `Sale.BusinessDate` / `Purchase.BusinessDate` (`DateOnly`) set on every creation path | done — `7a0d153` |
+| T3 | S8, S7 | inline | Forward migration: add `BusinessDate`, backfill from `CreatedAt`, redistribute demo sale/purchase dates across the trailing year incl. today | done — `7a0d153` |
+| T3b | S3, S8 | inline | Extend `BusinessDate` to `Client` and `Product` so every window filter uses one rule, and redistribute their demo dates | done — work unit 2 |
 | T4 | S5, S6 | delegated | `IDashboardService` / `IDashboardRepository` signatures, `DashboardResponse` DTO with change percentages, service pass-through | pending |
 | T5 | S2, S3, S4, S6 | delegated | `DashboardRepository`: scope every flow metric, chart bucketing per window, preceding-period deltas, drop the fabricated `+ 5` | pending |
 | T6 | S5, S9 | delegated | `DashboardController`: bind and validate `period` and `chartPeriod`, 400 on unknown values | pending |
@@ -137,6 +138,18 @@ Merge order confirmed by the user on 2026-11-05: `feature/electronic-invoicing` 
 L5 (2026-11-05, verbatim): "entendiste lo que te dije luego que trabajemos los cambios en esta rama mergeamos estos cambios a electronic y seguimos"
 
 Delivery target confirmed by the user on 2026-11-05: when this work completes, `feature/dashboard-period-filters` is merged **into `feature/electronic-invoicing`** and the electronic invoicing work continues on that same branch. There is no PR chain and no separate delivery branch — the dashboard change folds into the branch that is already in flight. The frontend branch merges into the frontend's `development` on its own cadence.
+
+Verification evidence (2026-11-05, work unit 1 and 2):
+
+- RED observed before implementing `ReportingPeriod`: the test project failed to compile with `CS0103: The name 'ReportingPeriod' does not exist in the current context` on all 17 assertions. GREEN after implementing it: `Passed! - Failed: 0, Passed: 481, Skipped: 0, Total: 481`.
+- Both migrations applied to the local Postgres: `AddBusinessDate`, `RedistributeDemoDates`, `AddBusinessDateToClientsAndProducts`.
+- The demo dataset now covers every window the dashboard offers, verified against the live database: business today is `2026-11-05` (3 days since Monday, 4 since the month start); sales sit on 8 business dates (5 per date, one per company) from `2026-04-09` to `2026-11-05`, purchases on 5 dates, clients on 8 dates, products on 10 dates. "Today" and "this week" and "this month" all contain completed sales and completed purchases.
+- The `Sales.Status` split is intentional and was verified: the rows dated `2026-11-05` and `2026-11-04` are `Completed` and the ones dated `2026-11-02` are `Pending`, because the seed used the same date offsets for every demo company.
+
+Two observations left open on purpose:
+
+- The demo holds only 5 purchases per company, so over the "Año" window the purchases series is populated in October and November only while the sales series spans April to November. Widening the purchase history is a seed-volume decision, not a correctness problem: the window filter and the buckets are exact either way.
+- `KpiCard.tsx:23` hardcodes the comparison text `"vs mes anterior"`. With a scope of "Hoy" or "Esta semana" that text is a lie, so the comparison label has to follow the scope too (T8).
 
 Audit findings (2026-11-05): both filter groups are dead UI — `activePeriod` only toggles a CSS class in `Dashboard.tsx:25,50-60` and `SalesChart.tsx:37,44-52`; neither triggers a refetch. The backend accepts no query parameters (`DashboardController.cs:9`) and every aggregate is all-time except the chart, which is hard-coded to 7 daily buckets (`DashboardRepository.cs:53-87`). No `DateRange`/`Period`/`DateOnly` primitive exists in `Volterp.Domain`.
 
