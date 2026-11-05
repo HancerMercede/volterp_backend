@@ -183,10 +183,10 @@ Entrega aparte: repo, rama y PR distintos de los del backend.
 | T3c | S1, S3, S5 | delegated (`gentle-ai-worker`) | DONE | este commit: Sale + Purchase |
 | T3d | S1, S3, S5 | delegated (`gentle-ai-worker`) | DONE | este commit: Employee + AccountingTransaction |
 | T3e | S1, S3, S5 | delegated (`gentle-ai-worker`) | DONE | este commit: User |
-| T4 | S2, S10 | delegated (`gentle-ai-worker`) | PENDING | migración `AddEntityCodes` |
+| T4 | S2, S10 | delegated (`gentle-ai-worker`) | DONE | `d9c341e` |
 | T5 | S1 | fusionado en T3a-T3e | — | el `Code` del DTO de respuesta viaja con cada entidad, no es una unidad aparte |
-| T6 | S7, S8 | delegated (`gentle-ai-worker`) | PENDING | frontend `erp-mvp`: 8 columnas + detalle + 2 búsquedas + tipos (repo y PR aparte) |
-| T7 | S1-S10 | inline (parent) + verificador independiente | PENDING | verificación y cierre |
+| T6 | S7, S8 | handoff al usuario (repo `erp-mvp`) | PENDING | el usuario lo implementa con el spec de L11 |
+| T7 | S1-S10 | inline (parent) + verificador independiente | IN PROGRESS | verificación y cierre |
 
 ## Risks
 
@@ -244,3 +244,13 @@ Entrega aparte: repo, rama y PR distintos de los del backend.
 - **El usuario no puede editar su código por la API**: `UserService.UpdateAsync` sí acepta `Code`, pero los endpoints `PUT {id}/role` y `PUT {id}/status` arman el DTO a mano sin ese campo, y no hay endpoint de perfil. El código se puede elegir al crear el usuario, no editarlo después. Queda anotado como límite conocido, no bloqueante.
 - **El check de "categoría inexistente" se mantiene antes de la asignación**: así un alta inválida no quema un número de secuencia.
 - La suite completa quedó en **455/455 en verde** (antes 451 con 2 fallos: a los tests de alta del proveedor les faltaba el mock de `Codes`).
+
+### L10 — 2026-11-05 — migración aplicada y verificada en la base real
+- La migración `20261105184411_AddEntityCodes` se probó en una base descartable (apply → rollback → apply) antes de tocar la de desarrollo.
+- **Verificación sobre la base de desarrollo**: 0 códigos vacíos en las 9 tablas, 0 mal formados contra `^{Prefijo}-[0-9]{3,}$`, 0 duplicados por empresa, 0 discrepancias entre `CodeSequences.CurrentValue` y el conteo real de filas, 0 líneas de venta/compra incoherentes con el código de su producto, admin `Usu-001`, y las 9 columnas quedaron como `character varying(50) NOT NULL` con su índice `UNIQUE (CompanyId, Code)`.
+- **End-to-end contra la API real**: login `demo.admin1` → 200; `GET /api/products` devuelve `code` (`Prod-003`, `Prod-004`, `Prod-006`); `POST` sin código → `Prod-011` (la serie siguió donde quedó el backfill); `POST` con código repetido → **HTTP 400** con `{"error":"The code is already in use."}`; `PUT` con código propio → `MI-SKU-01`. El rechazo por código repetido **no quemó número** (la validación va antes de la asignación).
+- Los datos de prueba se borraron y la secuencia de productos de la empresa 1 se restauró a 10: la base quedó con los 50 productos originales.
+- **La migración elimina 3 índices**: `IX_Users_CompanyId`, `IX_Clients_CompanyId`, `IX_Categories_CompanyId`. Son leftovers de un modelo viejo: las configuraciones ya no los declaran y el índice compuesto `(CompanyId, Code)` cubre esas mismas búsquedas con `CompanyId` como columna líder.
+
+### L11 — 2026-11-05 — el frontend lo implementa el usuario
+El checkout de `erp-mvp` tenía trabajo sin commitear del usuario (incluidos `Clientes.tsx` e `Inventario.tsx`, dos de los archivos a tocar), así que no se tocó ese repo. Se le pasó el spec exacto: qué columna cambia en cada tabla, qué campo se agrega a qué tipo, qué búsquedas pasan a buscar por código, qué clave de i18n agregar y qué línea del detalle de venta cambia.
