@@ -44,10 +44,24 @@ public sealed class CompanySigningCertificateProvider(
 
         try
         {
-            return X509CertificateLoader.LoadPkcs12(
+            var signingCertificate = X509CertificateLoader.LoadPkcs12(
                 Convert.FromBase64String(material.PfxBase64),
                 material.Password,
                 X509KeyStorageFlags.EphemeralKeySet);
+
+            // The row carries the metadata the user declared; the certificate
+            // carries its own validity. They can disagree, and only the
+            // certificate decides whether this key may sign today.
+            if (!signingCertificate.HasPrivateKey)
+                throw new InvalidOperationException(
+                    $"The signing certificate of the issuer RNC {rnc.Value} has no private key: it cannot sign an e-CF.");
+
+            var now = DateTime.UtcNow;
+            if (signingCertificate.NotBefore.ToUniversalTime() > now || signingCertificate.NotAfter.ToUniversalTime() <= now)
+                throw new InvalidOperationException(
+                    $"The signing certificate of the issuer RNC {rnc.Value} is not valid today (it is valid from {signingCertificate.NotBefore:dd-MM-yyyy} to {signingCertificate.NotAfter:dd-MM-yyyy}).");
+
+            return signingCertificate;
         }
         catch (CryptographicException)
         {

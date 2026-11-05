@@ -87,6 +87,20 @@ public class CompanySigningCertificateProviderTests
     }
 
     [Fact]
+    public async Task GetSigningCertificateAsync_WithAnExpiredCertificate_Throws()
+    {
+        // The row says it is valid for 30 days; the certificate inside says it
+        // expired yesterday. Only the certificate decides.
+        GivenCertificate(CreatePfx(notAfter: DateTimeOffset.UtcNow.AddDays(-1)), Password);
+
+        var provider = CreateProvider();
+
+        var act = () => provider.GetSigningCertificateAsync(IssuerRnc);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
     public async Task GetSigningCertificateAsync_WithACredentialOfAnotherCompany_Throws()
     {
         var protector = new AesCredentialProtector(_masterKey);
@@ -139,7 +153,7 @@ public class CompanySigningCertificateProviderTests
             .ReturnsAsync(certificate);
     }
 
-    private static string CreatePfx(string password = Password)
+    private static string CreatePfx(string password = Password, DateTimeOffset? notAfter = null)
     {
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest(
@@ -148,10 +162,18 @@ public class CompanySigningCertificateProviderTests
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
 
+        var expiresAt = notAfter ?? DateTimeOffset.UtcNow.AddDays(365);
         using var certificate = request.CreateSelfSigned(
-            DateTimeOffset.UtcNow.AddDays(-1),
-            DateTimeOffset.UtcNow.AddDays(365));
+            IssuedAt(expiresAt),
+            expiresAt);
 
         return Convert.ToBase64String(certificate.Export(X509ContentType.Pfx, password));
+    }
+
+    private static DateTimeOffset IssuedAt(DateTimeOffset expiresAt)
+    {
+        var issuedAt = DateTimeOffset.UtcNow.AddDays(-30);
+
+        return issuedAt < expiresAt ? issuedAt : expiresAt.AddDays(-1);
     }
 }

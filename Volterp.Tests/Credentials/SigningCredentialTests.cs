@@ -61,6 +61,15 @@ public class SigningCredentialTests
     }
 
     [Fact]
+    public void ToString_DoesNotPrintTheMaterial()
+    {
+        var text = new SigningCredential(PfxBase64, Password).ToString();
+
+        text.Should().NotContain(PfxBase64);
+        text.Should().NotContain(Password);
+    }
+
+    [Fact]
     public void TryParse_WithAnEmptyCredential_SaysWhyItIsNotValid()
     {
         var valid = SigningCredential.TryParse(" ", out _, out var error);

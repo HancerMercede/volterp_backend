@@ -80,5 +80,11 @@ public sealed record SigningCredential(string PfxBase64, string Password)
         return true;
     }
 
+    /// <summary>
+    /// The material never prints itself: the record it comes from would print
+    /// the pfx and the password in clear.
+    /// </summary>
+    public override string ToString() => "SigningCredential(redacted)";
+
     private sealed record Envelope(string? Pfx, string? Password);
 }
