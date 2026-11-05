@@ -25,6 +25,7 @@ public class VolterpDbContext(
     public DbSet<AccountingTransaction> AccountingTransactions => Set<AccountingTransaction>();
     public DbSet<Client> Clients => Set<Client>();
     public DbSet<ElectronicInvoiceSequence> ElectronicInvoiceSequences => Set<ElectronicInvoiceSequence>();
+    public DbSet<CodeSequence> CodeSequences => Set<CodeSequence>();
     public DbSet<CompanyCertificate> CompanyCertificates => Set<CompanyCertificate>();
     public DbSet<ElectronicInvoice> ElectronicInvoices => Set<ElectronicInvoice>();
 

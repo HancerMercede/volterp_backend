@@ -1,4 +1,5 @@
 using Volterp.Application.Interfaces;
+using Volterp.Application.Services;
 using Volterp.Infrastructure.Data;
 using Volterp.Infrastructure.Repositories;
 
@@ -19,6 +20,7 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     private readonly Lazy<IDashboardRepository> _dashboard = new(() => new DashboardRepository(context));
     private readonly Lazy<IElectronicInvoiceSequenceRepository> _electronicInvoiceSequences = new(() => new ElectronicInvoiceSequenceRepository(context));
     private readonly Lazy<ICompanyCertificateRepository> _companyCertificates = new(() => new CompanyCertificateRepository(context));
+    private readonly Lazy<ICodeGenerator> _codes = new(() => new CodeGenerator(new CodeSequenceRepository(context)));
 
     public IUserRepository Users => _users.Value;
     public ICompanyRepository Companies => _companies.Value;
@@ -33,6 +35,7 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     public IDashboardRepository Dashboard => _dashboard.Value;
     public IElectronicInvoiceSequenceRepository ElectronicInvoiceSequences => _electronicInvoiceSequences.Value;
     public ICompanyCertificateRepository CompanyCertificates => _companyCertificates.Value;
+    public ICodeGenerator Codes => _codes.Value;
 
     public async Task<int> CommitAsync(CancellationToken ct = default) => await context.SaveChangesAsync(ct);
 

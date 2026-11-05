@@ -172,11 +172,15 @@ Entrega aparte: repo, rama y PR distintos de los del backend.
 
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
-| T1 | S1-S10 | inline (parent) | DONE | este documento |
-| T2 | S1, S2, S5 | delegated (`gentle-ai-worker`) | PENDING | enum + entidad `CodeSequence` + config + repositorio atómico + `CodeFormat` |
-| T3 | S3, S5 | delegated (`gentle-ai-worker`) | PENDING | `ICodeGenerator`/`CodeGenerator` + asignación en las 9 altas + validación de unicidad en las 9 actualizaciones |
+| T1 | S1-S10 | inline (parent) | DONE | `46ddece` |
+| T2 | S1, S2, S5 | inline (parent) | DONE | este commit: enum + `CodeSequence` + config + repositorio atómico + `CodeFormat` + `ICodeGenerator` + wiring en `IUnitOfWork` |
+| T3a | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | Product + Category: columna `Code`, índice único, DTOs, asignación en el alta, validación en la actualización, tests |
+| T3b | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | Client + Supplier (igual que T3a) |
+| T3c | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | Sale + Purchase (igual que T3a) |
+| T3d | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | Employee + AccountingTransaction (igual que T3a) |
+| T3e | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | User (igual que T3a) |
 | T4 | S2, S10 | delegated (`gentle-ai-worker`) | PENDING | migración `AddEntityCodes` |
-| T5 | S1 | delegated (`gentle-ai-worker`) | PENDING | campo `Code` en los 9 DTOs de respuesta + mappers MapFlow |
+| T5 | S1 | fusionado en T3a-T3e | — | el `Code` del DTO de respuesta viaja con cada entidad, no es una unidad aparte |
 | T6 | S7, S8 | delegated (`gentle-ai-worker`) | PENDING | frontend `erp-mvp`: 8 columnas + detalle + 2 búsquedas + tipos (repo y PR aparte) |
 | T7 | S1-S10 | inline (parent) + verificador independiente | PENDING | verificación y cierre |
 
@@ -212,3 +216,11 @@ Entrega aparte: repo, rama y PR distintos de los del backend.
 - **La asignación va dentro de la transacción del alta**, para que no queden huecos en la serie.
 - **Alternativas descartadas**: token corto reversible en el campo `id` (no dice qué es) y PK estilo nanoid (cambio desproporcionado de todas las FK).
 - **Hallazgo de la exploración**: el frontend tipa los ids como `number` (`erp-mvp/src/domain/types/index.ts:38`) aunque la API devuelve GUID strings. El tipo ya miente hoy; este trabajo no lo arregla, lo mantiene.
+
+### L7 — 2026-11-05 — implementación (parent)
+- **T2 se hizo inline, no delegada**: es la base de la que dependen las demás y el patrón atómico se copió del de e-CF, que ya estaba probado en el repo.
+- **La asignación se une a la transacción abierta**: `command.Transaction = context.Database.CurrentTransaction?.GetDbTransaction()`. Si el insert del alta falla, la secuencia retrocede y no queda el número quemado. Cubierto por `NextValueAsync_WhenTransactionRollsBack_DoesNotBurnTheNumber`.
+- **`IUnitOfWork` expone `ICodeGenerator Codes`**: los 9 servicios piden el código sin cambiar sus constructores ni el `ServiceManager`. El `ServiceManager` solo instancia servicios, no repositorios.
+- **T3 se corta por entidad, no por capa**: cada unidad lleva su entidad, su configuración, sus DTOs, su servicio y sus tests. La columna `Code` del DTO de respuesta viaja con la entidad en vez de ser una unidad aparte (T5 queda fusionado).
+- **El modelo se completa antes de migrar**: la migración `AddEntityCodes` se genera después de T3a-T3e, porque el snapshot del modelo tiene que conocer la columna `Code`.
+- Los servicios reciben `companyId` como parámetro (`CreateAsync(request, companyId, userId, ct)`), así que la secuencia se asigna en la empresa del caller sin tocar el contexto de tenant.

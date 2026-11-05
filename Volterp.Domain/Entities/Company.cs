@@ -23,6 +23,7 @@ public class Company : AuditEntity
     public ICollection<Employee> Employees { get; set; } = new List<Employee>();
     public ICollection<AccountingTransaction> AccountingTransactions { get; set; } = new List<AccountingTransaction>();
     public ICollection<ElectronicInvoiceSequence> ElectronicInvoiceSequences { get; set; } = new List<ElectronicInvoiceSequence>();
+    public ICollection<CodeSequence> CodeSequences { get; set; } = new List<CodeSequence>();
     public ICollection<CompanyCertificate> Certificates { get; set; } = new List<CompanyCertificate>();
     public ICollection<ElectronicInvoice> ElectronicInvoices { get; set; } = new List<ElectronicInvoice>();
 

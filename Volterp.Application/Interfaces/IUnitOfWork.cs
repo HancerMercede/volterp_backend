@@ -14,6 +14,7 @@ public interface IUnitOfWork
     IClientRepository Clients { get; }
     IElectronicInvoiceSequenceRepository ElectronicInvoiceSequences { get; }
     ICompanyCertificateRepository CompanyCertificates { get; }
+    ICodeGenerator Codes { get; }
     IDashboardRepository Dashboard { get; }
     Task<int> CommitAsync(CancellationToken ct = default);
     void Dispose();
