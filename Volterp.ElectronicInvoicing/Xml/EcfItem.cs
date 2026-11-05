@@ -36,7 +36,7 @@ public sealed record EcfItem
     /// <summary>The surcharge applied to the line.</summary>
     public decimal? SurchargeAmount { get; init; }
 
-    /// <summary>The total of the line, taxes included.</summary>
+    /// <summary>The total of the line, before taxes.</summary>
     public required decimal Amount { get; init; }
 
     /// <summary>The codes of the good, such as the supplier's own code.</summary>

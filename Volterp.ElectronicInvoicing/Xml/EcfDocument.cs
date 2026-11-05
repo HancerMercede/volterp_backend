@@ -43,8 +43,11 @@ public sealed record EcfIdentity
     /// <summary>The e-NCF the DGII assigned to this document.</summary>
     public required string ENCF { get; init; }
 
-    /// <summary>When the authorized sequence of e-NCF expires.</summary>
-    public required DateTime SequenceExpiresAt { get; init; }
+    /// <summary>
+    /// When the authorized sequence of e-NCF expires. Only the types that
+    /// require it use it.
+    /// </summary>
+    public required DateTime? SequenceExpiresAt { get; init; }
 
     /// <summary>
     /// Whether the affected document is older than thirty days, as the DGII

@@ -104,15 +104,7 @@ public class Sale : AuditEntity, ITenantScoped
         Total = Subtotal + Itbis;
     }
 
-    private static decimal TaxRate(TaxCode taxCode) => taxCode switch
-    {
-        TaxCode.ItbisTasa1 => 0.18m,
-        TaxCode.ItbisTasa2 => 0.16m,
-        TaxCode.ItbisTasa3 => 0m,
-        TaxCode.Exento => 0m,
-        TaxCode.NoFacturable => 0m,
-        _ => throw new ArgumentOutOfRangeException(nameof(taxCode), taxCode, "Unknown tax code.")
-    };
+    private static decimal TaxRate(TaxCode taxCode) => EcfTaxRates.FractionOf(taxCode);
 }
 
 
