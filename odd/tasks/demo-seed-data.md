@@ -76,6 +76,21 @@ Restricciones técnicas que la migración debe respetar:
 ### S9
 La verificación es contra el **Postgres real** (localhost:5432, base `volterp`), no contra SQLite de tests: aplicar la migración, contar filas por tabla, y probar el login de un usuario demo por HTTP.
 
+### S10
+> "Unsplash + pravatar (precedente del repo)"
+
+> "si es el frontend del proyecto"
+
+Las columnas de imagen del seed demo quedan pobladas, con el patrón de URL que ya usa el frontend (`erp-mvp`) en sus propios mocks:
+
+- **50 productos** → una foto de Unsplash **por producto** (`https://images.unsplash.com/photo-<id>?w=100`), 50 fotos distintas. Cada URL se verificó con un `HEAD` que devolvió 200 **antes** de referenciarla, y el contenido de cada foto se leyó para asignarla al producto que representa.
+- **90 items de venta** → la misma foto que la de su producto.
+- **30 empleados, 40 clientes, 25 proveedores** → `https://i.pravatar.cc/150?img={n}`, con `n` derivado del id (rango 1-70).
+- **5 empresas** → `https://ui-avatars.com/api/?name={Nombre}&background=random&size=128`.
+- La empresa preexistente `HM Software Solutions` **no se toca**: su `LogoUrl` sigue en `NULL`.
+
+Restricción discovered: `i.pravatar.cc` solo acepta una semilla **numérica** — con un GUID devuelve 404. Por eso el seed deriva un número del id, y por eso el fallback del propio frontend (`erp-mvp/src/pages/RRHH/EmpleadoTable.tsx:39`, `Clientes.tsx:144`, `Proveedores.tsx:136`, que usan `img=${id}` con un GUID) está roto y devuelve 404.
+
 ## Tasks
 
 | ID | S# linked | Route | Status | Commit / evidence |
@@ -83,6 +98,7 @@ La verificación es contra el **Postgres real** (localhost:5432, base `volterp`)
 | T1 | S1-S9 | inline (parent) | DONE | este documento |
 | T2 | S2-S8 | delegated (`gentle-ai-worker`) | DONE | `20261105154111_AddDemoSeedData` (675 líneas) aplicada y revertida contra el Postgres real |
 | T3 | S5, S9 | inline (parent) | DONE | spot check del padre: 507 filas contadas en el Postgres real y login HTTP `demo.admin1` → 200 + JWT |
+| T4 | S10 | inline (parent) | DONE | `20261105163115_AddDemoSeedImages`: 50/50 productos, 90/90 items, 95/95 personas y 5/6 logos con foto, verificado por SQL y por la API en ejecución |
 
 ## Log
 
@@ -119,3 +135,12 @@ La verificación es contra el **Postgres real** (localhost:5432, base `volterp`)
 - **Coherencia releída por el padre**: items de venta que apuntan a un producto de otra empresa = 0; ventas con `Total <> Subtotal + Itbis` = 0; compras con `Total` distinto de la suma de sus items = 0; drift `Subtotal - Quantity x UnitPrice` = 0.00; montos no positivos = 0; `CreatedAt` nulos = 0.
 - **Login HTTP real**: la API arrancada contra el Postgres real (`http://localhost:5106`) respondió `POST /api/auth/login` con `demo.admin1` / `Demo123!` → **200** y JWT con claims `demo.admin1`, `demo.admin1@volterp.demo`, `Administrador Demo 1`, rol `Admin`, `companyId 0192b9c7-b6a3-7def-8c5e-1f2a3b4c5e01`. Es la prueba de que el seed sirve para "jugar con el sistema": el token claims la empresa del usuario.
 - **Gotcha operativo**: `dotnet ef database update --startup-project Volterp.Api --no-build` carga el assembly de `Volterp.Api\bin`, no el del proyecto objetivo; una copia vieja registró la migración en `__EFMigrationsHistory` sin ejecutar su `Up()`. Hay que reconstruir la API antes de aplicar.
+
+### L7 — 2026-11-05 — T4: las imágenes del seed (`AddDemoSeedImages`)
+- **Qué**: una segunda migración, data-only, puebla las columnas de imagen: 50 productos (una foto de Unsplash por producto, 50 URLs distintas y verificadas con 200 antes de referenciarlas), 90 items de venta con la foto de su producto, 30 empleados + 40 clientes + 25 proveedores con `i.pravatar.cc` de semilla numérica, y 5 empresas con `ui-avatars`. `HM Software Solutions` queda intacta con su `LogoUrl` en `NULL`.
+- **Cómo se eligieron las fotos**: se descargaron 59 candidatas, se leyó el contenido de cada una y se asignó por producto. Las categorías del seed quedaron cubiertas por completo, incluida `Acero y Varillas`, que en el primer intento quedó sin foto.
+- **Dos bugs corregidos durante la implementación**: (1) el primer mapeo era por categoría con dos `UPDATE` sucesivos y el segundo sobrescribía al primero, dejando **una** sola foto por categoría — se rehízo mapeando producto por producto; (2) `Acero y Varillas` no estaba en la tabla de mapeo y sus 2 productos quedaron sin imagen. La verificación por SQL de ambos casos es lo que los destapó.
+- **Restricción de pravatar**: `i.pravatar.cc/150?img={guid}` devuelve **404**; solo acepta una semilla numérica. El seed deriva `n = 1 + (abs(hashtext(id)) % 70)`. Como efecto colateral quedó identificado un bug del frontend: su fallback (`img=${id}` con GUID) está roto para empleados, clientes y proveedores.
+- **Verificación del padre** (SQL sobre el Postgres real): 50/50 productos con foto, 90/90 items, 30/30 empleados, 40/40 clientes, 25/25 proveedores, 5/6 empresas (la preexistente intacta), 0 items de venta con foto distinta de su producto, 0 items sin producto, semillas de pravatar en 1-70 y ninguna con guion. `Down()` y re-apply ejecutados sin error.
+- **Prueba HTTP contra la API del usuario, ya corriendo**: `GET /api/products` devuelve la foto de cada producto y `GET /api/employees` devuelve `https://i.pravatar.cc/150?img=55` / `img=47`.
+- **Risk: none** — solo escribe URLs de imagen en filas demo de una base de datos de desarrollo descartable, es reversible con el `Down()`, y no toca contrato ni código compartido. La excepción de item 1 ("una base de datos de desarrollo que un seed reconstruye") aplica.
