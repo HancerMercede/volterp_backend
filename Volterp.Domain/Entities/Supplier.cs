@@ -6,6 +6,7 @@ namespace Volterp.Domain.Entities;
 public class Supplier : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
     public Guid CompanyId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

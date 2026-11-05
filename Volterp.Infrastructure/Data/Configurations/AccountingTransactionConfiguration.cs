@@ -11,6 +11,7 @@ public class AccountingTransactionConfiguration : IEntityTypeConfiguration<Accou
     {
         entity.HasKey(e => e.Id);
         entity.HasIndex(e => e.CompanyId);
+        entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
         entity.HasIndex(e => e.TransactionDate);
         entity.HasIndex(e => e.ReferenceNumber);
         entity.HasIndex(e => e.Category);

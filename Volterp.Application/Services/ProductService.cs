@@ -13,6 +13,8 @@ namespace Volterp.Application.Services;
 
 public class ProductService(IUnitOfWork unitOfWork) : IProductService
 {
+    private const string CodeAlreadyInUseMessage = "The code is already in use.";
+
     public async Task<PagedResult<ProductDto>> GetAllAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var products = await unitOfWork.Products.GetAllProductsAsync(pageNumber, pageSize, ct);
@@ -52,6 +54,10 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
                 product.SetPrice(new Money(req.Price, Currency.ARS));
                 product.TaxCode = req.TaxCode;
 
+                // The user may bring its own code; otherwise the per-company sequence
+                // provides one. A user-provided code must be free inside the company.
+                product.Code = await ResolveCodeForCreateAsync(req.Code, companyId, ct);
+
                 await unitOfWork.Products.AddProductAsync(product, ct);
                 await unitOfWork.CommitAsync(ct);
                 return product;
@@ -78,6 +84,10 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
                         throw new Exception("Category not found.");
                 }
 
+                // An empty code keeps the current one; a new code must be free
+                // inside the company (the row being updated is excluded).
+                var resolvedCode = await ResolveCodeForUpdateAsync(request.Code, product.Code, companyId, product.Id, ct);
+
                 product.Apply(r =>
                 {
                     r.Name = request.Name;
@@ -87,6 +97,7 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
                     r.CategoryId = request.CategoryId;
                     r.ImageUrl = request.ImageUrl;
                     r.TaxCode = request.TaxCode;
+                    r.Code = resolvedCode;
                     r.UpdatedAt = DateTime.UtcNow;
                     if (userId.HasValue) r.SetUpdatedBy(userId.Value);
                 });
@@ -117,5 +128,37 @@ public class ProductService(IUnitOfWork unitOfWork) : IProductService
                 return new Unit();
             }, ex => new Error(ex.Message))
             .Run();
+    }
+
+    /// <summary>
+    /// Resolves the code of a new product: the user-provided one (trimmed) when it
+    /// comes with a value, otherwise the next code of the company sequence.
+    /// </summary>
+    private async Task<string> ResolveCodeForCreateAsync(string? requestedCode, Guid companyId, CancellationToken ct)
+    {
+        var trimmed = requestedCode?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return await unitOfWork.Codes.NextAsync(companyId, CodeEntityType.Product, ct);
+
+        if (await unitOfWork.Products.ExistsCodeAsync(companyId, trimmed, null, ct))
+            throw new Exception(CodeAlreadyInUseMessage);
+
+        return trimmed;
+    }
+
+    /// <summary>
+    /// Resolves the code of an existing product: the user-provided one (trimmed) when it
+    /// comes with a value, otherwise the code the product already has.
+    /// </summary>
+    private async Task<string> ResolveCodeForUpdateAsync(string? requestedCode, string currentCode, Guid companyId, Guid id, CancellationToken ct)
+    {
+        var trimmed = requestedCode?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return currentCode;
+
+        if (await unitOfWork.Products.ExistsCodeAsync(companyId, trimmed, id, ct))
+            throw new Exception(CodeAlreadyInUseMessage);
+
+        return trimmed;
     }
 }

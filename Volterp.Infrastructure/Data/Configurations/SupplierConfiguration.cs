@@ -13,6 +13,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         entity.HasIndex(e => e.Name);
         entity.HasIndex(e => e.Category);
         entity.HasIndex(e => e.IsActive);
+        entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
 
         entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
         entity.Property(e => e.Email).HasMaxLength(200);

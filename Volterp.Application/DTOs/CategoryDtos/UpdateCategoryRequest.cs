@@ -5,7 +5,8 @@ namespace Volterp.Application.DTOs.CategoryDtos;
 public record UpdateCategoryRequest(
     string Name,
     string? Description,
-    bool IsActive
+    bool IsActive,
+    string? Code = null
 ):IMapTo<Category>
 {
     public Category MapTo()
@@ -14,7 +15,8 @@ public record UpdateCategoryRequest(
         {
             Name = Name,
             Description = Description,
-            IsActive = IsActive
+            IsActive = IsActive,
+            Code = Code?.Trim() ?? string.Empty
         };
     }
 }

@@ -5,6 +5,7 @@ using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Infrastructure.Data;
 using Volterp.Infrastructure.Repositories;
+using Volterp.Infrastructure.UnitOfWork;
 using Xunit;
 
 namespace Volterp.Tests.Integration;
@@ -68,6 +69,41 @@ public class CodeSequenceRepositoryTests
         var afterRollback = await fixture.Repository.NextValueAsync(fixture.CompanyId, CodeEntityType.Product);
 
         afterRollback.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task NextValueAsync_WithoutAnOpenTransaction_OpensOneSoTheAllocationCanRollBack()
+    {
+        await using var fixture = new CodeSequenceFixture();
+        await fixture.InitializeAsync();
+
+        var allocated = await fixture.Repository.NextValueAsync(fixture.CompanyId, CodeEntityType.Product);
+        allocated.Should().Be(1);
+
+        // The allocation is pending: it lives in the transaction of the unit of
+        // work until that unit of work commits it.
+        var transaction = fixture.Context.Database.CurrentTransaction;
+        transaction.Should().NotBeNull();
+
+        await transaction!.RollbackAsync();
+        await transaction.DisposeAsync();
+
+        var afterRollback = await fixture.Repository.NextValueAsync(fixture.CompanyId, CodeEntityType.Product);
+        afterRollback.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CommitAsync_WhenTheAllocationOpenedATransaction_CommitsIt()
+    {
+        await using var fixture = new CodeSequenceFixture();
+        await fixture.InitializeAsync();
+
+        var unitOfWork = new UnitOfWork(fixture.Context);
+
+        await fixture.Repository.NextValueAsync(fixture.CompanyId, CodeEntityType.Product);
+        await unitOfWork.CommitAsync();
+
+        fixture.Context.Database.CurrentTransaction.Should().BeNull();
     }
 
     private sealed class CodeSequenceFixture : IAsyncDisposable

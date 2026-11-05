@@ -12,6 +12,7 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         entity.HasIndex(e => e.CompanyId);
         entity.HasIndex(e => e.Status);
         entity.HasIndex(e => e.ClienteId);
+        entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
 
         entity.Property(e => e.ClienteName).HasMaxLength(200);
         entity.Property(e => e.Subtotal).HasPrecision(18, 2);

@@ -37,6 +37,7 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new PurchaseDto
         {
             Id = Guid.Empty,
@@ -327,6 +328,7 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new PurchaseDto
         {
             Id = Guid.Empty, SupplierId = Guid7TestValues.PurchaseA, SupplierName = "Supplier",
@@ -367,6 +369,7 @@ public class PurchaseServiceTests
             .ThrowsAsync(new InvalidOperationException("Database connection failed"));
 
         var service = new PurchaseService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new PurchaseDto
         {
             Id = Guid.Empty, SupplierId = Guid7TestValues.PurchaseA, SupplierName = "Supplier",
@@ -439,6 +442,7 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new PurchaseDto
         {
             Id = Guid.Empty, SupplierId = Guid7TestValues.PurchaseA, SupplierName = "Supplier",
@@ -477,6 +481,7 @@ public class PurchaseServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new PurchaseService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new PurchaseDto
         {
             Id = Guid.Empty, SupplierId = Guid7TestValues.PurchaseA, SupplierName = "Supplier",
@@ -618,5 +623,333 @@ public class PurchaseServiceTests
         // Stock was modified in memory before commit failed
         // NOTE: This documents current behavior. True rollback requires integration tests.
         product.Stock.Should().Be(15); // 20 - 5 decremented before commit failed
+    }
+
+    [Fact]
+    public async Task CreatePurchaseAsync_WithoutCode_UsesTheGeneratedCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockPurchasesRepo = new Mock<IPurchaseRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockPurchasesRepo.Setup(r => r.AddPurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Purchase p, CancellationToken ct) => p);
+        mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new PurchaseService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
+        var request = new PurchaseDto
+        {
+            Id = Guid.Empty,
+            SupplierId = Guid7TestValues.SupplierA,
+            SupplierName = "Test Supplier",
+            Status = EntityStatus.Pending,
+            Total = 500,
+            Notes = "Test",
+            Items = new List<PurchaseItemDto>
+            {
+                new() { Id = Guid.Empty, ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", ProductCode = "CODE123", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        // ACT
+        var result = await service.CreatePurchaseAsync(request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT - the request carries no code, so the generator decides
+        result.Should().BeOfType<Either<Error, PurchaseDto>.Right>();
+        var dto = ((Either<Error, PurchaseDto>.Right)result).Value;
+        dto.Code.Should().Be("Comp-001");
+    }
+
+    [Fact]
+    public async Task CreatePurchaseAsync_WithUserCode_KeepsTheTrimmedUserCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockPurchasesRepo = new Mock<IPurchaseRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockPurchasesRepo.Setup(r => r.AddPurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Purchase p, CancellationToken ct) => p);
+        mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new PurchaseService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
+        var request = new PurchaseDto
+        {
+            Id = Guid.Empty,
+            Code = "  MY-COMP-1  ",
+            SupplierId = Guid7TestValues.SupplierA,
+            SupplierName = "Test Supplier",
+            Status = EntityStatus.Pending,
+            Total = 500,
+            Notes = "Test",
+            Items = new List<PurchaseItemDto>
+            {
+                new() { Id = Guid.Empty, ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", ProductCode = "CODE123", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        // ACT
+        var result = await service.CreatePurchaseAsync(request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT - the code of the user wins over the generator
+        result.Should().BeOfType<Either<Error, PurchaseDto>.Right>();
+        var dto = ((Either<Error, PurchaseDto>.Right)result).Value;
+        dto.Code.Should().Be("MY-COMP-1");
+    }
+
+    [Fact]
+    public async Task CreatePurchaseAsync_WithRepeatedCode_ReturnsCleanError()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockPurchasesRepo = new Mock<IPurchaseRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+        var otherPurchase = new Purchase
+        {
+            Id = Guid7TestValues.PurchaseA, CompanyId = Guid7TestValues.CompanyA,
+            Code = "DUP-1", Status = EntityStatus.Pending
+        };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockPurchasesRepo.Setup(r => r.ExistsCodeAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid _, string code, Guid? excludeId, CancellationToken _) => otherPurchase.Code == code && excludeId != otherPurchase.Id);
+        mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new PurchaseService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
+        var request = new PurchaseDto
+        {
+            Id = Guid.Empty,
+            Code = "DUP-1",
+            SupplierId = Guid7TestValues.SupplierA,
+            SupplierName = "Test Supplier",
+            Status = EntityStatus.Pending,
+            Total = 500,
+            Notes = "Test",
+            Items = new List<PurchaseItemDto>
+            {
+                new() { Id = Guid.Empty, ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", ProductCode = "CODE123", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        // ACT
+        var result = await service.CreatePurchaseAsync(request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT - a clean error, and the inventory was not touched
+        result.Should().BeOfType<Either<Error, PurchaseDto>.Left>();
+        var error = ((Either<Error, PurchaseDto>.Left)result).Value;
+        error.Message.Should().Be("The code is already in use.");
+        product.Stock.Should().Be(10);
+        mockPurchasesRepo.Verify(r => r.AddPurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdatePurchaseAsync_WithoutCode_KeepsTheCurrentCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockPurchasesRepo = new Mock<IPurchaseRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
+
+        var existingPurchase = new Purchase
+        {
+            Id = Guid7TestValues.PurchaseA, CompanyId = Guid7TestValues.CompanyA, Code = "Comp-007",
+            SupplierId = Guid7TestValues.SupplierA, SupplierName = "Test",
+            Status = EntityStatus.Pending, Total = 500,
+            Items = new List<PurchaseItem>
+            {
+                new() { Id = Guid7TestValues.PurchaseA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", ProductCode = "CODE", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingPurchase);
+        mockPurchasesRepo.Setup(r => r.UpdatePurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new PurchaseService(mockUnitOfWork.Object);
+        var updateRequest = new PurchaseDto
+        {
+            Id = Guid7TestValues.PurchaseA,
+            SupplierId = Guid7TestValues.SupplierA,
+            SupplierName = "Updated",
+            Status = EntityStatus.Pending,
+            Total = 800,
+            Notes = "",
+            Items = new List<PurchaseItemDto>
+            {
+                new() { Id = Guid.Empty, ProductId = Guid7TestValues.ProductA, ProductName = "Test", ProductCode = "CODE", Quantity = 8, UnitPrice = 100, Subtotal = 800 }
+            }
+        };
+
+        // ACT
+        var result = await service.UpdatePurchaseAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
+
+        // ASSERT - the update does not carry a code, so the purchase keeps the one it had
+        result.Should().BeOfType<Either<Error, PurchaseDto>.Right>();
+        var dto = ((Either<Error, PurchaseDto>.Right)result).Value;
+        dto.Code.Should().Be("Comp-007");
+    }
+
+    [Fact]
+    public async Task UpdatePurchaseAsync_WithItsOwnCode_KeepsTheCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockPurchasesRepo = new Mock<IPurchaseRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
+
+        var existingPurchase = new Purchase
+        {
+            Id = Guid7TestValues.PurchaseA, CompanyId = Guid7TestValues.CompanyA, Code = "Comp-007",
+            SupplierId = Guid7TestValues.SupplierA, SupplierName = "Test",
+            Status = EntityStatus.Pending, Total = 500,
+            Items = new List<PurchaseItem>
+            {
+                new() { Id = Guid7TestValues.PurchaseA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", ProductCode = "CODE", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingPurchase);
+        mockPurchasesRepo.Setup(r => r.UpdatePurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        // The only purchase holding that code is the one being updated: it must
+        // not be reported as a conflict.
+        mockPurchasesRepo.Setup(r => r.ExistsCodeAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid _, string code, Guid? excludeId, CancellationToken _) => existingPurchase.Code == code && excludeId != existingPurchase.Id);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new PurchaseService(mockUnitOfWork.Object);
+        var updateRequest = new PurchaseDto
+        {
+            Id = Guid7TestValues.PurchaseA,
+            Code = "Comp-007",
+            SupplierId = Guid7TestValues.SupplierA,
+            SupplierName = "Updated",
+            Status = EntityStatus.Pending,
+            Total = 800,
+            Notes = "",
+            Items = new List<PurchaseItemDto>
+            {
+                new() { Id = Guid.Empty, ProductId = Guid7TestValues.ProductA, ProductName = "Test", ProductCode = "CODE", Quantity = 8, UnitPrice = 100, Subtotal = 800 }
+            }
+        };
+
+        // ACT
+        var result = await service.UpdatePurchaseAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, PurchaseDto>.Right>();
+        var dto = ((Either<Error, PurchaseDto>.Right)result).Value;
+        dto.Code.Should().Be("Comp-007");
+    }
+
+    [Fact]
+    public async Task UpdatePurchaseAsync_WithRepeatedCodeOfAnotherPurchase_ReturnsCleanError()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockPurchasesRepo = new Mock<IPurchaseRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
+
+        var existingPurchase = new Purchase
+        {
+            Id = Guid7TestValues.PurchaseA, CompanyId = Guid7TestValues.CompanyA, Code = "Comp-007",
+            SupplierId = Guid7TestValues.SupplierA, SupplierName = "Test",
+            Status = EntityStatus.Pending, Total = 500,
+            Items = new List<PurchaseItem>
+            {
+                new() { Id = Guid7TestValues.PurchaseA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", ProductCode = "CODE", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+        var otherPurchase = new Purchase
+        {
+            Id = Guid.NewGuid(), CompanyId = Guid7TestValues.CompanyA,
+            Code = "DUP-1", Status = EntityStatus.Pending
+        };
+
+        mockPurchasesRepo.Setup(r => r.GetPurchaseByIdAsync(Guid7TestValues.PurchaseA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingPurchase);
+        mockPurchasesRepo.Setup(r => r.UpdatePurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockPurchasesRepo.Setup(r => r.ExistsCodeAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid _, string code, Guid? excludeId, CancellationToken _) => otherPurchase.Code == code && excludeId != otherPurchase.Id);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Purchases).Returns(mockPurchasesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new PurchaseService(mockUnitOfWork.Object);
+        var updateRequest = new PurchaseDto
+        {
+            Id = Guid7TestValues.PurchaseA,
+            Code = "DUP-1",
+            SupplierId = Guid7TestValues.SupplierA,
+            SupplierName = "Updated",
+            Status = EntityStatus.Pending,
+            Total = 800,
+            Notes = "",
+            Items = new List<PurchaseItemDto>
+            {
+                new() { Id = Guid.Empty, ProductId = Guid7TestValues.ProductA, ProductName = "Test", ProductCode = "CODE", Quantity = 8, UnitPrice = 100, Subtotal = 800 }
+            }
+        };
+
+        // ACT
+        var result = await service.UpdatePurchaseAsync(Guid7TestValues.PurchaseA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
+
+        // ASSERT - a clean error, and the inventory was not touched
+        result.Should().BeOfType<Either<Error, PurchaseDto>.Left>();
+        var error = ((Either<Error, PurchaseDto>.Left)result).Value;
+        error.Message.Should().Be("The code is already in use.");
+        product.Stock.Should().Be(10);
+        mockPurchasesRepo.Verify(r => r.UpdatePurchaseAsync(It.IsAny<Purchase>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // The purchase service asks the generator for the code when the request does
+    // not bring one.
+    private static void SetupCodes(Mock<IUnitOfWork> mockUnitOfWork, string code = "Comp-001")
+    {
+        var mockCodes = new Mock<ICodeGenerator>();
+        mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(code);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
     }
 }

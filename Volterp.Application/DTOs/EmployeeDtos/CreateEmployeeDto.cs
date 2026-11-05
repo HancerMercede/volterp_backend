@@ -19,11 +19,14 @@ public record CreateEmployeeDto(
  string? ARS,
  string? NSS,
  string? Bank,
- string? AccountNumber
+ string? AccountNumber,
+ string? Code = null
 ):IMapTo<Employee>
 {
  public Employee MapTo()
  {
+   // Code is copied as requested; EmployeeService.CreateEmployeeAsync resolves it
+   // (user code or generated sequence) and validates its uniqueness.
    return new Employee
    {
      FirstName = FirstName,
@@ -41,7 +44,8 @@ public record CreateEmployeeDto(
      ARS = ARS,
      NSS = NSS,
      Bank = Bank,
-     AccountNumber = AccountNumber
+     AccountNumber = AccountNumber,
+     Code = Code?.Trim() ?? string.Empty
    };
  }
 }

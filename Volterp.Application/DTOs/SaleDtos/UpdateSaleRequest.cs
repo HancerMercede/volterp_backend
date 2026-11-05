@@ -10,5 +10,6 @@ public record UpdateSaleRequest(
     decimal Total,
     string? Notes,
     List<CreateSaleItemRequest> Items,
-    EcfDocumentType DocumentType = EcfDocumentType.Consumer
+    EcfDocumentType DocumentType = EcfDocumentType.Consumer,
+    string? Code = null
 );

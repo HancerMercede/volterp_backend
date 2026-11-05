@@ -21,12 +21,12 @@ El código es **único dentro de la empresa** (`UNIQUE (CompanyId, Code)`) y la 
 > "Idea 1 + 3 (recomendada)"
 
 El código es **editable por el usuario** — el caso real del ERP: el cliente conoce su producto por "el código 12345". El autogenerado es el default; si el usuario escribe uno, se valida que no esté repetido dentro de la empresa y se devuelve un error limpio si lo está.
-
 ### S4
-**No se inventa un código donde ya existe uno de negocio.** `ElectronicInvoice` conserva su `ENCF`; `AccountingTransaction` conserva su `ReferenceNumber` (`FAC-01-0001`). Solo las entidades sin código de negocio reciben uno nuevo.
+
+**No se inventa un código donde ya existe uno de negocio, ni se rompe el que existe.** `ElectronicInvoice` conserva su `ENCF` y no recibe columna nueva (lo genera el sistema con su propia secuencia y es lo que va a la DGII). `AccountingTransaction` conserva su `ReferenceNumber` —que escribe el usuario y puede quedar vacío— y **además** recibe el código generado, porque lo que se muestra en la tabla tiene que existir siempre.
 
 ### S5
-La asignación es **atómica**: dos altas simultáneas no pueden拿到 el mismo número. Se reusa el patrón ya probado en `Volterp.Infrastructure/Repositories/ElectronicInvoiceSequenceRepository.cs:18-25` (`INSERT ... ON CONFLICT ... DO UPDATE ... RETURNING`), que bloquea la fila durante la sentencia y por eso no necesita transacción explícita.
+La asignación es **atómica**: dos altas simultáneas no pueden obtener el mismo número. Se reusa el patrón ya probado en `Volterp.Infrastructure/Repositories/ElectronicInvoiceSequenceRepository.cs:18-25` (`INSERT ... ON CONFLICT ... DO UPDATE ... RETURNING`), que bloquea la fila durante la sentencia y por eso no necesita transacción explícita.
 
 ### S6
 **El GUID sigue siendo la clave primaria.** No se cambian PK ni FK, ni los claims del JWT, ni el módulo de e-CF. El `Code` es un identificador de negocio adicional, no un sustituto.
@@ -130,11 +130,15 @@ La asignación ocurre **dentro de la transacción del `UnitOfWork`** de la alta 
 
 ### Migración `AddEntityCodes`
 
-1. Crear `CodeSequences` con su índice único.
-2. Agregar la columna `Code` (nullable) a las 9 tablas + índice `UNIQUE (CompanyId, Code)`.
-3. Backfill de **todas** las filas existentes, por empresa y tipo, en orden determinista (`ORDER BY "CreatedAt", "Id"`), numerando con `row_number()`.
+El orden importa: **el índice único va después del backfill**, porque hasta que cada fila tenga su código, dos filas de la misma empresa compartirían el valor vacío y el índice reventaría.
+
+1. Crear la tabla `CodeSequences` con su índice único `(CompanyId, EntityType)`.
+2. Agregar la columna `Code` **nullable** (`character varying(50)`) a las 9 tablas. Sin índice todavía.
+3. Backfill de **todas** las filas existentes, por empresa y tipo, en orden determinista (`ORDER BY "CreatedAt", "Id"`), numerando con `row_number()` → `Prod-001`, `Cli-001`, etc.
 4. Crear las filas de `CodeSequences` con `CurrentValue` = la cantidad asignada, para que la siguiente asignación continúe donde quedó.
-5. Volver la columna `NOT NULL`.
+5. Refrescar `SaleItem.ProductCode` y `PurchaseItem.ProductCode` con el código del producto, para que las líneas no contradigan al producto.
+6. Crear el índice `UNIQUE (CompanyId, Code)` en las 9 tablas.
+7. Volver la columna `NOT NULL`.
 
 ### Frontend (`D:\source\my_projects\erp-mvp` — repo aparte)
 
@@ -174,11 +178,11 @@ Entrega aparte: repo, rama y PR distintos de los del backend.
 |---|---|---|---|---|
 | T1 | S1-S10 | inline (parent) | DONE | `46ddece` |
 | T2 | S1, S2, S5 | inline (parent) | DONE | este commit: enum + `CodeSequence` + config + repositorio atómico + `CodeFormat` + `ICodeGenerator` + wiring en `IUnitOfWork` |
-| T3a | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | Product + Category: columna `Code`, índice único, DTOs, asignación en el alta, validación en la actualización, tests |
-| T3b | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | Client + Supplier (igual que T3a) |
-| T3c | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | Sale + Purchase (igual que T3a) |
-| T3d | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | Employee + AccountingTransaction (igual que T3a) |
-| T3e | S1, S3, S5 | delegated (`gentle-ai-worker`) | PENDING | User (igual que T3a) |
+| T3a | S1, S3, S5 | delegated (`gentle-ai-worker`) | DONE | este commit: Product + Category |
+| T3b | S1, S3, S5 | delegated (`gentle-ai-worker`) | DONE | este commit: Client + Supplier |
+| T3c | S1, S3, S5 | delegated (`gentle-ai-worker`) | DONE | este commit: Sale + Purchase |
+| T3d | S1, S3, S5 | delegated (`gentle-ai-worker`) | DONE | este commit: Employee + AccountingTransaction |
+| T3e | S1, S3, S5 | delegated (`gentle-ai-worker`) | DONE | este commit: User |
 | T4 | S2, S10 | delegated (`gentle-ai-worker`) | PENDING | migración `AddEntityCodes` |
 | T5 | S1 | fusionado en T3a-T3e | — | el `Code` del DTO de respuesta viaja con cada entidad, no es una unidad aparte |
 | T6 | S7, S8 | delegated (`gentle-ai-worker`) | PENDING | frontend `erp-mvp`: 8 columnas + detalle + 2 búsquedas + tipos (repo y PR aparte) |
@@ -224,3 +228,19 @@ Entrega aparte: repo, rama y PR distintos de los del backend.
 - **T3 se corta por entidad, no por capa**: cada unidad lleva su entidad, su configuración, sus DTOs, su servicio y sus tests. La columna `Code` del DTO de respuesta viaja con la entidad en vez de ser una unidad aparte (T5 queda fusionado).
 - **El modelo se completa antes de migrar**: la migración `AddEntityCodes` se genera después de T3a-T3e, porque el snapshot del modelo tiene que conocer la columna `Code`.
 - Los servicios reciben `companyId` como parámetro (`CreateAsync(request, companyId, userId, ct)`), así que la secuencia se asigna en la empresa del caller sin tocar el contexto de tenant.
+
+### L8 — 2026-11-05 — dos resoluciones durante la implementación (parent)
+- **S4 se contradecía con la tabla de diseño**: la tabla listaba `AccountingTransaction` con prefijo `Asi` y S4 decía que no recibía código nuevo. Se resolvió a favor de las 9 entidades: `ReferenceNumber` viene del request (`req.ReferenceNumber`), lo escribe el usuario y puede quedar vacío, así que no puede ser el identificador que se muestra en la tabla. `AccountingTransaction` recibe `Code` **además** de conservar `ReferenceNumber`; S4 quedó reescrito para que el documento no se contradiga.
+- **`ElectronicInvoice` sí queda afuera**: su `ENCF` lo genera el sistema con su propia secuencia (`ElectronicInvoiceSequences`) y es lo que va a la DGII. No se toca.
+- **El código del producto solo vivía en las líneas**: el seed escribía `CS-01` en `SaleItem.ProductCode` / `PurchaseItem.ProductCode`, no en el producto — la entidad `Product` no tenía ningún campo de código. Con la columna nueva, la migración tiene que refrescar esas líneas con el código del producto, si no los datos de demo quedan contradictorios: la venta diría `CS-01` y el producto `Prod-001`.
+- **Ninguna otra entidad tiene un código de negocio previo**: el único `Code` que existe en el dominio es el de las líneas de venta y compra, más el `SecurityCode` del e-CF (que es otra cosa).
+
+### L9 — 2026-11-05 — T3a-T3e: cinco unidades en paralelo, 455 tests en verde
+- **La asignación NO estaba dentro de la transacción del alta**: `UnitOfWork.CommitAsync` era solo `context.SaveChangesAsync` y ningún flujo abría `BeginTransaction`, así que `CurrentTransaction` siempre era `null` y el `INSERT ... ON CONFLICT` corría en su propia transacción implícita. Un alta fallada quemaba el número, exactamente lo contrario de lo que affirmaba L7. **Corregido**: `CodeSequenceRepository.NextValueAsync` abre la transacción cuando no hay ninguna, y `UnitOfWork.CommitAsync` la confirma junto con el insert. Cubierto por `NextValueAsync_WithoutAnOpenTransaction_OpensOneSoTheAllocationCanRollBack` y `CommitAsync_WhenTheAllocationOpenedATransaction_CommitsIt`.
+- **Bug preexistente encontrado y corregido en el camino**: `SupplierService.CreateSupplierAsync` y `UpdateSupplierAsync` nunca llamaban `CommitAsync`, así que **los proveedores no se guardaban** (solo el delete commiteaba). Con el código nuevo, ni el proveedor ni su código llegaban a la base. Agregado el `CommitAsync` en ambos flujos.
+- **Convención unificada**: cinco unidades usaron `ExistsCodeAsync(companyId, code, excludeId, ct)` y dos (Sale, Purchase) habían quedado con el `ExistsAsync(predicate)` genérico. Unificado a `ExistsCodeAsync` en las 9, con la misma implementación (rama `excludeId.HasValue` para que EF traduzca la igualdad simple).
+- **MapFlow no copia campos solo**: cada `MapTo()`/`MapFrom()`/`Apply()`/`Project()` está escrito a mano, así que la columna nueva hubo que copiarla explícitamente en los DTOs de las 9 entidades. Sin eso, el `code` no viajaba en el JSON.
+- **`PurchaseDto` y `AccountingTransactionDto` son el mismo tipo para request y response** (el controller hace bind de `[FromBody]` con ese DTO), así que ahí el `Code` de entrada es opcional (`string?`) pero la respuesta siempre lo trae.
+- **El usuario no puede editar su código por la API**: `UserService.UpdateAsync` sí acepta `Code`, pero los endpoints `PUT {id}/role` y `PUT {id}/status` arman el DTO a mano sin ese campo, y no hay endpoint de perfil. El código se puede elegir al crear el usuario, no editarlo después. Queda anotado como límite conocido, no bloqueante.
+- **El check de "categoría inexistente" se mantiene antes de la asignación**: así un alta inválida no quema un número de secuencia.
+- La suite completa quedó en **455/455 en verde** (antes 451 con 2 fallos: a los tests de alta del proveedor les faltaba el mock de `Codes`).

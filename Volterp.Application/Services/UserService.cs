@@ -10,6 +10,8 @@ namespace Volterp.Application.Services;
 
 public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, ICurrentUserService currentUserService) : IUserService
 {
+    private const string CodeAlreadyInUseMessage = "The code is already in use.";
+
     public async Task<PagedResult<UserDto>> GetAllAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var users = await unitOfWork.Users.GetAllAsync(pageNumber, pageSize, ct);
@@ -31,17 +33,34 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
 
     public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
+        var requestedCode = request.Code?.Trim() ?? string.Empty;
+
         return await EitherAsync
             .Try(async() => await unitOfWork.Users.ExistsByUsernameAsync(request.Username, ct))
             .MapLeft(ex => new Error(ex.Message))
             .Ensure(exists => !exists, new Error("username already exists"))
             .Ensure(_ => request.Role != UserRole.SuperAdmin || currentUserService.IsSuperAdmin(),
                 _ => new Error("Only SuperAdmin can create SuperAdmin users"))
+            .FlatMap(async _ =>
+            {
+                // A user-provided code must be free inside the company; an empty one
+                // means the per-company sequence provides the code.
+                if (requestedCode.Length > 0)
+                {
+                    var codeInUse = await unitOfWork.Users.ExistsCodeAsync(companyId, requestedCode, null, ct);
+                    if (codeInUse)
+                        throw new Exception(CodeAlreadyInUseMessage);
+                }
+                return true;
+            }, ex => new Error(ex.Message))
             .Map(_ => request.Project())
             .FlatMap(async user =>
             {
                 user.CompanyId = companyId;
                 user.PasswordHash = passwordHasher.Hash(request.Password);
+                user.Code = requestedCode.Length > 0
+                    ? requestedCode
+                    : await unitOfWork.Codes.NextAsync(companyId, CodeEntityType.User, ct);
                 if (userId.HasValue) user.SetCreatedBy(userId.Value);
                 await unitOfWork.Users.AddUserAsync(user, ct);
                 await unitOfWork.CommitAsync(ct);
@@ -53,6 +72,8 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
 
     public async Task<Either<Error, UserDto>> UpdateAsync(Guid id, UserWithPasswordHashDto request, Guid? userId, CancellationToken ct = default)
     {
+        var requestedCode = request.Code?.Trim() ?? string.Empty;
+
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x=> x != Guid.Empty , new Error("id must not be empty."))
@@ -61,6 +82,19 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
                 ex => new Error(ex.Message))
             .Ensure(user => user is not null, new Error("user not found"))
+            .FlatMap(async user =>
+            {
+                // An empty code keeps the current one; a provided code replaces it and
+                // must be free inside the company (the row being updated is excluded).
+                var current = user!;
+                if (requestedCode.Length > 0)
+                {
+                    var codeInUse = await unitOfWork.Users.ExistsCodeAsync(current.CompanyId, requestedCode, current.Id, ct);
+                    if (codeInUse)
+                        throw new Exception(CodeAlreadyInUseMessage);
+                }
+                return current;
+            }, ex => new Error(ex.Message))
             .Map(user =>
             {
                 return user.Apply(x =>
@@ -69,6 +103,7 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
                     x.FullName = request.FullName;
                     x.Role = request.Role;
                     x.IsActive = request.IsActive;
+                    if (requestedCode.Length > 0) x.Code = requestedCode;
                     x.UpdatedAt = DateTime.UtcNow;
                     if (userId.HasValue) x.SetUpdatedBy(userId.Value);
                 });

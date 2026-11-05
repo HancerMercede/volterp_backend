@@ -10,6 +10,7 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
     {
         entity.HasKey(e => e.Id);
         entity.HasIndex(e => new { e.Name, e.CompanyId }).IsUnique();
+        entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
         entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
         entity.Property(e => e.Description).HasMaxLength(200);
 

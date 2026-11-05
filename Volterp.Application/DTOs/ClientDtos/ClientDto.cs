@@ -4,6 +4,7 @@ namespace Volterp.Application.DTOs.ClientDtos;
 public record ClientDto:IMapFrom<Client>
 {
     public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
     public  string Name { get; set; } = string.Empty;
     public  string Email { get; set; } = string.Empty;
     public  string Phone { get; set; } = string.Empty;
@@ -19,6 +20,7 @@ public record ClientDto:IMapFrom<Client>
     public void MapFrom(Client source)
     {
         Id = source.Id;
+        Code = source.Code;
         Name = source.Name;
         Email = source.Email;
         Phone = source.Phone;

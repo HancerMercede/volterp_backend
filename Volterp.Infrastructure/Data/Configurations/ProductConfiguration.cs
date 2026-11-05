@@ -12,6 +12,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         entity.HasKey(e => e.Id);
         entity.HasIndex(e => e.CompanyId);
         entity.HasIndex(e => e.CategoryId);
+        entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
 
         entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
         entity.Property(e => e.Category).IsRequired().HasMaxLength(100);

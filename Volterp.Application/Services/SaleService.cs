@@ -10,6 +10,8 @@ namespace Volterp.Application.Services;
 
 public class SaleService(IUnitOfWork unitOfWork) : ISaleService
 {
+    private const string CodeAlreadyInUseMessage = "The code is already in use.";
+
     public async Task<PagedResult<SaleDto>> GetAllSalesAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var sales = await unitOfWork.Sales.GetAllSalesAsync(pageNumber, pageSize, ct);
@@ -43,6 +45,10 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                 var sale = req.Project();
                 sale.CompanyId = companyId;
                 if (userId.HasValue) sale.SetCreatedBy(userId.Value);
+
+                // The code is resolved before any stock movement: a rejected code
+                // must not leave the inventory half-updated.
+                sale.Code = await ResolveCodeForCreateAsync(req.Code, companyId, ct);
 
                 // Batch query: single SELECT for all products (avoids N+1)
                 var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
@@ -88,6 +94,10 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .Ensure(sale => sale is not null, new Error("Sale not found."))
             .FlatMap(async sale =>
             {
+                // The code is resolved before any stock movement: a rejected code
+                // must not leave the inventory half-updated.
+                var code = await ResolveCodeForUpdateAsync(request.Code, sale.Code, companyId, sale.Id, ct);
+
                 // Collect all product IDs (old items + new items)
                 var allProductIds = sale.Items.Select(i => i.ProductId)
                     .Concat(request.Items.Select(i => i.ProductId))
@@ -136,6 +146,7 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
                     s.Status = request.Status;
                     s.DocumentType = request.DocumentType;
                     s.Notes = request.Notes;
+                    s.Code = code;
                     s.UpdatedAt = DateTime.UtcNow;
                     if (userId.HasValue) s.SetUpdatedBy(userId.Value);
                     s.Items = newItems;
@@ -232,5 +243,34 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
         var client = await unitOfWork.Clients.GetClientByIdAsync(sale.ClienteId.Value, ct);
 
         sale.ReceptorTaxId = client?.TaxId;
+    }
+
+    // The user may bring its own code; otherwise the per-company sequence
+    // provides one. A user-provided code must be free inside the company.
+    private async Task<string> ResolveCodeForCreateAsync(string? requestedCode, Guid companyId, CancellationToken ct)
+    {
+        var trimmed = requestedCode?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return await unitOfWork.Codes.NextAsync(companyId, CodeEntityType.Sale, ct);
+
+        if (await unitOfWork.Sales.ExistsCodeAsync(companyId, trimmed, null, ct))
+            throw new Exception(CodeAlreadyInUseMessage);
+
+        return trimmed;
+    }
+
+    // Resolves the code of an existing sale: the user-provided one (trimmed) when it
+    // comes with a value, otherwise the code the sale already has. The row being
+    // updated is excluded so keeping its own code is not a conflict.
+    private async Task<string> ResolveCodeForUpdateAsync(string? requestedCode, string currentCode, Guid companyId, Guid id, CancellationToken ct)
+    {
+        var trimmed = requestedCode?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return currentCode;
+
+        if (await unitOfWork.Sales.ExistsCodeAsync(companyId, trimmed, id, ct))
+            throw new Exception(CodeAlreadyInUseMessage);
+
+        return trimmed;
     }
 }

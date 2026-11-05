@@ -6,6 +6,7 @@ using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 using Volterp.Tests.TestHelpers;
 using Xunit;
 
@@ -22,7 +23,12 @@ public class SupplierServiceTenantLeakTests
     {
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSuppliersRepo = new Mock<ISupplierRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
+        mockCodes
+            .Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Prov-001");
         mockUnitOfWork.Setup(u => u.Suppliers).Returns(mockSuppliersRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
         return (mockUnitOfWork, mockSuppliersRepo);
     }
 

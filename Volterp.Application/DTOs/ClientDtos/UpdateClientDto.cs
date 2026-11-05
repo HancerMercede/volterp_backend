@@ -14,11 +14,14 @@ public record UpdateClientDto
     DateTime? UpdatedAt,
     Guid? CreatedBy,
     Guid? UpdatedBy,
-    string? TaxId = null
+    string? TaxId = null,
+    string? Code = null
 ):IMapTo<Client>
 {
     public Client MapTo()
     {
+        // Code is copied as requested; ClientService.UpdateClientAsync resolves it
+        // (user code or the one the client already has) and validates its uniqueness.
         return new Client
         {
             Name = Name,
@@ -28,6 +31,7 @@ public record UpdateClientDto
             TaxId = TaxId,
             ImageUrl = ImageUrl,
             IsActive = IsActive,
+            Code = Code?.Trim() ?? string.Empty
         };
     }
 }

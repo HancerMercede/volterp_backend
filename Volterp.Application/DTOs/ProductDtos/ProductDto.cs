@@ -6,6 +6,7 @@ namespace Volterp.Application.DTOs.ProductDtos;
 public record ProductDto : IMapFrom<Product>
 {
     public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string? Description { get; set; }
@@ -21,6 +22,7 @@ public record ProductDto : IMapFrom<Product>
     public void MapFrom(Product source)
     {
         Id = source.Id;
+        Code = source.Code;
         Name = source.Name;
         Category = source.Category;
         Description = source.Description;

@@ -36,6 +36,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test Client",
             Status: SaleStatus.Pending, Total: 500, Notes: null,
@@ -71,6 +72,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 1500, Notes: null,
@@ -110,6 +112,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test Client",
             Status: SaleStatus.Pending, Total: 500, Notes: null,
@@ -163,6 +166,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: Guid7TestValues.ClientA, ClienteName: "Test Client",
             Status: SaleStatus.Pending, Total: 100, Notes: null,
@@ -411,6 +415,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 500, Notes: null,
@@ -551,6 +556,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 1000, Notes: null,
@@ -623,6 +629,7 @@ public class  SaleServiceTests
             .ThrowsAsync(new InvalidOperationException("Database connection failed"));
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 500, Notes: null,
@@ -669,6 +676,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Bulk Client",
             Status: SaleStatus.Pending, Total: 3000, Notes: null,
@@ -902,6 +910,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 500, Notes: null,
@@ -935,6 +944,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
             Status: SaleStatus.Pending, Total: 100, Notes: null,
@@ -1245,6 +1255,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test Client",
             Status: SaleStatus.Pending, Total: 100, Notes: null,
@@ -1325,5 +1336,300 @@ public class  SaleServiceTests
         item.Quantity.Should().Be(2);
         item.UnitPrice.Should().Be(50m);
         item.Subtotal.Should().Be(100m);
+    }
+
+    [Fact]
+    public async Task CreateSaleAsync_WithoutCode_UsesTheGeneratedCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Sale s, CancellationToken ct) => s);
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
+        var request = new CreateSaleRequest(
+            ClienteId: null, ClienteName: "Test Client",
+            Status: SaleStatus.Pending, Total: 500, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 5, 100, 500)
+            }
+        );
+
+        // ACT
+        var result = await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT - the request carries no code, so the generator decides
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+        dto.Code.Should().Be("Vent-001");
+    }
+
+    [Fact]
+    public async Task CreateSaleAsync_WithUserCode_KeepsTheTrimmedUserCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockSalesRepo.Setup(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Sale s, CancellationToken ct) => s);
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
+        var request = new CreateSaleRequest(
+            ClienteId: null, ClienteName: "Test Client",
+            Status: SaleStatus.Pending, Total: 500, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 5, 100, 500)
+            },
+            Code: "  MY-SALE-1  "
+        );
+
+        // ACT
+        var result = await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT - the code of the user wins over the generator
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+        dto.Code.Should().Be("MY-SALE-1");
+    }
+
+    [Fact]
+    public async Task CreateSaleAsync_WithRepeatedCode_ReturnsCleanError()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+        var otherSale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA,
+            Code = "DUP-1", Status = SaleStatus.Pending
+        };
+
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockSalesRepo.Setup(r => r.ExistsCodeAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid _, string code, Guid? excludeId, CancellationToken _) => otherSale.Code == code && excludeId != otherSale.Id);
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        SetupCodes(mockUnitOfWork);
+        var request = new CreateSaleRequest(
+            ClienteId: null, ClienteName: "Test Client",
+            Status: SaleStatus.Pending, Total: 500, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test Product", null, null, null, 5, 100, 500)
+            },
+            Code: "DUP-1"
+        );
+
+        // ACT
+        var result = await service.CreateSaleAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT - a clean error, and the inventory was not touched
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Be("The code is already in use.");
+        product.Stock.Should().Be(10);
+        mockSalesRepo.Verify(r => r.AddSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateSaleAsync_WithoutCode_KeepsTheCurrentCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
+
+        var existingSale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Code = "Vent-007",
+            Status = SaleStatus.Pending, Total = 500,
+            Items = new List<SaleItem>
+            {
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingSale);
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        var updateRequest = new UpdateSaleRequest(
+            ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
+            Total: 800, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 8, 100, 800)
+            }
+        );
+
+        // ACT
+        var result = await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
+
+        // ASSERT - the update does not carry a code, so the sale keeps the one it had
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+        dto.Code.Should().Be("Vent-007");
+    }
+
+    [Fact]
+    public async Task UpdateSaleAsync_WithItsOwnCode_KeepsTheCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
+
+        var existingSale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Code = "Vent-007",
+            Status = SaleStatus.Pending, Total = 500,
+            Items = new List<SaleItem>
+            {
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingSale);
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        // The only sale holding that code is the one being updated: it must not
+        // be reported as a conflict.
+        mockSalesRepo.Setup(r => r.ExistsCodeAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid _, string code, Guid? excludeId, CancellationToken _) => existingSale.Code == code && excludeId != existingSale.Id);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        var updateRequest = new UpdateSaleRequest(
+            ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
+            Total: 800, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 8, 100, 800)
+            },
+            Code: "Vent-007"
+        );
+
+        // ACT
+        var result = await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+        dto.Code.Should().Be("Vent-007");
+    }
+
+    [Fact]
+    public async Task UpdateSaleAsync_WithRepeatedCodeOfAnotherSale_ReturnsCleanError()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
+
+        var existingSale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Code = "Vent-007",
+            Status = SaleStatus.Pending, Total = 500,
+            Items = new List<SaleItem>
+            {
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+        var otherSale = new Sale
+        {
+            Id = Guid.NewGuid(), CompanyId = Guid7TestValues.CompanyA,
+            Code = "DUP-1", Status = SaleStatus.Pending
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingSale);
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockSalesRepo.Setup(r => r.ExistsCodeAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Guid _, string code, Guid? excludeId, CancellationToken _) => otherSale.Code == code && excludeId != otherSale.Id);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object);
+        var updateRequest = new UpdateSaleRequest(
+            ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
+            Total: 800, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 8, 100, 800)
+            },
+            Code: "DUP-1"
+        );
+
+        // ACT
+        var result = await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
+
+        // ASSERT - a clean error, and the inventory was not touched
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Be("The code is already in use.");
+        product.Stock.Should().Be(10);
+        mockSalesRepo.Verify(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // The sale service asks the generator for the code when the request does not
+    // bring one.
+    private static void SetupCodes(Mock<IUnitOfWork> mockUnitOfWork, string code = "Vent-001")
+    {
+        var mockCodes = new Mock<ICodeGenerator>();
+        mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(code);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
     }
 }

@@ -19,11 +19,14 @@ public record UpdateEmployeeDto(
     string? ARS,
     string? NSS,
     string? Bank,
-    string? AccountNumber
+    string? AccountNumber,
+    string? Code = null
     ):IMapTo<Employee>
 {
     public Employee MapTo()
     {
+        // Code is copied as requested; EmployeeService.UpdateEmployeeAsync resolves it
+        // (user code or the one the employee already has) and validates its uniqueness.
         return new Employee
         {
             FirstName = FirstName,
@@ -41,7 +44,8 @@ public record UpdateEmployeeDto(
             ARS = ARS,
             NSS = NSS,
             Bank = Bank,
-            AccountNumber = AccountNumber
+            AccountNumber = AccountNumber,
+            Code = Code?.Trim() ?? string.Empty
         };
     }
 }

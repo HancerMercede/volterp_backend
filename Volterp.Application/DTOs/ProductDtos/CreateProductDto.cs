@@ -13,13 +13,16 @@ public record CreateProductDto(
     int Stock,
     Guid? CategoryId,
     string? ImageUrl = null,
-    TaxCode TaxCode = TaxCode.ItbisTasa1
+    TaxCode TaxCode = TaxCode.ItbisTasa1,
+    string? Code = null
 ):IMapTo<Product>
 {
     public Product MapTo()
     {
         // CompanyId is NOT copied here — it is set by ProductService.CreateAsync
         // from the companyId parameter (which the controller reads from the JWT).
+        // Code is copied as requested; ProductService.CreateAsync resolves it
+        // (user code or generated sequence) and validates its uniqueness.
         return new Product
         {
            Name = Name,
@@ -28,7 +31,8 @@ public record CreateProductDto(
             Price = new Money(Price, Currency.ARS),
            Stock = Stock,
             CategoryId = CategoryId,
-            ImageUrl = ImageUrl
+            ImageUrl = ImageUrl,
+            Code = Code?.Trim() ?? string.Empty
         };
     }
 }

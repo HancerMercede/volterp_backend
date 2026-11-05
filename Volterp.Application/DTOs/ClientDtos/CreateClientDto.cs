@@ -14,11 +14,16 @@ public record CreateClientDto
     DateTime? UpdatedAt,
     Guid? CreatedBy,
     Guid? UpdatedBy,
-    string? TaxId = null
+    string? TaxId = null,
+    string? Code = null
 ): IMapTo<Client>
 {
     public Client MapTo()
     {
+        // CompanyId is NOT copied here — ClientService.CreateClientAsync sets
+        // it from the companyId parameter (which the controller reads from the JWT).
+        // Code is copied as requested; ClientService.CreateClientAsync resolves it
+        // (user code or generated sequence) and validates its uniqueness.
         return new Client
         {
             Name = Name,
@@ -28,7 +33,8 @@ public record CreateClientDto
             TaxId = TaxId,
             ImageUrl = ImageUrl,
             IsActive = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Code = Code?.Trim() ?? string.Empty
         };
     }
 }

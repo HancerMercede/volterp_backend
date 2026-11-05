@@ -8,6 +8,7 @@ public class Purchase : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public string Code { get; set; } = string.Empty;
     public Guid? SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public EntityStatus Status { get; set; } = EntityStatus.Pending;

@@ -9,6 +9,7 @@ public class Sale : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public string Code { get; set; } = string.Empty;
     
     public Guid? ClienteId { get; set; }
     public string? ClienteName { get; set; }

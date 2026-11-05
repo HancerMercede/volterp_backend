@@ -11,6 +11,7 @@ public class ClientConfiguration:IEntityTypeConfiguration<Client>
         builder.ToTable("Clients");
         
         builder.HasIndex(c => c.Email).IsUnique();
+        builder.HasIndex(c => new { c.CompanyId, c.Code }).IsUnique();
         builder.Property(c => c.Name).IsRequired().HasMaxLength(100);
         builder.Property(c => c.Email).IsRequired().HasMaxLength(100);
         builder.Property(c => c.Phone).IsRequired().HasMaxLength(70);

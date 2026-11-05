@@ -8,6 +8,7 @@ public record SaleDto:IMapFrom<Sale>
 {
     public Guid Id { get; set; }
     public Guid CompanyId { get; set; }
+    public string Code { get; set; } = string.Empty;
     public Guid? ClienteId { get; set; }
     public string? ClienteName { get; set; }
     public SaleStatus Status { get; set; }
@@ -25,6 +26,7 @@ public record SaleDto:IMapFrom<Sale>
     {
         Id = source.Id;
         CompanyId = source.CompanyId;
+        Code = source.Code;
         ClienteId = source.ClienteId;
         ClienteName = source.ClienteName;
         Status = source.Status;

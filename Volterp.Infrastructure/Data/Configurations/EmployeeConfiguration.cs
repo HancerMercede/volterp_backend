@@ -11,6 +11,7 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
     {
         entity.HasKey(e => e.Id);
         entity.HasIndex(e => e.CompanyId);
+        entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
         entity.HasIndex(e => e.Email);
         entity.HasIndex(e => e.Status);
         entity.HasIndex(e => e.Department);

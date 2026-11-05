@@ -37,7 +37,21 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     public ICompanyCertificateRepository CompanyCertificates => _companyCertificates.Value;
     public ICodeGenerator Codes => _codes.Value;
 
-    public async Task<int> CommitAsync(CancellationToken ct = default) => await context.SaveChangesAsync(ct);
+    public async Task<int> CommitAsync(CancellationToken ct = default)
+    {
+        var affected = await context.SaveChangesAsync(ct);
+
+        // A flow that allocated a business code opened a transaction before the
+        // insert; committing it here makes the code and its row land together.
+        var transaction = context.Database.CurrentTransaction;
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(ct);
+            await transaction.DisposeAsync();
+        }
+
+        return affected;
+    }
 
     public void Dispose() => context.Dispose();
 }

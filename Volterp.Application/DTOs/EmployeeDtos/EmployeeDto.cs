@@ -6,6 +6,7 @@ namespace Volterp.Application.DTOs.EmployeeDtos;
 public record EmployeeDto : IMapFrom<Employee>
 {
     public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string? Email { get; set; }
@@ -26,6 +27,7 @@ public record EmployeeDto : IMapFrom<Employee>
     public void MapFrom(Employee source)
     {
         Id = source.Id;
+        Code = source.Code;
         FirstName = source.FirstName;
         LastName = source.LastName;
         Email = source.Email;

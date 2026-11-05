@@ -29,4 +29,13 @@ public class SupplierRepository(VolterpDbContext context) : RepositoryBase<Suppl
         if (supplier is not null)
             await DeleteAsync(supplier, ct);
     }
+
+    public async Task<bool> ExistsCodeAsync(Guid companyId, string code, Guid? excludeId = null,
+        CancellationToken ct = default)
+    {
+        if (excludeId.HasValue)
+            return await ExistsAsync(s => s.CompanyId == companyId && s.Code == code && s.Id != excludeId.Value, ct);
+
+        return await ExistsAsync(s => s.CompanyId == companyId && s.Code == code, ct);
+    }
 }

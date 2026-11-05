@@ -27,6 +27,13 @@ public class CodeSequenceRepository(VolterpDbContext context)
 
     public async Task<int> NextValueAsync(Guid companyId, CodeEntityType entityType, CancellationToken ct = default)
     {
+        // The allocation may only survive if the insert that carries the code
+        // survives too, so it runs inside the transaction of the unit of work.
+        // When the caller did not open one, this is the first write of the flow
+        // and it opens it: the unit of work commits it with the insert.
+        if (context.Database.CurrentTransaction is null)
+            await context.Database.BeginTransactionAsync(ct);
+
         var connection = context.Database.GetDbConnection();
 
         if (connection.State != ConnectionState.Open)
@@ -34,9 +41,6 @@ public class CodeSequenceRepository(VolterpDbContext context)
 
         await using var command = connection.CreateCommand();
         command.CommandText = NextValueSql;
-
-        // When the caller already opened a transaction the command joins it, so a
-        // failed insert rolls the number back instead of burning it.
         command.Transaction = context.Database.CurrentTransaction?.GetDbTransaction();
 
         AddParameter(command, "id", Guid.CreateVersion7());

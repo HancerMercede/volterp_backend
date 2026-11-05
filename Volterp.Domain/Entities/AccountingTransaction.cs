@@ -6,6 +6,7 @@ namespace Volterp.Domain.Entities;
 public class AccountingTransaction : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
     public Guid CompanyId { get; set; }
     public TransactionType TransactionType { get; set; }
     public decimal Amount { get; set; }

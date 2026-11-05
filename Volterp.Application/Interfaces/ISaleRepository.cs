@@ -12,4 +12,5 @@ public interface ISaleRepository : IRepositoryBase<Sale>
     Task<Sale> AddSaleAsync(Sale sale, CancellationToken ct = default);
     Task UpdateSaleAsync(Sale sale, CancellationToken ct = default);
     Task DeleteSaleAsync(Guid id, CancellationToken ct = default);
+    Task<bool> ExistsCodeAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken ct = default);
 }

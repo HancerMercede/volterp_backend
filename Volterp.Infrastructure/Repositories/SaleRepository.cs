@@ -42,4 +42,12 @@ public class SaleRepository(VolterpDbContext context) : RepositoryBase<Sale>(con
         if (sale is not null)
             await DeleteAsync(sale, ct);
     }
+
+    public async Task<bool> ExistsCodeAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken ct = default)
+    {
+        if (excludeId.HasValue)
+            return await ExistsAsync(s => s.CompanyId == companyId && s.Code == code && s.Id != excludeId.Value, ct);
+
+        return await ExistsAsync(s => s.CompanyId == companyId && s.Code == code, ct);
+    }
 }

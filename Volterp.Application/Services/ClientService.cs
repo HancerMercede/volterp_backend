@@ -5,12 +5,15 @@ using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Application.Services;
 
 public class ClientService(IUnitOfWork unitOfWork) : IClientService
 {
+    private const string CodeAlreadyInUseMessage = "The code is already in use.";
+
     public async Task<PagedResult<ClientDto>> GetAllClientsAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var clients = await unitOfWork.Clients.GetAllClientsAsync(pageNumber, pageSize, ct);
@@ -53,6 +56,11 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             {
                 client.CompanyId = companyId;
                 if (userId.HasValue) client.SetCreatedBy(userId.Value);
+
+                // The user may bring its own code; otherwise the per-company sequence
+                // provides one. A user-provided code must be free inside the company.
+                client.Code = await ResolveCodeForCreateAsync(request.Code, companyId, ct);
+
                 await unitOfWork.Clients.AddClientAsync(client, ct);
                 await unitOfWork.CommitAsync(ct);
                 return client;
@@ -68,8 +76,12 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
             .MapLeft(error => new Error(error.Message))
             .Ensure(client => client is not null, new Error("User not found."))
             .Ensure(client => request.TaxId is null || Rnc.TryParse(request.TaxId, out _), new Error("The tax id must be a valid RNC or citizen ID."))
-            .Map(client =>
+            .FlatMap(async client =>
             {
+                // An empty code keeps the current one; a new code must be free
+                // inside the company (the row being updated is excluded).
+                var resolvedCode = await ResolveCodeForUpdateAsync(request.Code, client!.Code, companyId, client!.Id, ct);
+
                 client.Apply(c =>
                 {
                     c?.Name = request.Name;
@@ -78,6 +90,7 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
                     c?.Address = request.Address;
                     c?.IsActive = request.IsActive;
                     c?.ImageUrl = request.ImageUrl;
+                    c?.Code = resolvedCode;
                     if (request.TaxId is null)
                         c?.TaxId = null;
                     else
@@ -86,9 +99,6 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
                     if (userId.HasValue) c?.SetUpdatedBy(userId.Value);
                 });
 
-                return client;
-            }).FlatMap(async client =>
-            {
                 await unitOfWork.Clients.UpdateClientAsync(client!, ct);
                 await unitOfWork.CommitAsync(ct);
                 return client;
@@ -113,5 +123,38 @@ public class ClientService(IUnitOfWork unitOfWork) : IClientService
                 return new Unit();
             }, error => new Error(error.Message))
             .Run();
+    }
+
+    /// <summary>
+    /// Resolves the code of a new client: the user-provided one (trimmed) when it
+    /// comes with a value, otherwise the next code of the company sequence.
+    /// </summary>
+    private async Task<string> ResolveCodeForCreateAsync(string? requestedCode, Guid companyId, CancellationToken ct)
+    {
+        var trimmed = requestedCode?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return await unitOfWork.Codes.NextAsync(companyId, CodeEntityType.Client, ct);
+
+        if (await unitOfWork.Clients.ExistsCodeAsync(companyId, trimmed, null, ct))
+            throw new Exception(CodeAlreadyInUseMessage);
+
+        return trimmed;
+    }
+
+    /// <summary>
+    /// Resolves the code of an existing client: the user-provided one (trimmed) when it
+    /// comes with a value, otherwise the code the client already has.
+    /// </summary>
+    private async Task<string> ResolveCodeForUpdateAsync(string? requestedCode, string currentCode, Guid companyId,
+        Guid id, CancellationToken ct)
+    {
+        var trimmed = requestedCode?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return currentCode;
+
+        if (await unitOfWork.Clients.ExistsCodeAsync(companyId, trimmed, id, ct))
+            throw new Exception(CodeAlreadyInUseMessage);
+
+        return trimmed;
     }
 }

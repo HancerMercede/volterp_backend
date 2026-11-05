@@ -46,15 +46,19 @@ public class UserServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockUsersRepo = new Mock<IUserRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
         var mockPasswordHasher = new Mock<Volterp.Application.Interfaces.IPasswordHasher>();
 
         mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         mockUsersRepo.Setup(r => r.AddUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User u, CancellationToken ct) => u);
+        mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Usu-001");
         mockPasswordHasher.Setup(h => h.Hash(It.IsAny<string>()))
             .Returns("$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.G4j-hpFGqAZa8O");
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
@@ -67,6 +71,278 @@ public class UserServiceTests
         mockPasswordHasher.Verify(
             h => h.Hash("plainpassword"),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithoutCode_UsesTheGeneratedCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockUsersRepo = new Mock<IUserRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
+        var mockPasswordHasher = new Mock<IPasswordHasher>();
+
+        mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        mockUsersRepo.Setup(r => r.AddUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken ct) => u);
+        mockCodes.Setup(c => c.NextAsync(Guid7TestValues.CompanyA, CodeEntityType.User, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Usu-001");
+        mockPasswordHasher.Setup(h => h.Hash(It.IsAny<string>())).Returns("hash");
+        mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas);
+
+        // ACT
+        var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, UserDto>.Right>();
+        var dto = ((Either<Error, UserDto>.Right)result).Value;
+        dto.Code.Should().Be("Usu-001");
+        mockCodes.Verify(
+            c => c.NextAsync(Guid7TestValues.CompanyA, CodeEntityType.User, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithUserCode_KeepsTheUserCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockUsersRepo = new Mock<IUserRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
+        var mockPasswordHasher = new Mock<IPasswordHasher>();
+
+        mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        mockUsersRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "LEGACY-42", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        mockUsersRepo.Setup(r => r.AddUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken ct) => u);
+        mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Usu-001");
+        mockPasswordHasher.Setup(h => h.Hash(It.IsAny<string>())).Returns("hash");
+        mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas)
+        {
+            Code = "LEGACY-42"
+        };
+
+        // ACT
+        var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, UserDto>.Right>();
+        var dto = ((Either<Error, UserDto>.Right)result).Value;
+        dto.Code.Should().Be("LEGACY-42");
+        mockCodes.Verify(
+            c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithPaddedCode_TrimsItBeforeUsingIt()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockUsersRepo = new Mock<IUserRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
+        var mockPasswordHasher = new Mock<IPasswordHasher>();
+
+        mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        mockUsersRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "LEGACY-7", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        mockUsersRepo.Setup(r => r.AddUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken ct) => u);
+        mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Usu-001");
+        mockPasswordHasher.Setup(h => h.Hash(It.IsAny<string>())).Returns("hash");
+        mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas)
+        {
+            Code = "  LEGACY-7  "
+        };
+
+        // ACT
+        var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, UserDto>.Right>();
+        var dto = ((Either<Error, UserDto>.Right)result).Value;
+        dto.Code.Should().Be("LEGACY-7");
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithDuplicateCode_ReturnsCodeAlreadyInUseError()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockUsersRepo = new Mock<IUserRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
+        var mockPasswordHasher = new Mock<IPasswordHasher>();
+
+        mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        mockUsersRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "DUP-1", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockUsersRepo.Setup(r => r.AddUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((User u, CancellationToken ct) => u);
+        mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Usu-001");
+        mockPasswordHasher.Setup(h => h.Hash(It.IsAny<string>())).Returns("hash");
+        mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas)
+        {
+            Code = "DUP-1"
+        };
+
+        // ACT
+        var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, UserDto>.Left>();
+        var error = ((Either<Error, UserDto>.Left)result).Value;
+        error.Message.Should().Be("The code is already in use.");
+        mockUsersRepo.Verify(r => r.AddUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Never);
+        mockUnitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithNewCode_AssignsTheNewCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockUsersRepo = new Mock<IUserRepository>();
+
+        var user = new User
+        {
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "old@test.com",
+            FullName = "Old Name", Role = UserRole.Ventas,
+            CompanyId = Guid7TestValues.CompanyA, IsActive = true, Code = "Usu-001"
+        };
+
+        mockUsersRepo.Setup(r => r.GetUserByIdAsync(Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        mockUsersRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "LEGACY-9", Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        mockUsersRepo.Setup(r => r.UpdateUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new UserService(mockUnitOfWork.Object, Mock.Of<IPasswordHasher>(), Mock.Of<ICurrentUserService>());
+        var request = new UserWithPasswordHashDto
+        {
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "new@test.com",
+            FullName = "New Name", Role = UserRole.Ventas,
+            IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = user.PasswordHash,
+            Code = "LEGACY-9"
+        };
+
+        // ACT
+        var result = await service.UpdateAsync(Guid7TestValues.UserA, request, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, UserDto>.Right>();
+        user.Code.Should().Be("LEGACY-9");
+        mockUsersRepo.Verify(r => r.UpdateUserAsync(user, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithoutCode_KeepsTheCurrentCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockUsersRepo = new Mock<IUserRepository>();
+
+        var user = new User
+        {
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "old@test.com",
+            FullName = "Old Name", Role = UserRole.Ventas,
+            CompanyId = Guid7TestValues.CompanyA, IsActive = true, Code = "Usu-001"
+        };
+
+        mockUsersRepo.Setup(r => r.GetUserByIdAsync(Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        mockUsersRepo.Setup(r => r.UpdateUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new UserService(mockUnitOfWork.Object, Mock.Of<IPasswordHasher>(), Mock.Of<ICurrentUserService>());
+        var request = new UserWithPasswordHashDto
+        {
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "new@test.com",
+            FullName = "New Name", Role = UserRole.Ventas,
+            IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = user.PasswordHash
+        };
+
+        // ACT
+        var result = await service.UpdateAsync(Guid7TestValues.UserA, request, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, UserDto>.Right>();
+        user.Code.Should().Be("Usu-001");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithDuplicateCode_ReturnsCodeAlreadyInUseError()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockUsersRepo = new Mock<IUserRepository>();
+
+        var user = new User
+        {
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "old@test.com",
+            FullName = "Old Name", Role = UserRole.Ventas,
+            CompanyId = Guid7TestValues.CompanyA, IsActive = true, Code = "Usu-001"
+        };
+
+        mockUsersRepo.Setup(r => r.GetUserByIdAsync(Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(user);
+        mockUsersRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "DUP-1", Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockUsersRepo.Setup(r => r.UpdateUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new UserService(mockUnitOfWork.Object, Mock.Of<IPasswordHasher>(), Mock.Of<ICurrentUserService>());
+        var request = new UserWithPasswordHashDto
+        {
+            Id = Guid7TestValues.UserA, Username = "testuser", Email = "new@test.com",
+            FullName = "New Name", Role = UserRole.Ventas,
+            IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = user.PasswordHash,
+            Code = "DUP-1"
+        };
+
+        // ACT
+        var result = await service.UpdateAsync(Guid7TestValues.UserA, request, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, UserDto>.Left>();
+        var error = ((Either<Error, UserDto>.Left)result).Value;
+        error.Message.Should().Be("The code is already in use.");
+        mockUsersRepo.Verify(r => r.UpdateUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()), Times.Never);
+        mockUnitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

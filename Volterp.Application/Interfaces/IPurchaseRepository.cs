@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Volterp.Application.Helpers;
 using Volterp.Domain.Entities;
 
@@ -10,4 +11,5 @@ public interface  IPurchaseRepository
     Task<Purchase> AddPurchaseAsync(Purchase purchase, CancellationToken ct = default);
     Task UpdatePurchaseAsync(Purchase purchase, CancellationToken ct = default);
     Task DeletePurchaseAsync(Guid id, CancellationToken ct = default);
+    Task<bool> ExistsCodeAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken ct = default);
 }

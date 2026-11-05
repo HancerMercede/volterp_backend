@@ -4,11 +4,14 @@ using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Application.Services;
 
 public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
 {
+    private const string CodeAlreadyInUseMessage = "The code is already in use.";
+
     public async Task<PagedResult<PurchaseDto>> GetAllPurchasesAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
         var purchases = await unitOfWork.Purchases.GetAllPurchasesAsync(pageNumber, pageSize, ct);
@@ -33,9 +36,14 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
             .Ensure(r => r.Items.Count > 0, new Error("Purchase must have at least one item."))
             .FlatMap(async req =>
             {
+                // The code is resolved before any stock movement: a rejected code
+                // must not leave the inventory half-updated.
+                var code = await ResolveCodeForCreateAsync(req.Code, companyId, ct);
+
                 var purchase = new Purchase
                 {
                     CompanyId = companyId,
+                    Code = code,
                     SupplierId = req.SupplierId,
                     SupplierName = req.SupplierName,
                     Status = req.Status,
@@ -93,6 +101,10 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
             .Ensure(purchase => purchase is not null, new Error("Purchase not found."))
             .FlatMap(async purchase =>
             {
+                // The code is resolved before any stock movement: a rejected code
+                // must not leave the inventory half-updated.
+                var code = await ResolveCodeForUpdateAsync(request.Code, purchase.Code, companyId, purchase.Id, ct);
+
                 // Collect all product IDs (old items + new items)
                 var oldProductIds = purchase.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value);
                 var newProductIds = request.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value);
@@ -133,6 +145,7 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
                     p.Status = request.Status;
                     p.Total = request.Total;
                     p.Notes = request.Notes;
+                    p.Code = code;
                     p.UpdatedAt = DateTime.UtcNow;
                     if (userId.HasValue) p.SetUpdatedBy(userId.Value);
                     p.Items = newItems;
@@ -180,5 +193,34 @@ public class PurchaseService(IUnitOfWork unitOfWork) : IPurchaseService
                 return new Unit();
             }, ex => new Error(ex.Message))
             .Run();
+    }
+
+    // The user may bring its own code; otherwise the per-company sequence
+    // provides one. A user-provided code must be free inside the company.
+    private async Task<string> ResolveCodeForCreateAsync(string? requestedCode, Guid companyId, CancellationToken ct)
+    {
+        var trimmed = requestedCode?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return await unitOfWork.Codes.NextAsync(companyId, CodeEntityType.Purchase, ct);
+
+        if (await unitOfWork.Purchases.ExistsCodeAsync(companyId, trimmed, null, ct))
+            throw new Exception(CodeAlreadyInUseMessage);
+
+        return trimmed;
+    }
+
+    // Resolves the code of an existing purchase: the user-provided one (trimmed) when it
+    // comes with a value, otherwise the code the purchase already has. The row being
+    // updated is excluded so keeping its own code is not a conflict.
+    private async Task<string> ResolveCodeForUpdateAsync(string? requestedCode, string currentCode, Guid companyId, Guid id, CancellationToken ct)
+    {
+        var trimmed = requestedCode?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return currentCode;
+
+        if (await unitOfWork.Purchases.ExistsCodeAsync(companyId, trimmed, id, ct))
+            throw new Exception(CodeAlreadyInUseMessage);
+
+        return trimmed;
     }
 }

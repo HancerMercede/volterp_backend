@@ -6,6 +6,10 @@ namespace Volterp.Application.DTOs;
 public record PurchaseDto : IMapFrom<Purchase>
 {
     public Guid Id { get; set; }
+    // This DTO plays both roles: it is the create/update request body AND the
+    // response body. As a request, an empty Code means "generate one"; as a
+    // response it always carries the code of the purchase.
+    public string Code { get; set; } = string.Empty;
     public Guid? SupplierId { get; set; }
     public string SupplierName { get; set; } = string.Empty;
     public EntityStatus Status { get; set; }
@@ -20,6 +24,7 @@ public record PurchaseDto : IMapFrom<Purchase>
     public void MapFrom(Purchase source)
     {
         Id = source.Id;
+        Code = source.Code;
         SupplierId = source.SupplierId;
         SupplierName = source.SupplierName;
         Status = source.Status;

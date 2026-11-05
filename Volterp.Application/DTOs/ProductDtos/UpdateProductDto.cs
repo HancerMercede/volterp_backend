@@ -14,7 +14,8 @@ public record UpdateProductDto(
     Guid? CategoryId,
     bool IsActive,
     string? ImageUrl = null,
-    TaxCode TaxCode = TaxCode.ItbisTasa1
+    TaxCode TaxCode = TaxCode.ItbisTasa1,
+    string? Code = null
 ):IMapTo<Product>
 {
     public Product MapTo()
@@ -27,7 +28,8 @@ public record UpdateProductDto(
             Price = new Money(Price, Currency.ARS),
             Stock = Stock,
             CategoryId = CategoryId,
-            ImageUrl =  ImageUrl
+            ImageUrl =  ImageUrl,
+            Code = Code?.Trim() ?? string.Empty
         };
     }
 }

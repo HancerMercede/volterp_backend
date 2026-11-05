@@ -142,11 +142,13 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
 
         mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
 
         var service = new ProductService(mockUnitOfWork.Object);
         var request = new CreateProductDto(
@@ -170,6 +172,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
 
         mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -177,7 +180,10 @@ public class ProductServiceTests
             .ReturnsAsync((Product p, CancellationToken ct) => p);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        mockCodes.Setup(c => c.NextAsync(Guid7TestValues.CompanyA, CodeEntityType.Product, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Prod-001");
 
         var service = new ProductService(mockUnitOfWork.Object);
         var request = new CreateProductDto(
@@ -298,6 +304,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
 
         mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -305,7 +312,10 @@ public class ProductServiceTests
             .ReturnsAsync((Product p, CancellationToken ct) => p);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        mockCodes.Setup(c => c.NextAsync(Guid7TestValues.CompanyA, CodeEntityType.Product, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Prod-001");
 
         var service = new ProductService(mockUnitOfWork.Object);
         var request = new CreateProductDto(
@@ -400,5 +410,243 @@ public class ProductServiceTests
 
         // ASSERT
         mockProductsRepo.Verify(r => r.DeleteProductAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // ─────── Friendly codes (feature friendly-ids, T3a) ───────
+
+    [Fact]
+    public async Task CreateAsync_WithoutCode_UsesTheGeneratedCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockCategoriesRepo = new Mock<ICategoryRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
+
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockProductsRepo.Setup(r => r.AddProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Product p, CancellationToken ct) => p);
+        mockCodes.Setup(c => c.NextAsync(Guid7TestValues.CompanyA, CodeEntityType.Product, It.IsAny<CancellationToken>()))
+            .ReturnsAsync("Prod-001");
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new ProductService(mockUnitOfWork.Object);
+        var request = new CreateProductDto(
+            Name: "New Product", Category: "Category", Description: "Description",
+            Price: 150, Stock: 25, CategoryId: null, ImageUrl: null
+        );
+
+        // ACT
+        var result = await service.CreateAsync(request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, ProductDto>.Right>();
+        var dto = ((Either<Error, ProductDto>.Right)result).Value;
+        dto.Code.Should().Be("Prod-001");
+        mockCodes.Verify(c => c.NextAsync(Guid7TestValues.CompanyA, CodeEntityType.Product, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithUserCode_KeepsTheUserCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockCategoriesRepo = new Mock<ICategoryRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
+
+        Product? persisted = null;
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockProductsRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "12345", It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        mockProductsRepo.Setup(r => r.AddProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
+            .Callback<Product, CancellationToken>((p, _) => persisted = p)
+            .ReturnsAsync((Product p, CancellationToken ct) => p);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new ProductService(mockUnitOfWork.Object);
+        var request = new CreateProductDto(
+            Name: "New Product", Category: "Category", Description: "Description",
+            Price: 150, Stock: 25, CategoryId: null, ImageUrl: null, Code: " 12345 "
+        );
+
+        // ACT
+        var result = await service.CreateAsync(request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, ProductDto>.Right>();
+        var dto = ((Either<Error, ProductDto>.Right)result).Value;
+        dto.Code.Should().Be("12345");
+        persisted.Should().NotBeNull();
+        persisted!.Code.Should().Be("12345");
+        mockCodes.Verify(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithDuplicateCode_ReturnsCodeAlreadyInUseError()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockCategoriesRepo = new Mock<ICategoryRepository>();
+        var mockCodes = new Mock<ICodeGenerator>();
+
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockProductsRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "12345", It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
+
+        var service = new ProductService(mockUnitOfWork.Object);
+        var request = new CreateProductDto(
+            Name: "New Product", Category: "Category", Description: "Description",
+            Price: 150, Stock: 25, CategoryId: null, ImageUrl: null, Code: "12345"
+        );
+
+        // ACT
+        var result = await service.CreateAsync(request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, ProductDto>.Left>();
+        var error = ((Either<Error, ProductDto>.Left)result).Value;
+        error.Message.Should().Be("The code is already in use.");
+        mockProductsRepo.Verify(r => r.AddProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Never);
+        mockUnitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithoutCode_KeepsTheCurrentCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockCategoriesRepo = new Mock<ICategoryRepository>();
+
+        var product = new Product
+        {
+            Id = Guid7TestValues.ProductA, Name = "Old Name", CompanyId = Guid7TestValues.CompanyA,
+            Stock = 10, Price = new Money(100, Currency.ARS), Category = "Old Category", Code = "Prod-001"
+        };
+
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockProductsRepo.Setup(r => r.UpdateProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new ProductService(mockUnitOfWork.Object);
+        var request = new UpdateProductDto(
+            Name: "New Name", Category: "New Category", Description: "New Desc",
+            Price: 200, Stock: 30, CategoryId: null, IsActive: true, ImageUrl: null
+        );
+
+        // ACT
+        var result = await service.UpdateAsync(Guid7TestValues.ProductA, request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, ProductDto>.Right>();
+        var dto = ((Either<Error, ProductDto>.Right)result).Value;
+        dto.Code.Should().Be("Prod-001");
+        product.Code.Should().Be("Prod-001");
+        mockProductsRepo.Verify(r => r.ExistsCodeAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithNewCode_AssignsTheNewCode()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockCategoriesRepo = new Mock<ICategoryRepository>();
+
+        var product = new Product
+        {
+            Id = Guid7TestValues.ProductA, Name = "Old Name", CompanyId = Guid7TestValues.CompanyA,
+            Stock = 10, Price = new Money(100, Currency.ARS), Category = "Old Category", Code = "Prod-001"
+        };
+
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockProductsRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "12345", Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        mockProductsRepo.Setup(r => r.UpdateProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new ProductService(mockUnitOfWork.Object);
+        var request = new UpdateProductDto(
+            Name: "New Name", Category: "New Category", Description: "New Desc",
+            Price: 200, Stock: 30, CategoryId: null, IsActive: true, ImageUrl: null, Code: " 12345 "
+        );
+
+        // ACT
+        var result = await service.UpdateAsync(Guid7TestValues.ProductA, request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, ProductDto>.Right>();
+        var dto = ((Either<Error, ProductDto>.Right)result).Value;
+        dto.Code.Should().Be("12345");
+        product.Code.Should().Be("12345");
+        // The row being updated is excluded from the uniqueness lookup.
+        mockProductsRepo.Verify(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "12345", Guid7TestValues.ProductA, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithDuplicateCode_ReturnsCodeAlreadyInUseError()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockCategoriesRepo = new Mock<ICategoryRepository>();
+
+        var product = new Product
+        {
+            Id = Guid7TestValues.ProductA, Name = "Old Name", CompanyId = Guid7TestValues.CompanyA,
+            Stock = 10, Price = new Money(100, Currency.ARS), Category = "Old Category", Code = "Prod-001"
+        };
+
+        mockProductsRepo.Setup(r => r.GetProductByIdAsync(Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(product);
+        mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockProductsRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "12345", Guid7TestValues.ProductA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Categories).Returns(mockCategoriesRepo.Object);
+
+        var service = new ProductService(mockUnitOfWork.Object);
+        var request = new UpdateProductDto(
+            Name: "New Name", Category: "New Category", Description: "New Desc",
+            Price: 200, Stock: 30, CategoryId: null, IsActive: true, ImageUrl: null, Code: "12345"
+        );
+
+        // ACT
+        var result = await service.UpdateAsync(Guid7TestValues.ProductA, request, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, ProductDto>.Left>();
+        var error = ((Either<Error, ProductDto>.Left)result).Value;
+        error.Message.Should().Be("The code is already in use.");
+        mockProductsRepo.Verify(r => r.UpdateProductAsync(It.IsAny<Product>(), It.IsAny<CancellationToken>()), Times.Never);
+        mockUnitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+        product.Code.Should().Be("Prod-001", "a rejected update must not change the stored code.");
     }
 }

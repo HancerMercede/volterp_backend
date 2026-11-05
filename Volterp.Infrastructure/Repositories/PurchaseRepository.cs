@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Infrastructure.Data;
@@ -27,5 +28,16 @@ public class PurchaseRepository(VolterpDbContext context) : RepositoryBase<Purch
         var purchase = await GetByIdAsync(id, ct);
         if (purchase is not null)
             await DeleteAsync(purchase, ct);
+    }
+
+    // Exposed by the repository so the application layer can check that the
+    // business code is not repeated inside the company without reaching for
+    // the DbContext.
+    public async Task<bool> ExistsCodeAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken ct = default)
+    {
+        if (excludeId.HasValue)
+            return await ExistsAsync(p => p.CompanyId == companyId && p.Code == code && p.Id != excludeId.Value, ct);
+
+        return await ExistsAsync(p => p.CompanyId == companyId && p.Code == code, ct);
     }
 }

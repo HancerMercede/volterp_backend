@@ -37,4 +37,12 @@ public class ProductRepository(VolterpDbContext context)
 
     public async Task<bool> ExistsProductAsync(Guid id, CancellationToken ct = default)
         => await ExistsAsync(p => p.Id == id, ct);
+
+    public async Task<bool> ExistsCodeAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken ct = default)
+    {
+        if (excludeId.HasValue)
+            return await ExistsAsync(p => p.CompanyId == companyId && p.Code == code && p.Id != excludeId.Value, ct);
+
+        return await ExistsAsync(p => p.CompanyId == companyId && p.Code == code, ct);
+    }
 }

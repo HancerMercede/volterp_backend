@@ -11,7 +11,8 @@ public record CreateSaleRequest(
     decimal Total,
     string? Notes,
     List<CreateSaleItemRequest> Items,
-    EcfDocumentType DocumentType = EcfDocumentType.Consumer
+    EcfDocumentType DocumentType = EcfDocumentType.Consumer,
+    string? Code = null
 ) : IMapTo<Sale>
 {
     public Sale MapTo()
@@ -21,6 +22,8 @@ public record CreateSaleRequest(
         // If you see this method writing CompanyId, that is a regression.
         // Total is NOT copied here — the domain computes Subtotal, Itbis and Total
         // from the items and the tax code of each one.
+        // Code IS copied here, but SaleService.CreateSaleAsync owns the final value:
+        // when the request leaves it empty the service asks the generator for one.
         return new Sale
         {
             ClienteId = ClienteId,
@@ -28,6 +31,7 @@ public record CreateSaleRequest(
             Status = Status,
             DocumentType = DocumentType,
             Notes = Notes,
+            Code = Code ?? string.Empty,
             Items = Items.Map(i => i.Project())
         };
     }

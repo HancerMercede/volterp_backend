@@ -12,6 +12,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         entity.HasKey(e => e.Id);
         entity.HasIndex(e => e.Username).IsUnique();
         entity.HasIndex(e => e.Email).IsUnique();
+        entity.HasIndex(e => new { e.CompanyId, e.Code }).IsUnique();
         entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
         entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
         entity.Property(e => e.PasswordHash).IsRequired();

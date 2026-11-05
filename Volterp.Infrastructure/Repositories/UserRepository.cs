@@ -21,6 +21,15 @@ public class UserRepository(VolterpDbContext context)
             .IgnoreQueryFilters()
             .AnyAsync(u => u.Username == username, ct);
 
+    // The code is unique inside a company, so the check is scoped by company.
+    public async Task<bool> ExistsCodeAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken ct = default)
+    {
+        if (excludeId.HasValue)
+            return await ExistsAsync(u => u.CompanyId == companyId && u.Code == code && u.Id != excludeId.Value, ct);
+
+        return await ExistsAsync(u => u.CompanyId == companyId && u.Code == code, ct);
+    }
+
     public async Task<User?> GetByUserByEmailAsync(string email, CancellationToken ct = default)
         =>  await GetByCondictionsAsync(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase), ct);
 

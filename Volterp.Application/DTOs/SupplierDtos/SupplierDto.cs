@@ -5,6 +5,7 @@ namespace Volterp.Application.DTOs.SupplierDtos;
 public record SupplierDto:IMapFrom<Supplier>
 {
     public Guid Id { get; set; }
+    public string Code { get; set; } = string.Empty;
 
     public Guid CompanyId { get; set; }
     public string? Name { get; set; }
@@ -22,6 +23,7 @@ public record SupplierDto:IMapFrom<Supplier>
     {
         Id = source.Id;
         CompanyId = source.CompanyId;
+        Code = source.Code;
         Name = source.Name;
         Email = source.Email;
         Phone = source.Phone;
