@@ -185,8 +185,8 @@ Entrega aparte: repo, rama y PR distintos de los del backend.
 | T3e | S1, S3, S5 | delegated (`gentle-ai-worker`) | DONE | este commit: User |
 | T4 | S2, S10 | delegated (`gentle-ai-worker`) | DONE | `d9c341e` |
 | T5 | S1 | fusionado en T3a-T3e | — | el `Code` del DTO de respuesta viaja con cada entidad, no es una unidad aparte |
-| T6 | S7, S8 | handoff al usuario (repo `erp-mvp`) | PENDING | el usuario lo implementa con el spec de L11 |
-| T7 | S1-S10 | inline (parent) + verificador independiente | IN PROGRESS | verificación y cierre |
+| T6 | S7, S8 | handoff al usuario (repo `erp-mvp`) | IN PROGRESS | el usuario lo implementa con el spec de L11 |
+| T7 | S1-S10 | inline (parent) | DONE | verificación: 455/455 tests, migración verificada en base real, E2E contra la API. El verificador independiente se saltó por decisión explícita del usuario (L12) |
 
 ## Risks
 
@@ -254,3 +254,6 @@ Entrega aparte: repo, rama y PR distintos de los del backend.
 
 ### L11 — 2026-11-05 — el frontend lo implementa el usuario
 El checkout de `erp-mvp` tenía trabajo sin commitear del usuario (incluidos `Clientes.tsx` e `Inventario.tsx`, dos de los archivos a tocar), así que no se tocó ese repo. Se le pasó el spec exacto: qué columna cambia en cada tabla, qué campo se agrega a qué tipo, qué búsquedas pasan a buscar por código, qué clave de i18n agregar y qué línea del detalle de venta cambia.
+
+### L12 — 2026-11-05 — el verificador independiente se saltó por decisión del usuario
+El plan declara riesgo **item 3** (contrato público: `code` en 9 DTOs de respuesta) e **item 1** (la migración escribe sobre filas existentes), lo que disparaba el verificador independiente. El usuario lo saltó explícitamente: la evidencia ya cubría los mecanismos (455/455 tests, apply→rollback→apply de la migración en base descartable, verificación de los datos reales y E2E contra la API viva). Queda como riesgo aceptado, no como riesgo verificado.
