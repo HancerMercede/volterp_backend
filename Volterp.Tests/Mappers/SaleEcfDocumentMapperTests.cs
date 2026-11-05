@@ -10,6 +10,8 @@ namespace Volterp.Tests.Mappers;
 
 public class SaleEcfDocumentMapperTests
 {
+    private static readonly Guid CompanyId = Guid.NewGuid();
+
     private readonly EcfXmlWriter _writer = new();
 
     [Fact]
@@ -172,9 +174,20 @@ public class SaleEcfDocumentMapperTests
         act.Should().Throw<InvalidOperationException>().WithMessage("*line*");
     }
 
+    [Fact]
+    public void Map_ThrowsWhenTheSaleDoesNotBelongToTheCompanyThatIssuesIt()
+    {
+        var otherCompany = Company();
+        otherCompany.Id = Guid.NewGuid();
+
+        var act = () => SaleEcfDocumentMapper.Map(Sale(), otherCompany, Issuance());
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*company*");
+    }
+
     private static Sale Sale() => new()
     {
-        CompanyId = Guid.NewGuid(),
+        CompanyId = CompanyId,
         DocumentType = EcfDocumentType.Consumer,
         CreatedAt = new DateTime(2026, 11, 4)
     };
@@ -188,6 +201,7 @@ public class SaleEcfDocumentMapperTests
 
     private static Company Company() => new()
     {
+        Id = CompanyId,
         Name = "Distribuidora del Norte",
         LegalName = "Distribuidora del Norte SRL",
         TaxId = "10100000101",

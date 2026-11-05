@@ -46,6 +46,10 @@ public static class SaleEcfDocumentMapper
         if (sale.Items.Count == 0)
             throw new InvalidOperationException("The sale has no lines to issue.");
 
+        if (sale.CompanyId != issuer.Id)
+            throw new InvalidOperationException(
+                "The sale does not belong to the company that issues the document.");
+
         var profile = EcfTypeProfiles.For(sale.DocumentType);
 
         if (profile.RequiresSequenceExpiry && issuance.SequenceExpiresAt is null)
