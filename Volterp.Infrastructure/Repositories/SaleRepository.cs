@@ -10,7 +10,9 @@ public class SaleRepository(VolterpDbContext context) : RepositoryBase<Sale>(con
 {
     public async Task<Sale?> GetSaleByIdAsync(Guid id, CancellationToken ct = default)
         => await GetByCondictionsAsync(s => s.Id == id,ct,
-            s => s.Include(i => i.Items));
+            s => s
+                .Include(i => i.Items)
+                .Include(i => i.Company));
 
 
     public async Task<PagedResult<Sale>> GetAllSalesAsync(int pageNumber, int pageSize,
