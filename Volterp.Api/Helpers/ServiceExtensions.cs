@@ -75,9 +75,8 @@ public static class ServiceExtensions
         services.AddHttpClient<IDgiiClient, DgiiClient>();
         services.AddTransient<DgiiAuthenticator>();
 
-        // The signing certificate is the one secret an issuer has: the DGII
-        // authenticates the web services with the signature of the certificate,
-        // so the host resolves it from the encrypted credential of the company.
+        // The host port of the library: the ERP resolves the issuer's
+        // certificate from the encrypted credential of the company.
         services.AddScoped<ISigningCertificateProvider, CompanySigningCertificateProvider>();
     }
 

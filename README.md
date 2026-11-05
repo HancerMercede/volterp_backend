@@ -117,6 +117,8 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Company Certificates** | `GET /api/CompanyCertificates`, `POST /api/CompanyCertificates` (admin) |
 | **Accounting** | CRUD `/api/accounting-transactions` |
 
+La credencial del certificado se guarda cifrada y nunca vuelve por la respuesta. Para firmar e-CF, el ERP la interpreta como el sobre `{"pfx": "<base64 del .p12>", "password": "<password del .p12>"}`: es el único secreto del emisor, porque la DGII autentica los web services con la firma del certificado.
+
 ## Related
 
 - [Frontend (erp-mvp)](https://github.com/HancerMercede/erp-mvp) — React SPA
