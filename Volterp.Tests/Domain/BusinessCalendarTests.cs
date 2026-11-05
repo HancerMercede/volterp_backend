@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Volterp.Domain.Entities;
 using Volterp.Domain.Time;
 using Xunit;
 
@@ -40,5 +41,19 @@ public class BusinessCalendarTests
         var utc = new DateTime(2026, 11, 5, 22, 30, 0, DateTimeKind.Utc);
 
         BusinessCalendar.Today(utc).Should().Be(BusinessCalendar.FromUtc(utc));
+    }
+
+    [Fact]
+    public void BusinessDate_OfANewRow_ShouldBeTheBusinessDayOfItsOwnCreatedAt()
+    {
+        var sale = new Sale();
+
+        // The entity stamps both fields from their own clock reading, so they can
+        // differ by a fraction of a millisecond. The business day must be the same.
+        var earliest = BusinessCalendar.FromUtc(sale.CreatedAt.AddSeconds(-1));
+        var latest = BusinessCalendar.FromUtc(sale.CreatedAt.AddSeconds(1));
+
+        sale.BusinessDate.Should().BeOnOrAfter(earliest);
+        sale.BusinessDate.Should().BeOnOrBefore(latest);
     }
 }

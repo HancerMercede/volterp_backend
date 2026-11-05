@@ -196,6 +196,13 @@ Advisories that were deliberately not acted on, and why:
 
 The one real gap the verifier found was closed: the writer's tests derived the expected month boundary from `ReportingPeriod.StartOfMonth`, a circular oracle that cannot detect a wrong calendar definition. `Volterp.Tests/Domain/ReportingPeriodCalendarSemanticsTests.cs` now pins the window semantics against literals, and `src/test/components/KpiCardChangeRendering.test.tsx` pins that an undefined comparison renders as `"—"` and never as a percentage.
 
+Consolidation after the verification (2026-11-05). The user asked whether two new test files were the right call when a file for the same subject already existed. They were not:
+
+- `ReportingPeriodCalendarSemanticsTests.cs` was a second file for `ReportingPeriod`, which already had `ReportingPeriodTests.cs`. Its genuinely new coverage — the calendar windows against literals on every weekday and month edge case, the bucket counts, and the business date of a newly created row — moved into `ReportingPeriodTests.cs` and `BusinessCalendarTests.cs`, and the parallel file was deleted.
+- `KpiCardChangeRendering.test.tsx` tested the KPI card on its own while `Dashboard.test.tsx` already renders it. Its assertions moved into the page test and the parallel file was deleted.
+
+The editing constraint applies to the tests too: one file per subject, and a second file for the same subject is noise. Both repositories are back to the number of test files they had before the verification.
+
 Audit findings (2026-11-05): both filter groups are dead UI — `activePeriod` only toggles a CSS class in `Dashboard.tsx:25,50-60` and `SalesChart.tsx:37,44-52`; neither triggers a refetch. The backend accepts no query parameters (`DashboardController.cs:9`) and every aggregate is all-time except the chart, which is hard-coded to 7 daily buckets (`DashboardRepository.cs:53-87`). No `DateRange`/`Period`/`DateOnly` primitive exists in `Volterp.Domain`.
 
 Decisions taken without a further question round, each recorded here so it can be reverted:

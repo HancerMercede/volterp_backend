@@ -1,3 +1,4 @@
+using System.Globalization;
 using FluentAssertions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Time;
@@ -163,5 +164,68 @@ public class ReportingPeriodTests
         buckets.Should().AllSatisfy(b => b.Unit.Should().Be(ChartBucketUnit.Month));
         buckets.First().Start.Should().Be(new DateOnly(2026, 1, 1));
         buckets.Last().Start.Should().Be(new DateOnly(2026, 11, 1));
+    }
+
+    [Theory]
+    // Every day of a week, the month edge cases and the year edge case. The
+    // expectations are literals on purpose: an expectation derived from
+    // ReportingPeriod itself cannot detect a wrong calendar definition.
+    [InlineData("2026-10-26", "2026-10-26", "2026-10-01")] // Monday
+    [InlineData("2026-10-31", "2026-10-26", "2026-10-01")] // Saturday, last month day
+    [InlineData("2026-11-01", "2026-10-26", "2026-11-01")] // Sunday
+    [InlineData("2026-03-31", "2026-03-30", "2026-03-01")] // Tuesday, 31-day month
+    [InlineData("2026-01-01", "2025-12-29", "2026-01-01")] // Thursday, first day of the year
+    public void Resolve_ShouldReturnTheCalendarWindowOnAnyDay(string today, string weekFrom, string monthFrom)
+    {
+        var day = DateOnly.ParseExact(today, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        ReportingPeriod.Resolve(DashboardScope.Week, day).From
+            .Should().Be(DateOnly.ParseExact(weekFrom, "yyyy-MM-dd", CultureInfo.InvariantCulture));
+        ReportingPeriod.Resolve(DashboardScope.Week, day).To.Should().Be(day);
+
+        ReportingPeriod.Resolve(DashboardScope.Month, day).From
+            .Should().Be(DateOnly.ParseExact(monthFrom, "yyyy-MM-dd", CultureInfo.InvariantCulture));
+        ReportingPeriod.Resolve(DashboardScope.Month, day).To.Should().Be(day);
+    }
+
+    [Theory]
+    [InlineData("2026-11-05", 4)] // Monday..Thursday
+    [InlineData("2026-11-01", 7)] // Monday..Sunday
+    [InlineData("2026-11-02", 1)] // Monday
+    public void Buckets_WeekWindow_ShouldBeOnePerDay(string today, int expected)
+    {
+        var day = DateOnly.ParseExact(today, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        var buckets = ReportingPeriod.Buckets(ChartWindow.Week, day);
+
+        buckets.Should().HaveCount(expected);
+        buckets.Should().AllSatisfy(b => b.Unit.Should().Be(ChartBucketUnit.Day));
+    }
+
+    [Theory]
+    [InlineData("2026-11-05", 5)]
+    [InlineData("2026-10-31", 31)]
+    public void Buckets_MonthWindow_ShouldBeOnePerDayOfTheMonth(string today, int expected)
+    {
+        var day = DateOnly.ParseExact(today, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        var buckets = ReportingPeriod.Buckets(ChartWindow.Month, day);
+
+        buckets.Should().HaveCount(expected);
+        buckets.Should().AllSatisfy(b => b.Unit.Should().Be(ChartBucketUnit.Day));
+    }
+
+    [Theory]
+    [InlineData("2026-11-05", 11)]
+    [InlineData("2026-01-01", 1)]
+    [InlineData("2026-12-31", 12)]
+    public void Buckets_YearWindow_ShouldBeOnePerMonth(string today, int expected)
+    {
+        var day = DateOnly.ParseExact(today, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        var buckets = ReportingPeriod.Buckets(ChartWindow.Year, day);
+
+        buckets.Should().HaveCount(expected);
+        buckets.Should().AllSatisfy(b => b.Unit.Should().Be(ChartBucketUnit.Month));
     }
 }
