@@ -640,6 +640,10 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Por qué el backoff es nuestro**: la spec solo dice "un tiempo prudencial" y no fija los tiempos ✓; los tiempos que sí fija la norma (72 h de contingencia, 15 días de tope, 30 días para enviar a la DGII) son de T41/T42 ✓, no del retrack ✓.
   - **Un límite que queda anotado para T41**: si la DGII está caída, el primer documento que falla corta el lote ✓ (los demás quedan con la cita vencida ✓ y se reintentan en la pasada siguiente ✓), así que el worker tiene que **aislar la falla por documento** ✓.
 
+- **L40** (2026-11-13) — **T40b (el circuito contra la DGII real)**: el test E2E entró al repo ✓ — `AgainstTheDgii` + `DgiiEnvironmentFactAttribute` (xunit 2.9 no tiene skip dinámico ✓, así que el atributo se salta solo cuando no hay configuración ✓). Se lee de `VOLTERP_DGII_BASE_URL`, `VOLTERP_DGII_CERTIFICATE`, `VOLTERP_DGII_CERTIFICATE_PASSWORD` y `VOLTERP_DGII_ENVIRONMENT` ✓.
+  - **La primera prueba es el diagnóstico de la cadena**: la semilla firmada con el certificado del emisor contra `testecf` ✓. Si la DGII da token ✓, el certificado y el RNC están habilitados ✓; si no, **el cuerpo de la respuesta dice qué eslabón falta** ✓ — y el test lo muestra en el fallo ✓, porque el `RawBody` es la evidencia ✓ (por eso el fallo lo envuelve en vez de dejar solo el mensaje ✓).
+  - **El certificado es del cliente y no entra al repo**: ni el `.p12` ni la contraseña se commitean ✓; el `.gitignore` ya ignora `*.p12` ✓ y la contraseña vive solo en la sesión ✓.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
