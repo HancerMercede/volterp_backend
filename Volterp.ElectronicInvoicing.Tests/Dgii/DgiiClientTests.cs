@@ -6,8 +6,20 @@ using Xunit;
 
 namespace Volterp.ElectronicInvoicing.Tests.Dgii;
 
+/// <summary>
+/// The transport tests of the DGII client.
+/// </summary>
+/// <remarks>
+/// Every URL asserted here comes from the "Descripción Técnica Servicios DGII"
+/// (47 pages) and not from the client that implements it; the page is cited on
+/// each assertion. When the client stops agreeing with the official contract,
+/// the test that says where the contract is written is the one that has to
+/// change.
+/// </remarks>
 public class DgiiClientTests
 {
+    // "Descripción Técnica Servicios DGII", p. 10: the seed is
+    // <SemillaModel><valor/><fecha/></SemillaModel>.
     private const string SeedXml = "<SemillaModel><valor>abc</valor><fecha>2019-03-13T14:33:32-04:00</fecha></SemillaModel>";
 
     [Theory]
@@ -23,6 +35,8 @@ public class DgiiClientTests
 
         await client.GetSeedAsync();
 
+        // "Descripción Técnica Servicios DGII", p. 10:
+        // GET {base}/{ambiente}/autenticacion/api/autenticacion/semilla
         handler.LastUri.Should().Be($"https://ecf.dgii.gov.do/{expectedSegment}/autenticacion/api/autenticacion/semilla");
     }
 
@@ -58,6 +72,9 @@ public class DgiiClientTests
 
         await client.RequestTokenAsync(SeedXml);
 
+        // "Descripción Técnica Servicios DGII", p. 11:
+        // POST {base}/{ambiente}/autenticacion/api/autenticacion/validarsemilla,
+        // with the signed seed as the xml field of a multipart form.
         handler.LastMethod.Should().Be("POST");
         handler.LastUri.Should().EndWith("/autenticacion/api/autenticacion/validarsemilla");
         handler.LastContentType.Should().StartWith("multipart/form-data");
@@ -111,6 +128,8 @@ public class DgiiClientTests
 
         await client.SendElectronicInvoiceAsync("<e-CF />", "jwt");
 
+        // "Descripción Técnica Servicios DGII", p. 13:
+        // POST {base}/{ambiente}/recepcion/api/facturaselectronicas
         handler.LastUri.Should().EndWith("/recepcion/api/facturaselectronicas");
         handler.LastAuthorization.Should().Be("bearer jwt");
         handler.LastBody.Should().MatchRegex("name=\"?xml\"?");
@@ -153,6 +172,8 @@ public class DgiiClientTests
 
         await client.GetStatusAsync("track-1", "jwt");
 
+        // "Descripción Técnica Servicios DGII", p. 22:
+        // GET {base}/{ambiente}/consultaresultado/api/consultas/estado?trackid=
         handler.LastUri.Should().Contain("/consultaresultado/api/consultas/estado?trackid=track-1");
         handler.LastAuthorization.Should().Be("bearer jwt");
     }

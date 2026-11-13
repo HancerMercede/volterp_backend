@@ -21,7 +21,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
 
     public async Task<string> GetSeedAsync(CancellationToken cancellationToken = default)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, BuildUrl("autenticacion/api/autenticacion/semilla"));
+        using var request = new HttpRequestMessage(HttpMethod.Get, BuildUrl(DgiiEndpoints.Seed));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -38,7 +38,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(signedSeedXml);
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl("autenticacion/api/autenticacion/validarsemilla"));
+        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(DgiiEndpoints.ValidateSeed));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.Content = BuildXmlForm(signedSeedXml);
 
@@ -63,7 +63,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         ArgumentException.ThrowIfNullOrWhiteSpace(signedEcfXml);
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl("recepcion/api/facturaselectronicas"));
+        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(DgiiEndpoints.ReceiveElectronicInvoice));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.Headers.Add("Authorization", $"bearer {token}");
         request.Content = BuildXmlForm(signedEcfXml);
@@ -84,7 +84,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         ArgumentException.ThrowIfNullOrWhiteSpace(trackId);
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
 
-        var url = BuildUrl("consultaresultado/api/consultas/estado")
+        var url = BuildUrl(DgiiEndpoints.StatusByTrackId)
                   + "?trackid=" + Uri.EscapeDataString(trackId);
 
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
