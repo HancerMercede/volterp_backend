@@ -39,6 +39,7 @@ public class ElectronicInvoiceServiceTests
     private readonly Mock<ISigningCertificateProvider> _certificates = new();
     private readonly DgiiStub _dgii = new();
     private readonly List<string> _signedXmls = [];
+    private readonly List<X509Certificate2> _signedWith = [];
 
     private ElectronicInvoice? _persisted;
 
@@ -51,7 +52,11 @@ public class ElectronicInvoiceServiceTests
         _unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         _signer.Setup(s => s.Sign(It.IsAny<string>(), It.IsAny<X509Certificate2>()))
-            .Callback((string xml, X509Certificate2 _) => _signedXmls.Add(xml))
+            .Callback((string xml, X509Certificate2 certificate) =>
+            {
+                _signedXmls.Add(xml);
+                _signedWith.Add(certificate);
+            })
             .Returns(SignedXml);
 
         _invoices.Setup(i => i.AddAsync(It.IsAny<ElectronicInvoice>(), It.IsAny<CancellationToken>()))
@@ -276,6 +281,42 @@ public class ElectronicInvoiceServiceTests
 
         result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Left>();
         _dgii.SendRequests.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task IssueAsync_WithADeactivatedCompany_StillIssuesTheDocument()
+    {
+        // The fiscal obligation of the client does not disappear with the
+        // subscription: a deactivated company still has to be able to issue,
+        // because blocking it would turn a collection problem into a tax
+        // offence of our client.
+        var company = Company();
+        company.Deactivate();
+        Given(Sale(), company);
+
+        var result = await Service().IssueAsync(SaleId, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        ((Either<Error, ElectronicInvoiceDto>.Right)result).Value.Status.Should().Be(EcfStatus.Accepted);
+        _dgii.SendRequests.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task IssueAsync_SignsWithTheCertificateOfThatIssuerAndNoOther()
+    {
+        Given(Sale(), Company());
+        var certificate = CreateCertificate();
+        _certificates.Setup(c => c.GetSigningCertificateAsync(IssuerRnc, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(certificate);
+
+        await Service().IssueAsync(SaleId, CompanyId);
+
+        // The document is signed with the certificate of the RNC that emits
+        // it: there is no shared certificate and no fallback.
+        var document = _signedXmls.FindIndex(xml => xml.Contains("<eNCF>"));
+
+        document.Should().BeGreaterThanOrEqualTo(0, "the document was signed");
+        _signedWith[document].Should().Be(certificate);
     }
 
     private void Given(Sale sale, Company company)
