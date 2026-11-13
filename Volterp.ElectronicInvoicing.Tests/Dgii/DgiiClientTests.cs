@@ -73,6 +73,8 @@ public class DgiiClientTests
         handler.LastBody.Should().MatchRegex("name=\"?xml\"?");
         handler.LastBody.Should().Contain("text/xml");
         handler.LastBody.Should().Contain("<SemillaModel>");
+        handler.LastBody.Should().MatchRegex("filename=\"?response_",
+            "the DGII expects the seed file named response_{timestamp}.xml.");
     }
 
     [Fact]
@@ -118,14 +120,28 @@ public class DgiiClientTests
         var handler = StubHttpMessageHandler.ReturningJson("""{"trackId":"track-1"}""");
         var client = CreateClient(handler);
 
-        await client.SendElectronicInvoiceAsync("<e-CF />", "jwt");
+        await client.SendElectronicInvoiceAsync(Document(), "jwt");
 
         // "Descripción Técnica Servicios DGII", p. 13:
         // POST {base}/{ambiente}/recepcion/api/facturaselectronicas
         handler.LastUri.Should().EndWith("/recepcion/api/facturaselectronicas");
         handler.LastAuthorization.Should().Be("bearer jwt");
         handler.LastBody.Should().MatchRegex("name=\"?xml\"?");
-        handler.LastBody.Should().Contain("<e-CF />");
+        handler.LastBody.Should().Contain("<eNCF>E320000000001</eNCF>");
+        handler.LastBody.Should().Contain("101500018E320000000001.xml",
+            "the DGII expects the document file named RNC + e-NCF.");
+    }
+
+    [Fact]
+    public async Task SendElectronicInvoiceAsync_WithoutTheIssuerRncAndTheEncf_Fails()
+    {
+        var handler = StubHttpMessageHandler.ReturningJson("""{"trackId":"track-1"}""");
+        var client = CreateClient(handler);
+
+        var act = () => client.SendElectronicInvoiceAsync("<e-CF />", "jwt");
+
+        await act.Should().ThrowAsync<DgiiException>(
+            "without the RNC and the e-NCF there is no name the DGII would accept.");
     }
 
     [Fact]
@@ -134,7 +150,7 @@ public class DgiiClientTests
         var handler = StubHttpMessageHandler.ReturningJson("""{"trackId":"track-1"}""");
         var client = CreateClient(handler);
 
-        var receipt = await client.SendElectronicInvoiceAsync("<e-CF />", "jwt");
+        var receipt = await client.SendElectronicInvoiceAsync(Document(), "jwt");
 
         receipt.TrackId.Should().Be("track-1");
         receipt.IsRejected.Should().BeFalse();
@@ -147,7 +163,7 @@ public class DgiiClientTests
             """{"trackId":null,"error":"RNC no autorizado","mensaje":"rechazado"}""");
         var client = CreateClient(handler);
 
-        var receipt = await client.SendElectronicInvoiceAsync("<e-CF />", "jwt");
+        var receipt = await client.SendElectronicInvoiceAsync(Document(), "jwt");
 
         receipt.IsRejected.Should().BeTrue();
         receipt.Error.Should().Be("RNC no autorizado");
@@ -238,6 +254,10 @@ public class DgiiClientTests
         expired.IsExpired.Should().BeTrue();
         alive.IsExpired.Should().BeFalse();
     }
+
+    private static string Document()
+        => "<e-CF><Encabezado><IdDoc><eNCF>E320000000001</eNCF></IdDoc>" +
+           "<Emisor><RNCEmisor>101500018</RNCEmisor></Emisor></Encabezado></e-CF>";
 
     private static DgiiClient CreateClient(
         StubHttpMessageHandler handler,

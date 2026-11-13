@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace Volterp.ElectronicInvoicing.Dgii;
 
@@ -35,7 +36,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
 
         using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(DgiiEndpoints.ValidateSeed));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Content = BuildXmlForm(signedSeedXml);
+        request.Content = BuildXmlForm(signedSeedXml, SeedFileName());
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -61,7 +62,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(DgiiEndpoints.ReceiveElectronicInvoice));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         request.Headers.Add("Authorization", $"bearer {token}");
-        request.Content = BuildXmlForm(signedEcfXml);
+        request.Content = BuildXmlForm(signedEcfXml, EcfFileName(signedEcfXml));
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -115,12 +116,35 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         return $"{baseUrl}/{_options.Environment.ToPathSegment()}/{relativePath}";
     }
 
-    // The DGII takes the XML as a multipart field named xml, typed as text/xml.
-    private static MultipartFormDataContent BuildXmlForm(string xml)
+    // The DGII takes the XML as a multipart file named xml, typed as text/xml.
+    // The name of the file is part of the contract: the seed is named
+    // response_{timestamp}.xml and a document RNC{e-NCF}.xml.
+    private static MultipartFormDataContent BuildXmlForm(string xml, string fileName)
     {
         var form = new MultipartFormDataContent();
-        form.Add(new StringContent(xml, Encoding.UTF8, "text/xml"), "xml");
+        var content = new ByteArrayContent(Encoding.UTF8.GetBytes(xml));
+        content.Headers.ContentType = new MediaTypeHeaderValue("text/xml");
+        form.Add(content, "xml", fileName);
         return form;
+    }
+
+    private static string SeedFileName()
+        => $"response_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.xml";
+
+    // The name the DGII expects for a document: the issuer RNC followed by the
+    // e-NCF, as the "Descripción Técnica Servicios DGII" says.
+    private static string EcfFileName(string xml)
+    {
+        var document = XDocument.Parse(xml);
+
+        var issuer = document.Descendants().FirstOrDefault(e => e.Name.LocalName == "RNCEmisor")?.Value;
+        var encf = document.Descendants().FirstOrDefault(e => e.Name.LocalName == "eNCF")?.Value
+                   ?? document.Descendants().FirstOrDefault(e => e.Name.LocalName == "NcfElectronico")?.Value;
+
+        if (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(encf))
+            throw new DgiiException("The document has no issuer RNC and e-NCF to name the file with.");
+
+        return $"{issuer}{encf}.xml";
     }
 
     private static T Deserialize<T>(string body, string what)

@@ -19,6 +19,11 @@ public class DgiiAuthenticatorTests
     private const string IssuerRnc = "101000001";
     private const string OtherIssuerRnc = "101000002";
 
+    // El documento tiene que decir quien lo emite: de ahi sale el nombre del
+    // archivo que la DGII espera.
+    private const string EcfXml = "<e-CF><Encabezado><IdDoc><eNCF>E320000000001</eNCF></IdDoc>" +
+                                   "<Emisor><RNCEmisor>101000001</RNCEmisor></Emisor></Encabezado></e-CF>";
+
     private static readonly DateTimeOffset Now = new(2026, 11, 4, 17, 0, 0, TimeSpan.Zero);
 
     [Fact]
@@ -74,10 +79,10 @@ public class DgiiAuthenticatorTests
         firstAgain.Token.Should().Be(first.Token);
 
         // And the token that goes out on the wire is the one of its issuer.
-        await client.SendElectronicInvoiceAsync("<e-CF />", first.Token);
+        await client.SendElectronicInvoiceAsync(EcfXml, first.Token);
         dgii.Handler.LastAuthorization.Should().Be("bearer jwt-first");
 
-        await client.SendElectronicInvoiceAsync("<e-CF />", second.Token);
+        await client.SendElectronicInvoiceAsync(EcfXml, second.Token);
         dgii.Handler.LastAuthorization.Should().Be("bearer jwt-second");
     }
 
