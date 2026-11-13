@@ -13,5 +13,6 @@ public interface IServiceManager
     IAccountingTransactionService AccountingTransactions { get; }
     IClientService Clients { get; }
     ICompanyCertificateService CompanyCertificates { get; }
+    IElectronicInvoiceSequenceService ElectronicInvoiceSequences { get; }
     IDashboardService Dashboard { get; }
 }
