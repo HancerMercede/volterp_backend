@@ -2,45 +2,22 @@ using System.Collections.Concurrent;
 
 namespace Volterp.ElectronicInvoicing.Dgii;
 
-/// <summary>
-/// The token of every issuer we have authenticated, kept until the DGII says
-/// it dies.
-/// </summary>
-/// <remarks>
-/// The token belongs to the issuer whose certificate signed the seed, so the
-/// cache is keyed by the issuer RNC: two issuers never share a token. The DGII
-/// says how long the token lives and until then the round trip is not repeated
-/// for every emission.
-/// <para>
-/// This is the only state of the authentication that has to outlive a request,
-/// and the reason the authenticator can stay transient: the behaviour (seed,
-/// sign, token) is cheap to rebuild and must not capture a client.
-/// </para>
-/// </remarks>
+// The token of every issuer we authenticated, kept until the DGII says it
+// dies. Keyed by issuer RNC: the token belongs to the issuer that signed the
+// seed, so two issuers never share one.
+//
+// This is the only state that has to outlive a request, which is why the
+// authenticator can stay transient and never capture a client.
 public sealed class DgiiTokenCache(TimeProvider? clock = null)
 {
     private readonly TimeProvider _clock = clock ?? TimeProvider.System;
 
-    /// <summary>
-    /// What we hold for every issuer we have authenticated: its token and the
-    /// gate that keeps a single renewal in flight for that issuer.
-    /// </summary>
+    // The token of one issuer and the gate that keeps a single renewal in
+    // flight for it.
     private readonly ConcurrentDictionary<string, IssuerTokens> _tokensByIssuer = new(StringComparer.Ordinal);
 
-    /// <summary>
-    /// Returns the live token of the issuer, trading a new one for it when
-    /// there is none.
-    /// </summary>
-    /// <param name="issuerRnc">
-    /// The RNC of the issuer the token belongs to. The cache takes the
-    /// caller's word for it: it does not check the RNC against the
-    /// certificate, and nobody should read this class as if it did.
-    /// </param>
-    /// <param name="renew">
-    /// The round trip that asks the DGII for a new token. The cache calls it
-    /// only when it has no live token, and only once per issuer at a time.
-    /// </param>
-    /// <param name="cancellationToken">Cancels the round trip.</param>
+    // The RNC is the caller's word: the cache does not check it against the
+    // certificate, and nobody should read this class as if it did.
     public async Task<DgiiToken> GetOrRenewAsync(
         string issuerRnc,
         Func<CancellationToken, Task<DgiiToken>> renew,
@@ -78,10 +55,7 @@ public sealed class DgiiTokenCache(TimeProvider? clock = null)
         }
     }
 
-    /// <summary>
-    /// A token is usable only when the DGII said when it dies and that moment
-    /// has not passed: a token we cannot date is a token we cannot trust.
-    /// </summary>
+    // A token we cannot date is a token we cannot trust.
     private bool IsUsable(DgiiToken? token)
         => token is not null && token.ExpiresAt is not null && !token.IsExpiredAt(_clock.GetUtcNow());
 

@@ -6,16 +6,8 @@ using Xunit;
 
 namespace Volterp.ElectronicInvoicing.Tests.Dgii;
 
-/// <summary>
-/// The transport tests of the DGII client.
-/// </summary>
-/// <remarks>
-/// Every URL asserted here comes from the "Descripción Técnica Servicios DGII"
-/// (47 pages) and not from the client that implements it; the page is cited on
-/// each assertion. When the client stops agreeing with the official contract,
-/// the test that says where the contract is written is the one that has to
-/// change.
-/// </remarks>
+// Every URL asserted here comes from the "Descripción Técnica Servicios DGII"
+// and not from the client that implements it: the page is cited on each one.
 public class DgiiClientTests
 {
     // "Descripción Técnica Servicios DGII", p. 10: the seed is

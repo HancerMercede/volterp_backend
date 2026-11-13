@@ -5,13 +5,8 @@ using System.Text.Json;
 
 namespace Volterp.ElectronicInvoicing.Dgii;
 
-/// <summary>
-/// The DGII client, implemented against the web services the DGII publishes.
-/// </summary>
-/// <remarks>
-/// Every DGII service lives under its own path segment of the same host, and the
-/// environment is the segment right after it: testecf, certecf or ecf.
-/// </remarks>
+// Every DGII service lives under its own path segment of the same host, and the
+// environment is the segment right after it: testecf, certecf or ecf.
 public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDgiiClient
 {
     private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
@@ -120,9 +115,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         return $"{baseUrl}/{_options.Environment.ToPathSegment()}/{relativePath}";
     }
 
-    /// <summary>
-    /// The DGII takes the XML as a multipart field named xml, typed as text/xml.
-    /// </summary>
+    // The DGII takes the XML as a multipart field named xml, typed as text/xml.
     private static MultipartFormDataContent BuildXmlForm(string xml)
     {
         var form = new MultipartFormDataContent();
@@ -146,10 +139,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         }
     }
 
-    /// <summary>
-    /// The DGII dates are not guaranteed to be parseable, and a date we cannot
-    /// read must not cost us the whole answer.
-    /// </summary>
+    // A date we cannot read must not cost us the whole answer.
     private static DateTimeOffset? ParseDate(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))

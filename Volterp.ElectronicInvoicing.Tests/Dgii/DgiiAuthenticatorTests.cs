@@ -8,14 +8,8 @@ using Xunit;
 
 namespace Volterp.ElectronicInvoicing.Tests.Dgii;
 
-/// <summary>
-/// The tests of the authentication and of the token cache it needs.
-/// </summary>
-/// <remarks>
-/// The token belongs to the issuer whose certificate signed the seed and the
-/// DGII says how long it lives, so the round trip is paid once per issuer and
-/// not once per emission.
-/// </remarks>
+// The token belongs to the issuer that signed the seed and lives an hour, so
+// the round trip is paid once per issuer and not once per emission.
 public class DgiiAuthenticatorTests
 {
     // "Descripción Técnica Servicios DGII", p. 10: the seed is
@@ -209,12 +203,9 @@ public class DgiiAuthenticatorTests
     private static string Format(DateTimeOffset value)
         => value.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture) + "Z";
 
-    /// <summary>
-    /// The DGII as the tests see it: the seed service answers the seed, the
-    /// token service answers the tokens, one per call, and the reception
-    /// service acknowledges the e-CF. Every call is counted, because a trip to
-    /// the DGII is what the cache has to avoid.
-    /// </summary>
+    // The DGII as the tests see it: it answers the seed, the tokens and the
+    // reception, and counts every call, because a trip is what the cache must
+    // avoid.
     private sealed class DgiiStub
     {
         private readonly Queue<Func<HttpResponseMessage>> _tokenAnswers;
@@ -225,7 +216,7 @@ public class DgiiAuthenticatorTests
             _tokenAnswers = new Queue<Func<HttpResponseMessage>>(tokenAnswers);
         }
 
-        /// <summary>Runs before the seed is answered, to hold a trip open.</summary>
+        // Runs before the seed is answered, to hold a trip open.
         public Func<Task> BeforeSeedAnswer { get; set; } = () => Task.CompletedTask;
 
         public StubHttpMessageHandler Handler { get; private set; } = null!;
@@ -273,10 +264,8 @@ public class DgiiAuthenticatorTests
         }
     }
 
-    /// <summary>
-    /// A clock the test moves by hand, so the expiration of a token can be
-    /// observed without waiting the hour it takes.
-    /// </summary>
+    // A clock the test moves by hand, so an expiration can be observed without
+    // waiting the hour it takes.
     private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
     {
         private DateTimeOffset _now = now;
