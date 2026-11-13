@@ -4,6 +4,8 @@
 
 Permitir que los clientes de Volterp emitan comprobantes fiscales electrónicos (e-CF) ante la DGII,a través de nuestra API, usando **el certificado digital de cada cliente**.
 
+**Modelo de negocio (decidido 2026-11-12): Volterp es un ERP alquilado, no vendido.** Es un SaaS multi-tenant por suscripción: cada cliente es una empresa que paga por el uso mensual y usa el ERP como **sistema de registro de su operación**, fiscalidad incluida. El e-CF es **un módulo del ERP**, no un producto aparte; la library `Volterp.ElectronicInvoicing` sigue siendo portable para poder consumirse por separado, pero **el negocio es el alquiler del ERP**. Esta decisión no es contexto: **cambia qué se transfiere de un SaaS vendido y en qué orden se construye el recorrido** (ver "La relectura desde el modelo alquilado").
+
 Branch: `feature/electronic-invoicing` (desde `development` @ `d08a830`).
 Delivery strategy: `ask-on-risk` (default). Test runner: `dotnet test`.
 
@@ -55,7 +57,9 @@ Son **10 tipos**. El **32** es el único que admite el flujo resumido **RFCE**, 
 
 **Revisado (2026-11-04): el modelo propio de tu colega — "nosotros la comunicación, el cliente su firma y sus credenciales" — es el que vamos a construir.** Option A (integrarse con la API de un PSFE) **deja de ser el camino de transporte** y pasa a quedar solo como registro de lo evaluado. Ver "El modelo confirmado" abajo y L14.
 
-### Option A — Integrar con un PSFE ya certificado (ej. eCF MSeller) — **DECIDIDO**
+**DEROGADA (2026-11-12)**: la auditoría de ZynStorm cerró el rumbo — el usuario lo dijo sin ambigüedad: *"no vamos a utilizar MSeller"*. Option A (integrarse con la API de un PSFE certificado, ej. eCF MSeller) **deja de ser una opción viva** y queda **solo como registro de lo evaluado**. El modelo vigente es **el modelo confirmado (2026-11-04)** — nosotros la comunicación, el cliente su firma — con la Fase 4 reabierta y **reencuadrada** como punto de amortización del modelo alquilado (ver "La relectura desde el modelo alquilado"). El código ya escrito (T12 firma, T14 transporte) **no se tira**: era exactamente el que corresponde al modelo vigente, y por eso la auditoría no encontró que hubiera que construir nada desde cero — encontró que **falta el recorrido**.
+
+### Option A — Integrar con un PSFE ya certificado (ej. eCF MSeller) — **DEROGADA (2026-11-12)**
 
 `eCF MSeller` es un **PSFE certificado por la DGII** (IT SOLUCLICK SRL, RNC 130862346, software MSeller v1.0 tipo EXTERNO).
 
@@ -81,7 +85,7 @@ Son **10 tipos**. El **32** es el único que admite el flujo resumido **RFCE**, 
 3. Con esa base, **solicitamos la certificación como PSFE** ante la DGII.
 4. Cuando Volterp sea PSFE, **el transporte se mueve a casa** (Option B) y la API interna de Volterp queda estable: el contrato con el cliente no cambia, solo cambia quién firma y quién habla con la DGII.
 
-**Decisión (2026-11-03, confirmada por el usuario)**: **Option A ahora, nuestra propia implementación después.** El plan de fases 0–3 se construye sobre Option A (eCF MSeller como PSFE). La certificación de Volterp como PSFE pasa de "fuera de alcance" a **segunda etapa, disparada por tener clientes emisores**; el contrato con el cliente no cambia porque el transporte vive detrás de S14. La fase 0 (dominio fiscal) es idéntica en las tres opciones, así que se construye igual; lo que cambia es el transporte (fase 3), que queda detrás de una interfaz propia.
+**Decisión (2026-11-03, confirmada por el usuario; DEROGADA el 2026-11-12)**: **Option A ahora, nuestra propia implementación después.** El plan de fases 0–3 se construye sobre Option A (eCF MSeller como PSFE). La certificación de Volterp como PSFE pasa de "fuera de alcance" a **segunda etapa, disparada por tener clientes emisores**; el contrato con el cliente no cambia porque el transporte vive detrás de S14. La fase 0 (dominio fiscal) es idéntica en las tres opciones, así que se construye igual; lo que cambia es el transporte (fase 3), que queda detrás de una interfaz propia. **Histórico**: lo que realmente se construyó (T12 firma, T14 transporte) es el transporte directo contra la DGII del "modelo confirmado" — que es la Option B de esta lista. La Opción A nunca llegó a escribirse.
 
 > Nota: existe `dgii-ecf` en open source (npm) con firma y envío directo, útil como referencia de la integración propia.
 
@@ -159,18 +163,87 @@ El repo de Nurbansoft ya no está en la máquina; queda en memoria (#144–#152)
 - Tablas: `AuthenticationSeed`, `EcfReceived`, `EcfCommercialApproval` (RNC en `NVARCHAR(500)` por valores encriptados).
 - US **"Firma XML DGII"** quedó solo **diseñada, no implementada**. El diseño ya tenía lo correcto: certificado por `CustomerId`, automático y sin selección manual; validar existe / activo / tiene llave privada / no expirado / válido para firma / corresponde al customer; **nunca** exponer password, ruta ni llave privada; firma `XMLDSig` + `RSA-SHA256` + `Digest SHA256` + `Enveloped Signature`; historial completo y auditoría.
 
+## Auditoría comparativa — ZynStormECFPlatform (2026-11-12)
+
+**Qué es**. Un SaaS multi-tenant de **"cuenta de facturación"** para contadores y revendedores dominicanos (13 proyectos .NET 10). Emite e-CF, corre el **trámite de certificación de la DGII por cliente** (workflow de ~15 pasos) y además **emula la superficie web de la DGII** (semilla, validación de certificado, recepción, aprobación comercial) para que terceros PSFE desarrollen contra él en vez de contra la DGII. Es el sistema de un amigo del usuario, auditado read-only para mejorar la implementación propia.
+
+**Lo que Volterp YA está adelante** — no se copia, no se toca:
+
+| | ZynStorm | Volterp |
+|---|---|---|
+| Secuencia e-NCF | read-modify-write **sin transacción** (race) | `INSERT … ON CONFLICT … RETURNING`, atómica, probada con 25 concurrencias reales |
+| Aislamiento por tenant | **manual, por call site** (sin filtro global) | `ITenantScoped` + `TenantScopeGuard` que falla el arranque |
+| Certificado expirado | **solo avisa por email** y firma igual | **bloquea la firma** (fail-closed) y valida la ventana del certificado, no de la fila |
+| Veredicto de la DGII | `status 11` sobrecargado | `AcceptedConditionally` **separado** — el veredicto que más traga en un ERP |
+| Credenciales | AES-CBC con IV estático, **secretos de producción commiteados** | AES-256-GCM, clave derivada por tenant, credencial redacted, material sensible que nunca sale por la API |
+| Estructura | proyecto de `Reports` **vacío** y un `IEcfProductionService` stub cableado en el DI | la library **no referencia ningún** otro proyecto de Volterp |
+
+**Lo que SÍ se transfiere** — cada uno con el matiz que lo hace útil:
+
+| Doctrina del tercero | Qué significa | Por qué la querés |
+|---|---|---|
+| **Recepción + aprobación comercial** | La DGII **llama a nuestras URLs** para registrar los e-CF que nos envía y para aprobar comercialmente lo que emitimos | Es el camino de certificación del cliente: sin esas URLs no hay cliente certificado |
+| **Validación en 4 capas** | estructural · XSD · reglas de negocio por tipo · aritmética con tolerancia (0.02) | Volterp tiene las 2 primeras; las 2 que faltan son las que atrapan el error de negocio |
+| **QR + código de seguridad** | El comprobante lleva código de seguridad y un QR verificable con los datos del comprobante | Sin ellos el **receptor** rechaza el comprobante. Volterp tiene las columnas y ningún generador |
+| **Idempotencia + recuperación** | No se reenvía a ciegas; si la respuesta se pierde, el estado se **recupera consultando por NCF** | Un e-NCF duplicado es un comprobante fiscal inválido |
+| **Retrack / requeue** | El veredicto "En proceso" se re-consulta con backoff, sin intervención humana | El veredicto de la DGII es asíncrono |
+| **Cache de token por emisor** | El token es **por emisor** (la semilla se firma con su certificado) y se reusa hasta expirar | Hoy Volterp re-autentica en **cada** llamada |
+| **Superficie compatible con la DGII** | Publicar una superficie que imita la de la DGII para que otros integren y para el QA propio sin credenciales de la DGII | Es el **anti-lock-in regulatorio**: el cliente no queda atado a un PSFE |
+
+**Lo que NO se copia**:
+
+- La secuencia read-modify-write (race) — Volterp ya lo resolvió mejor.
+- El aislamiento de tenant manual por call site.
+- El aviso por email de certificado vencido en vez del bloqueo.
+- AES-CBC con IV estático, y los secretos de producción en `appsettings.json`.
+- Reglas duplicadas y divergentes entre el validador y el generador (31/44/45 contra 31/41/44/45).
+- La búsqueda del XSD por *substring*.
+- El **quirk invertido 33/34** de su RI, heredado de EasyInvoice: un tipo invertido produce una RI con el comprobante equivocado.
+- La autenticación B2B **fail-open** (JWT mock, cualquier `Bearer` aceptado) en una API donde entra la DGII.
+
+### La relectura desde el modelo alquilado
+
+**El dato que cambia la lectura**: Volterp **no se vende, se alquila** (decisión del usuario, 2026-11-12). No es un detalle comercial: cambia **qué** se transfiere y **en qué orden** se construye el plan.
+
+| | ZynStorm (**vendido**) | Volterp (**alquilado**) |
+|---|---|---|
+| Cliente | contadores y revendedores | empresas que operan su negocio |
+| Unidad de facturación | el **contador** factura por sus propios clientes → **agrupa** emisores bajo una cuenta con cuotas | la **empresa** factura por su cuenta → **un tenant = un emisor** (sus sucursales = varios RNC) |
+| Certificación | **por cliente**: cada contribuyente suyo recorre el trámite (~15 pasos) | **amortizable**: una certificación de Volterp (como software "Tipo EXTERNO" o como PSFE) y el alta de cada tenant es un proceso repetible, no un trámite |
+| Cuota / suscripción | cuota del asesor que **nunca bloquea la emisión** | suscripción mensual del ERP que **tampoco puede bloquear la emisión** |
+| Sistema de registro | la plataforma de facturación de un tercero | **el ERP del cliente**: ahí están sus ventas, su stock, su contabilidad y su fiscalidad |
+
+**Tres consecuencias que el plan no tenía**:
+
+1. **La Fase 4 (certificación PSFE) deja de ser "una etapa opcional" y pasa a ser el punto de amortización.** En un SaaS vendido, certificar a cada cliente es un trámite repetido que el cliente asume. En un ERP alquilado, Volterp puede **certificar una vez y dar de alta N tenants** → el coste de cumplimiento por cliente cae, y el bootstrap de "≥3 contribuyentes ya certificados" se cumple **con los propios tenants de Volterp**. La pregunta abierta con el colega no cambia ("¿la DGII exige certificación PSFE para operar así?") pero **cambia su importancia**: la respuesta ya no decide si existe un trámite, decide **cuál de dos rampas es más barata**.
+2. **La suscripción vencida no puede cortar la emisión fiscal.** Es la doctrina del tercero ("la cuota nunca bloquea la emisión") y en el modelo alquilado es todavía más fuerte: **el comprobante del cliente es una obligación legal de él**, y bloquearla por impago convierte un problema de cobro en una infracción fiscal del cliente y en un reclamo contra nosotros. El estado de alquiler gobierna las superficies **comerciales** (altas, seats, reportes, soporte) y **jamás** la ruta de emisión → **S27/T35**.
+3. **La API es producto y superficie pública al mismo tiempo.** La library vendible por separado sigue siendo la apuesta de "API como producto", y el modelo alquilado no la contradice: un tercero que quiera emitir e-CF puede consumir la library sin arrastrar el ERP. Pero el módulo e-CF **dentro** del ERP es lo que el cliente alquila → **la calidad regulatoria de ese módulo es la calidad del ERP**, no la de un extra.
+
+**La lección de fondo**: *el mismo conjunto de capacidades puede estar al servicio de dos negocios distintos*. El tercero usa la emulación de la DGII para **captar** integradores; Volterp puede usarla para **no quedar atado**. Lo que se copia es la **doctrina** (una superficie compatible, una emisión que nunca se bloquea, un veredicto que se re-consulta solo), **no el código**.
+
 ## Domain gaps in Volterp (verified in code)
 
-| Gap | Impacto fiscal |
+**Actualizado (2026-11-12).** La tabla que estaba aquí describía el estado **anterior** a la Fase 0 y la Fase 1: afirmaba que no existían la entidad e-CF, ni el certificado, ni la secuencia de NCF. Eso ya no es cierto — **las tres existen**, migradas y verificadas contra Postgres real. Se sustituye por el gap **real** que queda, que es de otra naturaleza: **no es de modelo, es de recorrido**.
+
+| Gap (verificado en el código el 2026-11-12) | Impacto fiscal |
 |---|---|
-| `Client` no tiene `TaxId`/RNC | **Bloqueante**: E31 exige el RNC del comprador |
-| `Company.TaxId` valida 8–15 alfanuméricos | No es validación de RNC real (9 dígitos de persona jurídica o 11 de cédula) |
-| `Sale` sin NCF, sin `Itbis`, sin desglose de taxes, sin flag "consumidor final" | No se puede construir el e-CF |
-| `Sale.Total` es un único `decimal` | El e-CF exige subtotal + ITBIS + total |
-| `Product` sin código de impuesto (gravado 18% / exento) | El detalle de la línea lo exige |
-| `SaleStatus` = Pending / Completed / Cancelled | Falta el estado fiscal (emitido, aceptado, rechazado) |
-| No existe entidad e-CF, ni certificado, ni secuencia de NCF | No hay dónde persistir el comprobante fiscal |
-| `System.Security.Cryptography.Xml` 9.0.0 (NU1903 HIGH) y `Pkcs` 9.0.0 (NU1902/NU1903) | Son exactamente los paquetes del firmador XMLDSig |
+| **No existe orquestador de emisión.** Cero coincidencias de `Ecf`/`Dgii`/`ElectronicInvoice` en `Volterp.Application/Services/`; `SaleEcfDocumentMapper` y `EcfXmlWriter` solo los referencian los tests | **Bloqueante**: hoy **no se puede emitir un e-CF**. El motor existe, el recorrido no |
+| `ElectronicInvoice` es **inalcanzable desde `Application`**: tiene `DbSet` (`VolterpDbContext.cs:30`) y migración, pero **no hay `IElectronicInvoiceRepository`** ni entrada en `IUnitOfWork` (`IUnitOfWork.cs:15` solo expone `ElectronicInvoiceSequences`) | La entidad no se persiste desde el caso de uso: el e-CF no tiene dónde aterrizar |
+| `NextSequenceAsync` **solo tiene llamadores de test** (`ElectronicInvoiceSequenceRepositoryTests.cs:20,21,33,34,49,50`); `ElectronicInvoiceSequence.BuildEncf` también | **Ningún e-NCF se asigna en producción**: la secuencia existe y es atómica, pero nadie la invoca |
+| `ElectronicInvoice.SecurityCode` (`:25`) y `QrUrl` (`:26`) son **columnas persistidas sin generador** en toda la solución | El comprobante sale sin código de seguridad ni QR → **lo rechaza el receptor**, no la DGII |
+| `EcfDocument.Reference` **nunca lo setea** el mapper (`SaleEcfDocumentMapper.cs:61-76`) y `EcfXmlWriter.WriteReference` **lanza** si falta (`:344-346`) | **E33 y E34 no son producibles**: toda nota de crédito o débito falla al escribirse |
+| `EcfTypeProfiles.For` **hardcodea `TipoIngresos = Operations` para todos los tipos** (`:50`) | El **43** (gastos menores) y el **47** (pagos al exterior) llevan el código de ingreso equivocado → comprobante inválido |
+| `FechaVencimientoSecuencia` **no se persiste**: vive solo en `EcfIssuance.SequenceExpiresAt` y nada construye `EcfIssuance` en producción | Sin ella no se puede emitir 31/33/41-47 (el XSD la exige) |
+| **El contrato de endpoints DGII no está verificado**: los 4 paths de `DgiiClient.cs:24,41,66,87` no coinciden con ninguno de los 4 que este mismo plan registra como "verificados contra la DescTec" | **Bloqueante**: una emisión real fallaría en el primer request |
+| **Los tests fijan los URLs del propio código** (`DgiiClientTests.cs:26,62,114,156`) | La suite queda **verde con el contrato roto**: nada en el repo puede detectarlo |
+| `DgiiAuthenticator` **re-autentica en cada llamada** (`:23-33`: semilla → firma → token, sin cache) | Una firma y un request extra por cada emisión |
+| No hay **idempotencia**, ni **recuperación por NCF**, ni **retrack/requeue**, ni **cache de token** | Una respuesta perdida de la DGII se traduce en un reenvío a ciegas → e-NCF duplicado |
+| No existe **ningún endpoint e-CF** en `Volterp.Api/Controllers/` (14 controllers, ninguno de e-CF) | Ni siquiera hay una vía manual de disparo |
+| No hay **recepción ni aprobación comercial** (0 coincidencias de `aprobacioncomercial` en el código) | La certificación del cliente depende de **nuestras URLs** (S10): sin ellas no hay certificación |
+| `ElectronicInvoice.SaleId` es **no-null** | Un e-CF **recibido** (E41) no se puede representar |
+| `Purchase` sin desglose fiscal (`Subtotal`/`Itbis`/`TaxCode` por línea) | No se puede llenar la declaración de ITBIS |
+
+**Lo que ya está bien y no hay que rehacer**: el motor. XSD oficiales embebidos con validación **fail-closed** en runtime, firmante spec-accurate con verificación previa, secuencia atómica, `TenantScopeGuard`, credenciales cifradas con AES-256-GCM y clave derivada por tenant, y la library sin una sola dependencia de otro proyecto de Volterp. **El problema de hoy no es el motor: es que no hay nadie que conduzca.**
 
 ### Multi-tenant tie-in
 
@@ -195,6 +268,17 @@ Toda entidad nueva de este dominio —certificado, e-CF, secuencia, recepción�
 - **S15** — Debe existir el tipo de comprobante **nota de crédito** (**E34**; E33 es la nota de débito — confirmado el 2026-11-03 contra el set de pruebas de la certificación de dos proveedores independientes). Una venta ya emitida **no se edita ni se borra**: se corrige con nota. Sin esto el ERP no tiene salida fiscal para una venta anulada.
 - **S16** — Un tenant puede tener **varios RNC emisores** (sucursales). El certificado pertenece al **RNC emisor**, no al tenant; por eso la entidad guarda el RNC como snapshot, igual que `Sale.ReceptorTaxId` es el snapshot del `Client.TaxId`.
 - **S17** — Debe existir la **Representación Impresa (RI)** del e-CF. **Nuevo (2026-11-04, Guía 6 de la DGII)**: el receptor **no electrónico** recibe la RI en papel, y la RI cumple el Decreto 254-06 y la Norma General 06-2018. La RI **no es una copia del XML**: es un documento con layout propio que incluye RNC y razón social del emisor, dirección, fecha de emisión y de vencimiento, tipo de comprobante con el e-NCF, RNC y razón social del cliente, la tabla de líneas (cantidad, descripción, unidad de medida, precio, ITBIS, valor), Subtotal Gravado, Total ITBIS, Total, **Código de Seguridad**, **Fecha de Firma Digital** y el **QR**. **Impacto de producto**: el tipo 32 (consumo) no exige RNC del comprador, así que su receptor es típicamente no electrónico → **toda venta de consumo necesita una RI imprimible**, y hoy no hay nada que la genere.
+
+- **S18** — El comprobante debe llevar **código de seguridad** y **QR verificable**. **Nuevo (2026-11-12, auditoría ZynStorm + Guía 6)**: el código de seguridad **no tiene algoritmo confirmado**: la Guía 6 lo describe con **7 caracteres**, y la implementación de referencia de un tercero lo deriva de los **primeros 6 caracteres del `SignatureValue` en base64** (con fallback `SHA256(eNCF)`). **No se codifica a ciegas**: hay que resolverlo contra la spec oficial **antes** de emitir, porque al que lerejecta un código incorrecto es **el receptor**, no la DGII. El QR es un **URL de verificación** que lleva RNC emisor, razón social, RNC comprador, razón social, e-NCF, fecha de emisión, monto total, fecha de firma y el código de seguridad. **Nuevo**: el tipo **32** por debajo de **RD$250,000** sigue el flujo **RFCE**, que usa el host **`fc.dgii.gov.do`** y la consulta `ConsultaTimbreFC` — un camino que Volterp no contempla hoy.
+- **S19** — La validación de un e-CF tiene **cuatro capas**: estructural · contra el XSD oficial · reglas de negocio por tipo · aritmética del documento con tolerancia. **Nuevo (2026-11-12, transferencia de la auditoría)**: Volterp tiene las dos primeras —fail-closed contra el XSD, que es más fuerte que la del tercero—, y faltan las dos que más tragan: la de **reglas por tipo** (qué exige cada tipo) y la **aritmética** (que los totales del documento cuadren con las líneas, con tolerancia de redondeo).
+- **S20** — Una emisión **no se reintenta a ciegas**. **Nuevo (2026-11-12)**: la emisión es **idempotente** (una clave que identifique la operación) y existe una **vía de recuperación**: si la respuesta de la DGII se pierde, el estado se recupera **consultando por e-NCF y emisor** antes de reenviar. Sin esto, un timeout se convierte en un e-NCF duplicado.
+- **S21** — El veredicto de la DGII es **asíncrono** y el ERP tiene que saber seguir solo. **Nuevo (2026-11-12)**: el estado "En proceso" se **re-consulta con backoff** y se **re-encola** (retrack/requeue) hasta que llegue un veredicto terminal, sin intervención manual.
+- **S22** — El **token de la DGII es por emisor** (la semilla se firma con el certificado de ese emisor) y **se cachea hasta su expiración**. **Nuevo (2026-11-12)**: hoy la autenticación hace el ciclo completo semilla → firma → token **en cada llamada**.
+- **S23** — La plataforma expone una **superficie compatible con la API web de la DGII** (semilla, validación de certificado, recepción, aprobación comercial) para que terceros integren contra ella y para poder hacer el QA propio sin credenciales de la DGII. **Nuevo (2026-11-12, transferencia de la auditoría)**: es el **anti-lock-in regulatorio** — el cliente que se certificó contra nuestra superficie puede migrar de PSFE sin rehacer su certificación. **No es** "ser la DGII": es publicar el contrato, no usurpar el servicio.
+- **S24** — El sistema debe **emitir un e-CF sin intervención manual**: una venta completada se convierte en un comprobante firmado, enviado y con veredicto, y ese comprobante **se persiste**. **Nuevo (2026-11-12, verificado en el código)**: hoy **no existe orquestador** — `ElectronicInvoice` es inalcanzable desde `Application` (no hay repositorio ni entrada en `IUnitOfWork`) y la asignación de secuencia (`NextSequenceAsync`) **solo tiene llamadores de test**. El motor está; **falta el recorrido**.
+- **S25** — Los **diez tipos** de e-CF tienen que ser **producibles**. **Nuevo (2026-11-12)**: hoy **E33 y E34 no lo son** (el XSD exige `InformacionReferencia` y el mapper nunca la setea → el writer lanza), el **43** y el **47** llevan el `TipoIngresos` equivocado (hardcodeado `Operations` para todos los tipos) y **la fecha de vencimiento de la secuencia no se persiste** (la autorización del contribuyente vive en `ElectronicInvoiceSequence`, emisor + tipo; es obligatoria en 31/33/41-47 y no existe en 32/34).
+- **S26** — La **Representación Impresa** se genera con **plantilla propia por tipo de cliente** (no una copia del XML), con el QR y el código de seguridad dentro. **Ampliado (2026-11-12)**: el tipo 32 es el de consumo y **no exige RNC del comprador**, así que su receptor es típicamente no electrónico → **toda venta de consumo necesita una RI imprimible**, y es la que se lleva el cliente final. La plantilla sale de la **spec oficial**, no del layout de otro sistema: la RI de un tercero tiene el **33/34 invertido** (heredado de EasyInvoice) y ese tipo de error se paga en el mostrador.
+- **S27** — **La suscripción al ERP nunca bloquea la emisión fiscal.** **Nuevo (2026-11-12, decisión del usuario: "mi ERP va ha ser un Sass, no lo voy a vender sino a alquilar")**: el estado de alquiler gobierna las superficies **comerciales** —alta de tenants, seats, reportes, soporte— y **jamés** la ruta de emisión. El comprobante del cliente es una **obligación legal de él**: bloquearla por impago convierte un problema de cobro en una infracción fiscal del cliente y en un reclamo contra nosotros. La regla se pone como **guard verificable**, no como intención: la ruta de emisión no lee el estado de suscripción.
 
 ## Phases
 
@@ -262,6 +346,32 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 
 **Consecuencia del modelo confirmado que el plan anterior no cubría**: el `.p12` y el password de cada cliente pasan a estar **en nuestro Postgres**, no en el PSFE. Eso reintroduce el riesgo que Option A evitaba (un leak de nuestra base = identidad fiscal del cliente comprometida) — pero **es exactamente el riesgo que T7 ya está mitigate**: credencial cifrada en reposo con AES-256-GCM, clave derivada por tenant, app que falla cerrada si la clave falta, y material sensible que nunca sale por la API. Lo que falta en T7 no es la seguridad de la credencial, es el **modelado de la segunda credencial** (S7).
 
+### Fase 5 — El recorrido regulado (2026-11-12)
+
+**Qué es esta fase**: cerrar el tramo que va del **motor** (que existe) al **recorrido** (que no). La auditoría de ZynStorm y la verificación del código ese mismo día dejaron el mapa con una nitidez que el plan anterior no tenía: hay una library que sabe **escribir, firmar y validar** un e-CF, y **nadie que lo emita**.
+
+**Orden por dependencia real** (no por dificultad): primero el **contrato del transporte** (T21), porque bloquea todo lo demás; después la eliminación del trabajo redundante (T22) y la persistencia (T23); luego el **orquestador** (T24), que es la pieza que hace que exista un e-CF; después la **produccibilidad de los tipos** (T25-T26) y el **QR/código de seguridad** (T28-T29), que son las dos cosas que hacen que un comprobante sea **válido para el receptor**; después la **resiliencia** (T27, T30, T31); y por último la **superficie pública** (T32-T33) y la **RI** (T34).
+
+**Presupuesto de entrega**: esta fase **supera con holgura** el presupuesto de 400 líneas de un solo PR → cuando se abra la entrega, la estrategia `ask-on-risk` del encabezado aplica: decidir el **encadenado de PRs antes** del primer commit de T24, con la Fase 5 partida por los bloques de dependencia de arriba.
+
+| Task | Specs | Ruta | Commit | Notas |
+|---|---|---|---|---|
+| T21 | S14 | delegated (explorer + writer) | — | **BLOQUEANTE de toda la fase.** El contrato de endpoints está **contradicho por tres fuentes**: (a) este plan registra `GET {base}/emisorreceptor/fe/autenticacion/api/semilla` · `POST .../validacioncertificado` · `POST .../api/ecf` · `GET .../api/estado?trackid=`; (b) el código de `DgiiClient.cs:24,41,66,87` usa `autenticacion/api/autenticacion/semilla` · `autenticacion/api/autenticacion/validarsemilla` · `recepcion/api/facturaselectronicas` · `consultaresultado/api/consultas/estado?trackid=`; (c) el sistema del tercero, que **sí opera en producción**, usa **un segmento por servicio** (`Autenticacion`, `Recepcion`, `ConsultaResultado`, `ConsultaTrackIds`, `RecepcionFC`, `AprobacionComercial`). **Ninguno de los cuatro paths del código coincide con ninguno de los cuatro del plan.** Resolver contra la spec oficial (la "Descripción Técnica Servicios DGII" ya está descargada en `docs/`) y **corregir los tests para que dejen de fijar los URLs del propio código**: un test de transporte tiene que citar la fuente del contrato, no el código que lo implementa. |
+| T22 | S22 | inline (parent) | — | `DgiiAuthenticator` cachea el token por RNC emisor hasta su `expira`; falla cerrada si no se puede renovar; test de que dos emisiones del mismo emisor **no** hacen dos viajes a la DGII. |
+| T23 | S24 | inline (parent) | — | `IElectronicInvoiceRepository` + entrada en `IUnitOfWork` + `ElectronicInvoice` alcanzable desde `Application` con su estado y su motivo de rechazo. Cierra el "no hay dónde aterrizar". |
+| T24 | S24 | delegated (`gentle-ai-worker`) | — | **El orquestador de emisión**: venta completada → secuencia atómica → documento (mapper) → firma → envío → persistencia → consulta del veredicto. **Lleva el `CompanyId` explícito en todo el camino**, porque sin contexto HTTP el filtro de tenant se apaga (`NullTenantContext.IsUnrestricted => true`): es la condición que ya fijó L20. |
+| T25 | S25 | inline (parent) | — | Persistir la **fecha de vencimiento de la secuencia** en `ElectronicInvoiceSequence` (emisor + tipo) —es la autorización del contribuyente, con migración— y permitir que el mapper setee `InformacionReferencia` para 33/34. Sin esto las notas no se escriben y 31/33/41-47 no se emiten. |
+| T26 | S25 | inline (parent) | — | `EcfTypeProfiles` **deriva `TipoIngresos` del XSD** en vez de hardcodear `Operations`; tests de los **diez** tipos contra su XSD (hoy solo hay cobertura de 31, 32, 33, 34, 41). |
+| T27 | S19 | delegated (`gentle-ai-worker`) | — | Las dos capas que faltan: reglas de negocio por tipo y aritmética del documento con tolerancia. **Fail-closed**, como el validador XSD. |
+| T28 | S18 | inline (parent) | — | **Resolver contra la spec oficial el algoritmo del código de seguridad** (7 caracteres en la Guía 6 contra 6 derivados del `SignatureValue` en la implementación de referencia) e implementarlo, **con golden file** como el firmador. Si la spec no lo aclara: se consulta a la DGII antes de emitir, **no se adivina**. |
+| T29 | S18 | inline (parent) | — | QR: URL de verificación con los datos del comprobante, **más el flujo RFCE del tipo 32** (host `fc.dgii.gov.do`, `ConsultaTimbreFC`), que es un camino que hoy no existe en el plan. |
+| T30 | S20 | inline (parent) | — | Idempotencia por operación + **recuperación por e-NCF y emisor** cuando la respuesta se pierde. El reenvío a ciegas queda **prohibido por test**. |
+| T31 | S21 | inline (parent) | — | Retrack/requeue: el veredicto "En proceso" se re-consulta con backoff y se re-encola hasta un veredicto terminal. |
+| T32 | S10, S23 | delegated (`gentle-ai-worker`) | — | **Recepción + aprobación comercial**: los endpoints públicos que **la DGII llama** (el cliente registra nuestras URLs en su certificación). Contrato: archivo `RNCComprador+e-NCF.xml`, atribución al tenant por el RNC del receptor, y **endurecimiento de la autenticación** de esa superficie (la DGII entra a la API). |
+| T33 | S23 | inline (parent) | — | La superficie compatible con la DGII para integración y QA propio, **sin credenciales de la DGII**. |
+| T34 | S26 | delegated (`gentle-ai-worker`) | — | **Representación Impresa** con plantilla por tipo de cliente, con QR y código de seguridad, contra la spec oficial (Decreto 254-06, NG 06-2018). **No se copia el layout de un tercero**: su 33/34 está invertido. |
+| T35 | S27 | inline (parent) | — | **Guard**: la ruta de emisión **no consulta el estado de alquiler**. Un test que lo fije, porque es la regla que más caro sale romper (impago → cliente sin poder facturar → infracción fiscal suya). |
+
 ## Risks
 
 | Riesgo | Impacto | Mitigación |
@@ -273,6 +383,14 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | **¿Certificación PSFE exigida para operar este modelo?** | Si la DGII la exige, es un camino crítico de meses que no depende de nuestro código | Pregunta abierta con dueño (el usuario, vía su colega). **No bloquea el desarrollo**: T12 y T14 son idénticos en los dos escenarios, así que se avanza mientras el trámite se aclara |
 | **Numeração de NCF mal gestionada** | Secuencias duplicadas = comprobantes fiscales inválidos | Secuencia por tipo y emisor con control de concurrencia y prueba de unicidad (T5, ya hecho) |
 | **Certificado expirado** | El cliente deja de poder emitir sin avisar | Alerta de vencimiento con antelación; el estado del certificado bloquea el envío con mensaje claro |
+| **El contrato del transporte no está verificado** | Los 4 paths de `DgiiClient` no coinciden con el contrato que el propio plan registra como verificado, y los tests fijan los URLs del código → **suite verde con el contrato roto** | **T21 antes de cualquier emisión.** Regla nueva: **todo test de transporte cita la fuente del contrato**, no la implementación que lo cumple |
+| **El código de seguridad sin algoritmo confirmado** | 7 caracteres (Guía 6) contra 6 derivados del `SignatureValue` (implementación de referencia) → el comprobante es inválido **para el receptor** | **T28**: resolver contra la spec oficial **antes** de emitir; si la spec no lo dice, se pregunta a la DGII. Nunca se adivina |
+| **El e-CF no se puede emitir** | No hay orquestador, la entidad es inalcanzable desde `Application` y la secuencia no tiene llamadores de producción: **el motor no produce nada** | T23 → T24. Es la primera pieza grande de la fase y por eso va con writer delegado |
+| **Copiar las prácticas de un tercero** | Reintroducir la secuencia con race, el aislamiento manual, el aviso por email en vez del bloqueo, el IV estático o el quirk 33/34 invertido | La lista de "no copiar" de la auditoría **es parte de este plan**: cada transferencia trae su matiz, no su código |
+| **Una suscripción vencida corta la emisión** | El cliente no puede facturar por impago → **infracción fiscal de él** y reclamo contra nosotros | **S27 + T35**: la ruta de emisión no lee el estado de alquiler, y un test lo fija |
+| **El coste de la retención de 10 años** | Cada XML firmado se guarda 10 años → un **coste variable por cliente alquilado** | Tiene que entrar en el precio de alquiler **desde el modelo**, no descubrirse después. Es un argumento de business, no de código |
+| **El cliente se certifica contra nuestras URLs y después se va** | Si el cliente certificó contra Volterp y luego cambia de ERP, su certificación queda colgando | La superficie compatible (T33) y la documentación del contrato hacen que la migración sea **problema del cliente**, no un rehacer |
+| **Certificar N tenants con N trámites** | Si cada cliente recorre el trámite (~15 pasos) por separado, el coste de cumplimiento por cliente no escala y el modelo alquilado se descuadra | **Fase 4 reencuadrada**: una certificación de Volterp amortizada en N tenants (ver "La relectura desde el modelo alquilado"). La pregunta al colega deja de ser "si existe el trámite" y pasa a ser "cuál rampa es más barata" |
 
 ## Log
 
@@ -387,6 +505,13 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **L19 — el verificador independiente encontró un blocker real**: `X509CertificateLoader.LoadPkcs12` **no valida la ventana de validez** del certificado, así que una fila con `ExpiresAt` en el futuro podía devolver un `.p12` **vencido con llave privada** → el ERP firmaría con un certificado caducado. Corregido: el provider valida `HasPrivateKey` y `NotBefore`/`NotAfter` **del certificado** (no de la fila) y falla cerrado (`723266d`). Además se redactó el `ToString()` de `SigningCredential` (el record posicional imprimía el pfx y el password en claro). Recheck acotado: **B1 y A1 cerrados**, sin defectos nuevos en esos puntos. **Assessment de RDD** (`5c039ab..HEAD`): `risk: medium`, `review_due: false` (`under_budget`) → no hay revisión nativa que correr.
   - **L20 — T13 arranca, con una condición que impone el modelo "somos la conexión"**: cada cliente trae **su** `.p12` + password (ya implementado en T13a) y nuestro sistema solo **conecta** con la DGII. Dos consecuencias: (1) el **token de la DGII es por emisor** (la semilla se firma con el certificado de ese emisor) → nada global; (2) la vía de emisión **debe llevar el `CompanyId` explícito**, porque `NullTenantContext.IsUnrestricted => true` (`Volterp.Application/Abstractions/NullTenantContext.cs:7`): sin contexto HTTP —que es el caso del envío, el reintento y el polling— **el filtro de tenant se apaga** y la búsqueda del certificado vería los de todos los tenants. **Próximo work unit (T13b)**: la autorización de secuencia del emisor (el vencimiento que otorga la DGII, por emisor y por tipo: 31-12-2028 en precertificación y **sin** fecha en 32/34 — `DescTec-Servicios-DGII.txt:216-223`), que hoy no tiene de dónde salir porque el mapper es fail-closed sin ella. **Pendiente de decisión del usuario**: si ese registro lo hace el admin (como el certificado) o el propio contribuyente.
 
+- **L21** (2026-11-12, verbatim): "yo hice la investigacion del sistema zynstorm que habian algunas cosas para incluir en volterp se salvo?" · "Exact[o] eso es lo que deseo pasar lo mejor que provee Zynstorm para agregarlo a volterp entendiendo que volterp es un ERP y zynstorm es basicamente un Sass aunque mi ERP va ha ser un Sass no lo voy a vender sino a alquilar" · "ojo hoy no vamos a implementar nada solo vamos a dejar el plan ready para continuar manana"
+  - **La investigación de ZynStorm estaba a salvo; el plan mejorado, no.** La sesión del 2026-11-12 (18:39–20:14) auditó el platform e-CF de `ZynstormECFPlatform` contra Volterp y dejó los hallazgos en memoria (#2266, #2267, #2268, #2269, #2272), pero **el plan mejorado se entregó en la conversación y nunca se aplicó al archivo**: este documento seguía en S1–S17, T1–T20, L1–L20. Se re-deriva y se aplica ahora, con el lente del modelo de negocio que el usuario aclaró ese mismo día.
+  - **El modelo de negocio cambia el plan, no solo el contexto**: "mi ERP va ha ser un Sass no lo voy a vender sino a alquilar". Un ERP **alquilado** y un SaaS **vendido** usan capacidades parecidas con lógicas opuestas: el tercero agrupa emisores bajo una cuenta con cuotas de asesor y **certifica a cada cliente por separado**; Volterp alquila el sistema de registro a **cada empresa**, con un tenant = un emisor (y sus sucursales = varios RNC). De ahí salen tres cosas que el plan no tenía: (a) la **Fase 4 deja de ser una etapa opcional y pasa a ser el punto de amortización** — en un ERP alquilado la certificación se paga una vez y se amortiza en N tenants, y el bootstrap de "≥3 contribuyentes certificados" se cumple con los propios clientes; (b) **la suscripción nunca bloquea la emisión fiscal** (S27/T35): el comprobante es obligación legal del cliente, y bloquearlo por impago convierte un problema de cobro en una infracción fiscal; (c) el e-CF es **un módulo del ERP**, no un producto aparte — la library sigue siendo portable, pero la calidad regulatoria del módulo es la del ERP.
+  - **Verificación del estado real** (read-only, sobre `feature/electronic-invoicing` @ `19139ea`): las afirmaciones de la auditoría se confirmaron una por una y aparecieron tres hallazgos nuevos. Confirmado: **no hay orquestador de emisión** (cero coincidencias de `Ecf`/`Dgii` en `Volterp.Application/Services/`); **`ElectronicInvoice` es inalcanzable desde `Application`** (tiene `DbSet` y migración, pero no hay `IElectronicInvoiceRepository` ni entrada en `IUnitOfWork`); **`NextSequenceAsync` solo tiene llamadores de test**; **`SecurityCode` y `QrUrl` son columnas sin generador**; **`InformacionReferencia` nunca se setea**, así que el writer **lanza** en 33/34; **`EcfTypeProfiles` hardcodea `TipoIngresos` para todos los tipos**; **no hay idempotencia, ni recuperación por NCF, ni retrack, ni cache de token**; **no hay ningún endpoint e-CF** en la API; y la library efectivamente **no referencia ningún** otro proyecto de Volterp. Nuevo y grave: **el contrato de endpoints no está verificado** — los 4 paths de `DgiiClient.cs:24,41,66,87` no coinciden con ninguno de los 4 que este mismo plan registra como "verificados contra la DescTec", y los tests (`DgiiClientTests.cs:26,62,114,156`) **fijan los URLs del propio código** → **suite verde con el contrato roto**.
+  - **Correcciones aplicadas a este documento** (tres): (1) **Option A queda derogada** — el usuario cerró "no vamos a utilizar MSeller" y el plan la tenía como "DECIDIDO" en dos lugares; el modelo vigente es el confirmado del 2026-11-04 (nosotros la comunicación, el cliente su firma), y el código ya escrito era el correcto para ese modelo. (2) **T14 deja de decir "verificado"**: el contrato está **contradicho** por este plan, por el código y por el sistema que sí opera en producción → **T21** es bloqueante de la fase. (3) **la tabla de "Domain gaps" estaba obsoleta** (afirmaba que no existían la entidad e-CF, el certificado ni la secuencia: los tres existen) → se sustituye por el gap real, que no es de modelo sino de recorrido.
+  - **Resultado**: el plan pasa de **17 specs / 20 tareas** a **27 specs / 35 tareas**, con una fase nueva (Fase 5 — El recorrido regulado) que es la que convierte el motor en producto. **No se implementó nada**: el trabajo de hoy es el plan, y la primera pieza de código es **T21**.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
@@ -404,6 +529,22 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 - `Volterp.Application/Services/SaleService.cs` — `CompleteSaleAsync` es hoy el punto donde el e-CF se emitiría; el desglose fiscal se calcula en `Sale.CalculateTotals`
 - `Volterp.Application/Services/ClientService.cs` — alta y persistencia del RNC del receptor
 - `odd/tasks/multi-tenant-isolation.md` — precedente de tracking doc de ODD en este repo
+
+### Lo que la Fase 5 toca (verificado el 2026-11-12)
+
+- `Volterp.ElectronicInvoicing/Dgii/DgiiClient.cs` — el cliente de los web services de la DGII. **Su contrato está contradicho** por el plan, por el código y por el sistema que sí opera en producción (T21)
+- `Volterp.ElectronicInvoicing/Dgii/DgiiAuthenticator.cs` — semilla → firma → token **en cada llamada**, sin cache (T22)
+- `Volterp.ElectronicInvoicing/Dgii/DgiiOptions.cs` — base URL y ambiente; el host del **RFCE** (`fc.dgii.gov.do`) no está contemplado (T29)
+- `Volterp.ElectronicInvoicing.Tests/Dgii/DgiiClientTests.cs` — **fijan los URLs del propio código**: hay que dejarlos de fijar la implementación (T21)
+- `Volterp.ElectronicInvoicing/Xml/EcfTypeProfiles.cs` — `TipoIngresos` hardcodeado `Operations` para los 10 tipos (T26)
+- `Volterp.ElectronicInvoicing/Xml/EcfXmlWriter.cs` — `WriteReference` **lanza** si falta `InformacionReferencia` (T25)
+- `Volterp.Domain/Entities/ElectronicInvoice.cs` — `SecurityCode` y `QrUrl` persistidos **sin generador**; `SaleId` no-null (T28-T29)
+- `Volterp.Domain/Entities/ElectronicInvoiceSequence.cs` — necesita la **fecha de vencimiento de la secuencia** (autorización del contribuyente) (T25)
+- `Volterp.Application/Mappers/SaleEcfDocumentMapper.cs` — nunca setea `EcfDocument.Reference` (T25)
+- `Volterp.Application/Interfaces/IUnitOfWork.cs` — **sin entrada de e-CF**: la entidad es inalcanzable (T23)
+- `Volterp.Infrastructure/Repositories/ElectronicInvoiceSequenceRepository.cs` — asignación atómica, **sin llamadores de producción** (T24)
+- `Volterp.Api/Controllers/` — 14 controllers y **ninguno de e-CF** (T24, T32)
+- `D:\source\my_projects\ZynstormECFPlatform` (proyecto hermano) — el sistema auditado: la referencia de la que se transfieren las doctrinas y las que no se copian
 
 ### T11b — el mapeo `Sale` → e-CF
 
