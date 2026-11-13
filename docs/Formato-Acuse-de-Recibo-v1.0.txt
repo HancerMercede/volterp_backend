@@ -1,0 +1,105 @@
+Formato Acuse de Recibo
+           (ARECF)
+
+                         GERENCIA DE FACTURACIÓN
+
+                                    REPÚBLICA DOMINICANA
+
+                                    Versión 1.0
+Bitácora de actualizaciones
+Versión 1.0
+
+    1. Se actualiza la etiqueta del área ‘DETALLE ACUSE DE RECIBO’.
+
+                                                                            Pág. 2 de 6
+       1. Introducción
+
+         El acuse de recibo es la respuesta que el receptor deberá enviar al emisor como constancia de recepción del Comprobante
+         Fiscal Electrónico; el mismo no implica aceptación ni rechazo del e-CF, sólo indica si fue o no recibido.
+         Al momento de recibir la factura, el receptor está obligado a confirmar al emisor la recepción del documento con una
+         respuesta de recepción1, previo a la aprobación comercial.
+         El presente documento describe el contenido que debe tener el formato XML del acuse de recibo, incluyendo los mensajes
+         que serán utilizados por los receptores electrónicos.
+
+       2. Contenido del Formato XML del Acuse de Recibo
+
+         a) Detalle del Acuse de Recibo: especifica el contenido de la respuesta que el receptor debe enviar al emisor.
+         b) Firma Digital: que avala la integridad de la respuesta y autenticidad del remitente.
+
+       3. Códigos de Obligatoriedad
+
+         1 - Dato obligatorio: el dato debe estar siempre en el archivo.
+         2 - Dato condicional: el dato no es obligatorio pero pasa a serlo en determinados casos, si se cumple una cierta condición.
+
+1 El Acuse de Recibo confirma que el documento corresponde a una factura electrónica y ha sido recibida.
+
+                                                                                  Pág. 3 de 6
+    Secciones del Archivo  Obligatoriedad de la Sección
+Detalle Acuse de Recibo                     1
+Firma Digital                               1
+
+A continuación, se describe el contenido de cada sección, las especificaciones de formato para cada campo y el código de
+obligatoriedad de cada uno. Los nombres y características son similares al formato de e-CF.
+
+Pág. 4 de 6
+A. Detalle de Acuse de Recibo
+
+No.            Campo                      Descripción               Tipo  Largo               Validación        Obligatoriedad
+                                                                          Máx.
+     ÁREA                     DETALLE ACUSE DE RECIBO                                                           1
+     <DetalleAcusedeRecibo>   Versión del formato de Acuse de NUM            3
+                              Recibo.                                     9 u 11  Valor: 1.0                    1
+1 Versión                     Número del Registro Nacional del NUM
+                              contribuyente que emite el e-CF.
+2 RNC del Emisor                                                                  RNC/Cédula cumple con la
+     <RNCEmisor>
+                                                                                  estructura de formato.        1
+
+     RNC del Comprador        Número del Registro Nacional del                    RNC/Cédula cumple con la
+3
+                              contribuyente que emite el Acuse NUM 9 u 11 estructura de formato.                1
+     <RNCComprador>
+                              de Recibo del e-CF.
+
+     e-NCF                    Número Comprobante Fiscal ALFA 13 e-NCF cumple con la estructura 1
+4                             Electrónico (e-NCF)                   NUM           de formato.
+
+     <eNCF>
+
+     Estado                   Código de respuesta del Acuse 0: e-CF Recibido NUM 1 1: e-CF No Recibido 1
+5                             de Recibo.
+     <Estado>
+
+                              Código numérico que indica el                       Código motivo de No Recibido
+
+                              motivo de rechazo del e-CF.                         1: Error de especificación.
+
+6 Código Motivo No Recibido                                         NUM   1 2: Error de Firma Digital.          2
+                                                                                  3: Envío duplicado
+     <CodigoMotivoNoRecibido> Condicional a que el Estado tenga                   4: RNC Comprador no
+
+                              valor 1.                                            corresponde
+
+     Fecha y Hora Generación  Fecha y hora en formato               ALFA Fecha y hora cumplen con el 19 formato indicado. 1
+7 Acuse de Recibo             dd-MM-AAAA HH:mm:ss                   NUM
+
+     <FechaHoraAcuseRecibo>
+
+     FIN ÁREA                 DETALLE ACUSE DE RECIBO
+
+                                                       Pág. 5 de 6
+     B. Firma Digital
+
+No.  Campos                        Descripción            Tipo Largo    Validación  Obligatoriedad
+                                                                  Máx.                      1
+                       SIGNATURE                                                            1
+        ÁREA           Firma digital sobre el archivo de
+                       Acuse de Recibo
+     <Signature>       SIGNATURE
+
+1    Firma Digital
+
+     FIN ÁREA
+
+                       Pág. 6 de 6
+
