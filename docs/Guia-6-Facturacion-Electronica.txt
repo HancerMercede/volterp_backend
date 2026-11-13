@@ -1,0 +1,384 @@
+
+===== PAGINA 1 =====
+Guía del 
+Contribuyente 
+No. 6
+Facturación
+Electrónica
+
+===== PAGINA 2 =====
+Guía Facturación Electrónica
+¿Qué es Factura Electrónica? 
+¿Qué es un Comprobante Fiscal 
+Electrónico (e-CF)?
+Estructura del Comprobante Fiscal 
+Electrónico (e-CF)
+Es el documento que registra la existencia, magnitud y 
+cuantificación de hechos o actos jurídicos de contenido 
+económico, financiero o patrimonial, que se emite, valida y 
+se almacena en forma electrónica y que cumple en todas las 
+situaciones ante todos los actores con los mismos propósitos 
+que una factura en papel, tanto para los emisores y 
+receptores como para terceros interesados.
+Es un documento electrónico firmado digitalmente que 
+acredita la transferencia de bienes, entrega en uso o la 
+prestación de servicios, debiendo cumplir siempre con los 
+requisitos establecidos en la Ley núm. 32-23 de Facturación 
+Electrónica de la República Dominicana y en el Decreto núm. 
+254-06 que establece el Reglamento para la Regulación de la 
+Impresión, Emisión y Entrega de Comprobantes Fiscales.
+Los e-CF son diferenciados de los comprobantes fiscales no 
+electrónicos usados para facturar en papel, por tener 
+secuencias que inician con la serie E, seguido del tipo de e-CF 
+y un secuencial de 10 dígitos, manteniendo la siguiente 
+estructura:
+E310000000001
+Tipo de e-CF
+Secuencial
+Serie
+El e-NCF es la secuencia
+alfanumerica que identifica
+un e-CF otorgado por 
+Impuestos Internos
+
+===== PAGINA 3 =====
+Características de e-CF
+Se emite electrónicamente.
+Factura de Crédito Fiscal Electrónica
+31
+32
+Factura de Consumo Electrónica
+33
+Nota de Débito Electrónica
+34
+Nota de Crédito Electrónica
+41
+Compras Electrónico
+43
+Gastos Menores Electrónico
+44
+Regímenes Especiales Electrónico
+45
+Gubernamental Electrónico
+46
+Exportación Electrónico
+47
+Pagos al Exterior Electrónico
+Tipos de e-CF
+Tiene un formato 
+estándar de factura.
+Tiene validez y efectos legales 
+iguales a la factura en papel.
+Firmado digitalmente. 
+
+===== PAGINA 4 =====
+Es  el sistema mediante el cual se validan y acreditan todos 
+los e-CF emitidos. La DGII es el administrador del Sistema 
+Fiscal de Facturación Electrónica y el responsable de asegurar 
+la integridad de la información que se envía instantáneamente 
+para validación y acreditación de los e-CF. (Ley núm. 32-23 
+Art. 11).
+Las facturas electrónicas son emitidas en el formato de 
+especificación establecido por Impuestos Internos y remitidas 
+mediante una plataforma Web Service, requiriendo el uso de 
+certificados digitales de firma electrónica.
+Facilita el cumplimiento tributario
+Estandariza relaciones entre empresas
+Reducción de costos en papel, impresión y almacenaje
+Validez del crédito fiscal
+Reduce pérdida de documentos
+Eficiencia y automatización de los procesos 
+administrativos
+El  Emisor 
+envía el e-CF 
+(XML) a DGII
+DGII valida el e-CF 
+(XML) y remite 
+TrackID al emisor
+El  Emisor 
+envía el e-CF a 
+su Receptor
+Receptor 
+electrónico recibe 
+el e-CF (XML) 
+Receptor NO 
+electrónico recibe una 
+representación impresa
+Emisor 
+electrónico
+Emisor 
+electrónico
+Receptor
+electrónico
+Representación
+impresa del e-CF
+Ventajas de la Facturación Electrónica
+Sistema Fiscal de Facturación Electrónica
+Modelo de Operación de Factura 
+Electrónica
+
+===== PAGINA 5 =====
+Representación Impresa de un e-CF (RI)
+La Representación Impresa (RI) es un documento en papel 
+que refleja la información del e-CF, cumpliendo con todas las 
+especificaciones del Decreto núm. 254-06 y la Norma General 
+núm. 06-2018, en cuanto a los datos que debe contener y la 
+distribución de estos. La representación impresa se entrega 
+al receptor no-electrónico, el cual deberá confirmar la 
+validez, a través de las consultas disponibles para estos 
+fines.
+Tener el Registro Nacional de Contribuyentes (RNC) 
+actualizado. 
+Estar registrado como contribuyente con 
+obligaciones tributarias a su cargo.
+Poseer clave de acceso a la Oficina Virtual (OFV).
+Completar el Formulario de Solicitud de Autorización 
+para ser Emisor Electrónico (FI-GDF-016 Formulario 
+de Solicitud para ser Emisor Electrónico, Vers. C).
+Contar con un certificado digital para procedimiento 
+tributario, emitido por una entidad de certificación 
+autorizada por el Instituto Dominicano de las 
+Telecomunicaciones (INDOTEL), que corresponda a 
+la persona que actuará en representación del 
+contribuyente.
+Cumplir con las exigencias técnicas que la DGII 
+disponga, aprobando de manera satisfactoria el 
+proceso de certificación para ser emisor electrónico, 
+a los fines de inicio de emitir los e-CF. 
+Estar en cumplimiento con las disposiciones de la 
+Norma General núm. 06-2018 sobre Comprobantes 
+Fiscales.
+Requisitos para solicitar autorización 
+de Emisor Electrónico 
+
+===== PAGINA 6 =====
+Estados del Comprobante Fiscal 
+Electrónico (e-CF)
+Aceptado: significa que el e-CF cumple con los 
+requisitos especificados en el formato estándar, que, 
+al ser recibido por la DGII, resulta válido para fines 
+fiscales.
+Rechazado: significa que el e-CF no cumple con 
+los requisitos especificados en el formato estándar, 
+por lo tanto, no es válido para fines fiscales. 
+Aceptado condicional: se refiere a la respuesta 
+de la DGII al emisor electrónico en la que le advierte 
+que, aunque el e-CF tiene validez para fines fiscales, 
+existe una irregularidad que no amerita el rechazo, 
+pero que debe observarla y/o corregirla para la 
+emisión de futuros comprobantes.
+En proceso: significa que la DGII se encuentra 
+realizando las validaciones del e-CF recibido 
+respecto del cual no se ha emitido aceptación, 
+rechazo o aceptación condicional y que se debe 
+consultar de nuevo para conocer el resultado.
+Anulado: significa que el e-CF no puede ser 
+utilizado para fines fiscales, debido a que fue 
+remitido por el contribuyente en el formato de 
+especificación para fines de anulación. 
+  
+ 
+ 
+ 
+ 
+COMERCIAL ZYL 
+ 
+                                                Factura de Crédito Fiscal Electrónica   
+ZYL, SRL                                           
+                                                   e-NCF: E310000000001 
+Sucursal Gazcue                                                
+ 
+              Fecha Vencimiento: 31-12-2021 
+RNC 101000001 
+ 
+ 
+ 
+ 
+Dirección: Calle Segunda #01, Gazcue, Distrito Nacional, Rep. Dom. 
+ 
+ 
+ 
+Fecha Emisión: 27-01-2020 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Razón Social Cliente: COMERCIO, SRL 
+ 
+ 
+ 
+RNC Cliente: 130000001 
+ 
+ 
+ 
+ 
+ 
+Cantidad 
+Descripción 
+Unidad de 
+Medida 
+Precio 
+ITBIS 
+Valor 
+150 
+Zapatos 
+CAJ 
+550.00 
+14,850.00 
+82,500.00 
+200 
+Vestidos 
+PZA 
+800.00 
+28,800.00 
+160,000.00 
+100 
+Camisas 
+PZA 
+500.00 
+9,000.00 
+50,000.00 
+100 
+Blusas 
+PZA 
+400.00 
+7,200.00 
+40,000.00 
+60 
+Ganchos para pelo 
+PZA 
+30.00 
+324.00 
+1,800.00 
+ 
+ 
+Subtotal Gravado: 
+334,300.00  
+Total ITBIS: 
+60,174.00  
+Total: 
+394,474.00  
+         
+         Código de Seguridad: WkT3Sa 
+         Fecha de Firma Digital 27-01 2020 
+*Este modelo de RI es exclusivo para fines ilustrativos.
+
+===== PAGINA 7 =====
+Facturador Gratuito 
+Es la herramienta que permite la emisión de e-CF, conforme 
+el modelo operativo de Facturación Electrónica, proporcionada 
+de manera gratuita para los contribuyentes que deseen 
+facturar electrónicamente, operando desde su computador 
+con servicios de internet. Esta plataforma permite generar 
+facturas, notas de crédito y débito cumpliendo con las 
+normativas fiscales del país.
+Los contribuyentes que deseen optar por esta modalidad 
+deberán cumplir con los siguientes requisitos:
+Estar inscrito en el Registro Nacional de Contribuyentes 
+(RNC).
+Poseer clave de acceso a la Oficina Virtual (OFV) y 
+disponer de alguno de los dispositivos de seguridad 
+para acceso a la OFV (Token, Tarjeta de Código o Token 
+Digital u otro que la DGII establezca).
+Tener autorización para emitir Comprobantes Fiscales 
+(NCF).
+Los emisores de e-CF deben ser previamente autorizados por 
+DGII y utilizar un sistema que permita generar y recibir el 
+formato de especificación, según las especificaciones 
+técnicas establecidas. Dicho sistema puede ser: 
+Sistema de desarrollo propio
+A través de Proveedores de servicios de facturación 
+electrónica certificados por la DGII
+Facturador Gratuito
+Requisitos para ser Facturador Gratuito
+01
+02
+03
+Métodos de Emisión de e-CF
+
+===== PAGINA 8 =====
+El estatus de un e-CF puede ser verificado, una vez ha sido 
+recibido en Impuestos Internos, a través de la consulta 
+disponible en el portal web de Impuestos Internos 
+(www.dgii.gov.do), realizando los siguientes pasos: 
+En el menú “Herramientas”, en la sección “Consultas”, 
+seleccione la opción “NCF / e-NCF”. 
+Complete los campos “Registro Nacional del 
+Contribuyente (RNC)” y “Número de Comprobante Fiscal 
+(NCF)” correspondientes al Comprobante Fiscal 
+Electrónico (e-CF). 
+El sistema desplegará los campos de “RNC Comprador” 
+y “Código de Seguridad” (si aplica), los cuales deben ser 
+completados. 
+Pulse el botón “Buscar” y el sistema le mostrará el 
+estado del e-CF.
+Estar al día en el cumplimiento de sus obligaciones 
+tributarias y deberes formales.
+Disponer de Certificado Digital para procedimiento 
+tributario, a nombre de la persona que actuará en 
+representación del contribuyente, emitido por una de 
+las entidades de certificación autorizadas por el 
+INDOTEL.
+Disponer de un computador o dispositivo móvil con 
+servicio de internet.
+No haber sido autorizado con anterioridad a emitir e-CF 
+a través de un sistema diferente al Facturador Gratuito.
+El solicitante debe facturar como máximo unas ciento 
+cincuenta (150) facturas al mes.
+Completar el Formulario de solicitud para Uso del 
+Facturador Gratuito de Facturación Electrónica 
+(FI-GDF-018 Formulario de Solicitud para el Uso del 
+Facturador Gratuito de Facturación Electrónica, Vers.A)
+04
+05
+06
+07
+08
+09
+Consulta de e-CF
+
+===== PAGINA 9 =====
+El código QR de la representación impresa, permite consultar 
+el estatus y la validez de un e-CF a partir de una URL y 
+contiene los siguientes datos:
+Grandes contribuyentes nacionales: doce (12) meses 
+contados a partir de la vigencia de la ley.
+Grandes contribuyentes locales y medianos: veinticuatro 
+(24) meses contados a partir de la vigencia de la ley.
+Contribuyentes pequeños, micro y no clasificados: 
+treinta y seis (36) meses contados a partir de la vigencia 
+de la ley.
+Entidades del Estado clasificadas como grandes 
+nacionales: doce (12) meses contados a partir de la 
+vigencia de la ley.
+Las demás entidades del Estado: treinta y seis (36) 
+meses contados a partir de la vigencia de la ley.
+Plazo para implementar la emisión del 
+Comprobante Fiscal Electrónico (e-CF)
+Código QR
+Nota: La DGII podrá otorgar prórroga para la implementación de los e-CF, 
+sin exceder el plazo de seis (6) meses.
+Los nuevos contribuyentes están obligados a incorporarse como emisores 
+de e-CF, en el plazo correspondiente al grupo al que pertenece. Si el plazo 
+ya venció, tiene 120 días para incorporarse y si el plazo está próximo a 
+vencer la DGII deberá extender el plazo hasta completar 120 días.
+
+===== PAGINA 10 =====
+(809) 689-3444 desde cualquier parte del país.
+informacion@dgii.gov.do
+IMPUESTOS INTERNOS
+Enero 2025
+dgii.gov.do
+Publicación informativa sin validez legal
+@DGIIRD
