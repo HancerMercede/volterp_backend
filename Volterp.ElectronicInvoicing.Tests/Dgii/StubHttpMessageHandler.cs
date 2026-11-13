@@ -6,9 +6,24 @@ namespace Volterp.ElectronicInvoicing.Tests.Dgii;
 /// A handler that answers with whatever the test decides and keeps what the
 /// client sent, so the assertions are about the request the DGII would receive.
 /// </summary>
-internal sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder)
-    : HttpMessageHandler
+internal sealed class StubHttpMessageHandler : HttpMessageHandler
 {
+    private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _responder;
+
+    public StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responder)
+        : this((request, _) => Task.FromResult(responder(request)))
+    {
+    }
+
+    /// <summary>
+    /// A responder that can wait, for the tests that need a trip to the DGII
+    /// to stay open while something else happens.
+    /// </summary>
+    public StubHttpMessageHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> responder)
+    {
+        _responder = responder;
+    }
+
     public string? LastUri { get; private set; }
     public string? LastMethod { get; private set; }
     public string? LastBody { get; private set; }
@@ -31,7 +46,7 @@ internal sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpRespon
             ? null
             : await request.Content.ReadAsStringAsync(cancellationToken);
 
-        return responder(request);
+        return await _responder(request, cancellationToken);
     }
 
     public static StubHttpMessageHandler ReturningJson(string json, HttpStatusCode status = HttpStatusCode.OK)

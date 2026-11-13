@@ -12,7 +12,12 @@ public sealed record DgiiToken(string Token, DateTimeOffset? ExpiresAt, DateTime
     /// Whether the token is already past its expiration. The DGII reports the
     /// expiration date and a token past it stops working.
     /// </summary>
-    public bool IsExpired => ExpiresAt is { } expiry && expiry <= DateTimeOffset.UtcNow;
+    public bool IsExpired => IsExpiredAt(DateTimeOffset.UtcNow);
+
+    /// <summary>
+    /// Whether the token is past its expiration at the given moment.
+    /// </summary>
+    public bool IsExpiredAt(DateTimeOffset now) => ExpiresAt is { } expiry && expiry <= now;
 }
 
 /// <summary>

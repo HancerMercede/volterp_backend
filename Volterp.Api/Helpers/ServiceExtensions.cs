@@ -73,6 +73,14 @@ public static class ServiceExtensions
         services.AddSingleton(dgiiOptions);
 
         services.AddHttpClient<IDgiiClient, DgiiClient>();
+        services.AddSingleton(TimeProvider.System);
+
+        // The token the DGII issues belongs to the issuer and lives an hour,
+        // so the cache that keeps it is a singleton. The authenticator stays
+        // transient: it holds the typed client for one resolution only, and a
+        // singleton would capture that client for the life of the process and
+        // pin the address of the DGII.
+        services.AddSingleton<DgiiTokenCache>();
         services.AddTransient<DgiiAuthenticator>();
 
         // The host port of the library: the ERP resolves the issuer's
