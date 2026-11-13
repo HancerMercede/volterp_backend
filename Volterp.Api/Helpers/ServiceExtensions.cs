@@ -86,6 +86,10 @@ public static class ServiceExtensions
         // The host port of the library: the ERP resolves the issuer's
         // certificate from the encrypted credential of the company.
         services.AddScoped<ISigningCertificateProvider, CompanySigningCertificateProvider>();
+
+        // The emission runs without an HTTP context: the company travels by
+        // hand on every call.
+        services.AddScoped<IElectronicInvoiceService, ElectronicInvoiceService>();
     }
 
     public static void ConfigureControllers(IServiceCollection services)
