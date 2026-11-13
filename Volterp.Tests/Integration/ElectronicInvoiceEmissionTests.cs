@@ -192,10 +192,44 @@ public class ElectronicInvoiceEmissionTests
         fixture.Dgii.SendRequests.Should().Be(0);
     }
 
+    [Fact]
+    public async Task TheDueDocumentsAreTheOnesOfTheCompanyWhoseAppointmentPassed()
+    {
+        await using var fixture = new EmissionFixture();
+        await fixture.InitializeAsync();
+
+        fixture.Context.ElectronicInvoices.AddRange(
+            Invoice(fixture.CompanyId, "10100000101", fixture.SaleId, "E320000000777", DateTime.UtcNow.AddMinutes(-1)),
+            Invoice(fixture.CompanyId, "10100000101", fixture.SecondSaleId, "E320000000778", DateTime.UtcNow.AddMinutes(30)),
+            Invoice(fixture.OtherCompanyId, "10100000102", fixture.OtherSaleId, "E320000000779", DateTime.UtcNow.AddMinutes(-1)));
+
+        await fixture.Context.SaveChangesAsync();
+
+        var due = await fixture.UnitOfWork.ElectronicInvoices.GetDueForCheckAsync(fixture.CompanyId, DateTime.UtcNow);
+
+        // The appointment of another company is not ours, and the one that is
+        // not due yet waits: the retrack does not ask about it.
+        due.Should().ContainSingle().Which.ENCF.Should().Be("E320000000777");
+    }
+
+    private static ElectronicInvoice Invoice(
+        Guid companyId, string issuerRnc, Guid saleId, string encf, DateTime nextCheckAt) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        CompanyId = companyId,
+        SaleId = saleId,
+        ENCF = encf,
+        DocumentType = EcfDocumentType.Consumer,
+        IssuerTaxId = issuerRnc,
+        SignedXml = "<ECF />",
+        Status = EcfStatus.InProcess,
+        NextCheckAt = nextCheckAt,
+        StatusCheckCount = 1
+    };
+
     private sealed class EmissionFixture : IAsyncDisposable
     {
         private const string IssuerRnc = "10100000101";
-
         private readonly SqliteConnection _connection;
         private readonly int _consumerSequence;
 
@@ -221,6 +255,7 @@ public class ElectronicInvoiceEmissionTests
         public Guid SecondSaleId { get; private set; }
         public Guid OtherSaleId { get; private set; }
         public IElectronicInvoiceService Service { get; private set; } = null!;
+        public UnitOfWork UnitOfWork { get; private set; } = null!;
 
         public async Task InitializeAsync()
         {
@@ -257,8 +292,10 @@ public class ElectronicInvoiceEmissionTests
             var signer = new XmlDsigEcfSigner();
             var authenticator = new DgiiAuthenticator(Dgii, signer, new DgiiTokenCache());
 
+            UnitOfWork = new UnitOfWork(Context);
+
             Service = new ElectronicInvoiceService(
-                new UnitOfWork(Context),
+                UnitOfWork,
                 new EcfXmlWriter(),
                 signer,
                 certificates.Object,

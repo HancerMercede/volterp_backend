@@ -417,6 +417,9 @@ namespace Volterp.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<DateTime?>("NextCheckAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("QrUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -443,6 +446,9 @@ namespace Volterp.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("StatusCheckCount")
                         .HasColumnType("integer");
 
                     b.Property<decimal>("Subtotal")
@@ -475,6 +481,8 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("IssuerTaxId", "ENCF")
                         .IsUnique();
+
+                    b.HasIndex("CompanyId", "Status", "NextCheckAt");
 
                     b.ToTable("ElectronicInvoices");
                 });

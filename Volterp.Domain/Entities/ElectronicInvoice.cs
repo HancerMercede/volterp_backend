@@ -29,6 +29,11 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
     public EcfStatus Status { get; set; } = EcfStatus.Draft;
     public string? VerdictNote { get; set; }
 
+    // The appointment of the next verdict check and the number of checks the
+    // document already carries: the wait grows with it.
+    public DateTime? NextCheckAt { get; set; }
+    public int StatusCheckCount { get; set; }
+
     public Sale Sale { get; set; } = null!;
     public Company Company { get; set; } = null!;
 
@@ -74,6 +79,7 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
         RequirePendingVerdict(EcfStatus.Accepted);
 
         Status = EcfStatus.Accepted;
+        NextCheckAt = null;
     }
 
     public void AcceptConditionally(string observation)
@@ -85,6 +91,7 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
 
         VerdictNote = observation;
         Status = EcfStatus.AcceptedConditionally;
+        NextCheckAt = null;
     }
 
     public void Reject(string reason)
@@ -96,6 +103,7 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
 
         VerdictNote = reason;
         Status = EcfStatus.Rejected;
+        NextCheckAt = null;
     }
 
     public void Annul()
@@ -104,6 +112,18 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
             throw InvalidTransition(EcfStatus.Annulled);
 
         Status = EcfStatus.Annulled;
+        NextCheckAt = null;
+    }
+
+    // The DGII is still validating the document, so its verdict is asked
+    // again later. A verdict that is already final is not asked again, and
+    // the appointment of a document that reached a final verdict is gone.
+    public void ScheduleNextCheck(DateTime nextCheckAt)
+    {
+        RequirePendingVerdict(EcfStatus.InProcess);
+
+        StatusCheckCount++;
+        NextCheckAt = nextCheckAt;
     }
 
     private void RequirePendingVerdict(EcfStatus target)

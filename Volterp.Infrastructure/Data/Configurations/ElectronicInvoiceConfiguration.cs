@@ -19,6 +19,10 @@ public class ElectronicInvoiceConfiguration : IEntityTypeConfiguration<Electroni
         // for the same RNC, no matter how many branches the tenant has.
         entity.HasIndex(e => new { e.IssuerTaxId, e.ENCF }).IsUnique();
 
+        // The documents whose verdict check is due are looked up by company
+        // and state.
+        entity.HasIndex(e => new { e.CompanyId, e.Status, e.NextCheckAt });
+
         entity.Property(e => e.ENCF).IsRequired().HasMaxLength(13);
         entity.Property(e => e.DocumentType).HasConversion<int>().IsRequired();
         entity.Property(e => e.IssuerTaxId).IsRequired().HasMaxLength(13);

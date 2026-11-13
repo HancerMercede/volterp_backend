@@ -15,4 +15,9 @@ public interface IElectronicInvoiceService
     // send of the same e-NCF would burn the number twice.
     Task<Either<Error, ElectronicInvoiceDto>> RecoverAsync(
         Guid companyId, string issuerTaxId, string encf, CancellationToken ct = default);
+
+    // The retrack: the documents whose verdict check is due are asked again
+    // and the ones the DGII is still validating get the next appointment with
+    // the backoff. It answers how many documents were asked again.
+    Task<Either<Error, int>> RetrackAsync(Guid companyId, CancellationToken ct = default);
 }

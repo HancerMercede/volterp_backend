@@ -5,6 +5,7 @@ using Volterp.Application.Interfaces;
 using Volterp.Application.Mappers;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
+using Volterp.Domain.Policies;
 using Volterp.ElectronicInvoicing;
 using Volterp.ElectronicInvoicing.Abstractions;
 using Volterp.ElectronicInvoicing.Dgii;
@@ -18,8 +19,11 @@ public class ElectronicInvoiceService(
     IEcfSigner signer,
     ISigningCertificateProvider certificateProvider,
     DgiiAuthenticator authenticator,
-    IDgiiClient dgiiClient) : IElectronicInvoiceService
+    IDgiiClient dgiiClient,
+    VerdictCheckBackoff? backoff = null) : IElectronicInvoiceService
 {
+    private readonly VerdictCheckBackoff _backoff = backoff ?? VerdictCheckBackoff.Default();
+
     public async Task<Either<Error, ElectronicInvoiceDto>> IssueAsync(Guid saleId, Guid companyId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, Guid>
@@ -44,6 +48,15 @@ public class ElectronicInvoiceService(
             .Run();
     }
 
+    public async Task<Either<Error, int>> RetrackAsync(Guid companyId, CancellationToken ct = default)
+    {
+        return await EitherAsync<Error, Guid>
+            .FromRight(companyId)
+            .Ensure(id => id != Guid.Empty, new Error("companyId must not be empty."))
+            .FlatMap(async id => await RetrackTheDueDocumentsAsync(id, ct), ex => new Error(ex.Message))
+            .Run();
+    }
+
     private async Task<ElectronicInvoice> RecoverTheDocumentAsync(
         Guid companyId, string issuerTaxId, string encf, CancellationToken ct)
     {
@@ -57,6 +70,41 @@ public class ElectronicInvoiceService(
             or EcfStatus.Rejected or EcfStatus.Annulled)
             return invoice;
 
+        if (await AskTheVerdictAsync(invoice, issuerTaxId, ct))
+        {
+            // The document was read without tracking, so the change is persisted
+            // on purpose.
+            await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
+            await unitOfWork.CommitAsync(ct);
+        }
+
+        return invoice;
+    }
+
+    private async Task<int> RetrackTheDueDocumentsAsync(Guid companyId, CancellationToken ct)
+    {
+        // The company travels by hand: the retrack runs without an HTTP
+        // context, and without one the global tenant filter is off.
+        var due = await unitOfWork.ElectronicInvoices.GetDueForCheckAsync(companyId, DateTime.UtcNow, ct);
+
+        foreach (var invoice in due)
+        {
+            if (await AskTheVerdictAsync(invoice, invoice.IssuerTaxId, ct))
+            {
+                // The documents are read without tracking, so the change is
+                // persisted on purpose.
+                await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
+                await unitOfWork.CommitAsync(ct);
+            }
+        }
+
+        return due.Count;
+    }
+
+    // It answers whether the document changed: a document the DGII never
+    // received has no verdict yet.
+    private async Task<bool> AskTheVerdictAsync(ElectronicInvoice invoice, string issuerTaxId, CancellationToken ct)
+    {
         var certificate = await certificateProvider.GetSigningCertificateAsync(issuerTaxId, ct);
         var token = await authenticator.AuthenticateAsync(issuerTaxId, certificate, ct);
 
@@ -64,12 +112,12 @@ public class ElectronicInvoiceService(
         // whether it has the document instead of sending it again.
         if (string.IsNullOrWhiteSpace(invoice.TrackId))
         {
-            var lookup = await dgiiClient.GetTrackIdAsync(issuerTaxId, encf, token.Token, ct);
+            var lookup = await dgiiClient.GetTrackIdAsync(issuerTaxId, invoice.ENCF, token.Token, ct);
 
             // The DGII never received it: the document stays pending and the
             // queue is the one that sends it.
             if (lookup.NotFound)
-                return invoice;
+                return false;
 
             invoice.MarkSent(lookup.TrackId, lookup.ReceivedAt?.UtcDateTime ?? DateTime.UtcNow);
         }
@@ -82,12 +130,7 @@ public class ElectronicInvoiceService(
 
         ApplyVerdict(invoice, status);
 
-        // The document was read without tracking, so the change is persisted
-        // on purpose.
-        await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        return invoice;
+        return true;
     }
 
     private async Task<ElectronicInvoice> IssueTheDocumentAsync(Guid saleId, Guid companyId, CancellationToken ct)
@@ -216,7 +259,7 @@ public class ElectronicInvoiceService(
         }
     }
 
-    private static void ApplyVerdict(ElectronicInvoice invoice, DgiiStatus status)
+    private void ApplyVerdict(ElectronicInvoice invoice, DgiiStatus status)
     {
         switch (status.Verdict)
         {
@@ -236,8 +279,19 @@ public class ElectronicInvoiceService(
                 // The DGII is still validating the document: it stays in that
                 // state and the verdict is asked again later.
                 invoice.MarkInProcess();
+                ScheduleTheNextCheck(invoice);
                 break;
         }
+    }
+
+    private void ScheduleTheNextCheck(ElectronicInvoice invoice)
+    {
+        // The wait grows with the number of checks the document already
+        // carries: the DGII takes its time and it is not bothered more than
+        // necessary.
+        var checks = invoice.StatusCheckCount;
+
+        invoice.ScheduleNextCheck(DateTime.UtcNow.Add(_backoff.DelayFor(checks)));
     }
 
     private static string Describe(DgiiStatus status, string fallback)

@@ -15,4 +15,11 @@ public interface IElectronicInvoiceRepository : IRepositoryBase<ElectronicInvoic
     /// recovered: the document is asked for before it is sent again.
     /// </summary>
     Task<ElectronicInvoice?> GetByEncfAsync(Guid companyId, string issuerTaxId, string encf, CancellationToken ct = default);
+
+    /// <summary>
+    /// The documents of a company whose verdict check is due. The retrack runs
+    /// without an HTTP context, and without one the global tenant filter is
+    /// off, so the company travels by hand.
+    /// </summary>
+    Task<IReadOnlyList<ElectronicInvoice>> GetDueForCheckAsync(Guid companyId, DateTime now, CancellationToken ct = default);
 }

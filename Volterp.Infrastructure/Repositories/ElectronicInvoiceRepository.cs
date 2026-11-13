@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
+using Volterp.ElectronicInvoicing;
 using Volterp.Infrastructure.Data;
 
 namespace Volterp.Infrastructure.Repositories;
@@ -20,4 +21,14 @@ public class ElectronicInvoiceRepository(VolterpDbContext context)
             .AsNoTracking()
             .Where(e => e.CompanyId == companyId && e.IssuerTaxId == issuerTaxId && e.ENCF == encf)
             .FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyList<ElectronicInvoice>> GetDueForCheckAsync(Guid companyId, DateTime now, CancellationToken ct = default)
+        => await Set()
+            .AsNoTracking()
+            .Where(e => e.CompanyId == companyId
+                && e.Status == EcfStatus.InProcess
+                && e.NextCheckAt != null
+                && e.NextCheckAt <= now)
+            .OrderBy(e => e.NextCheckAt)
+            .ToListAsync(ct);
 }
