@@ -21,7 +21,9 @@ namespace Volterp.Tests.Services;
 // document, sent to the DGII, with the verdict on record.
 public class ElectronicInvoiceServiceTests
 {
-    private const string SignedXml = "<ECF Signed=\"true\" />";
+    // The signer of the tests answers with a document that carries a
+    // signature, because the security code is taken out of it.
+    private const string SignedXml = "<ECF Signed=\"true\"><Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignatureValue>BoXjC8ZmFrQnVuZXZlck9yaWdpbmFs</SignatureValue></Signature></ECF>";
     private const string IssuerRnc = "10100000101";
 
     private static readonly Guid CompanyId = Guid.Parse("0192b9c7-b6a3-7def-8c5e-1f2a3b4c5d6e");
@@ -94,6 +96,10 @@ public class ElectronicInvoiceServiceTests
         _persisted.SignedXml.Should().Be(SignedXml);
         _persisted.TrackId.Should().Be("track-1");
         _persisted.Status.Should().Be(EcfStatus.Accepted);
+
+        // The security code is taken out of the signature, so it is on record
+        // with the document.
+        _persisted.SecurityCode.Should().Be("BoXjC8");
     }
 
     [Fact]

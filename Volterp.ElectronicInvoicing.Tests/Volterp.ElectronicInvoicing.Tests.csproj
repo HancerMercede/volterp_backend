@@ -22,4 +22,8 @@
     <ProjectReference Include="..\Volterp.ElectronicInvoicing\Volterp.ElectronicInvoicing.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="Signing\fixtures\*.xml" Link="fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

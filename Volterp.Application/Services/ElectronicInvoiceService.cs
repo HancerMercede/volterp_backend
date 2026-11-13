@@ -9,6 +9,7 @@ using Volterp.Domain.Policies;
 using Volterp.ElectronicInvoicing;
 using Volterp.ElectronicInvoicing.Abstractions;
 using Volterp.ElectronicInvoicing.Dgii;
+using Volterp.ElectronicInvoicing.Signing;
 using Volterp.ElectronicInvoicing.Xml;
 
 namespace Volterp.Application.Services;
@@ -212,7 +213,11 @@ public class ElectronicInvoiceService(
             // before the ITBIS, and the breakdown by rate lives in the XML.
             Subtotal = document.Totals.Total - itbis,
             Itbis = itbis,
-            Total = document.Totals.Total
+            Total = document.Totals.Total,
+
+            // The security code the taxpayer prints next to the QR: it comes
+            // out of the signature, so it is only known once it is signed.
+            SecurityCode = EcfSecurityCode.From(signedXml)
         };
 
         invoice.Sign(signedXml, signedAt);
