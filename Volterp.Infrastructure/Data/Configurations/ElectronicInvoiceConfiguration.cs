@@ -10,7 +10,10 @@ public class ElectronicInvoiceConfiguration : IEntityTypeConfiguration<Electroni
     {
         entity.HasKey(e => e.Id);
         entity.HasIndex(e => e.CompanyId);
-        entity.HasIndex(e => e.SaleId);
+
+        // One document per sale: two emissions of the same sale would burn two
+        // fiscal numbers and leave the client with two documents.
+        entity.HasIndex(e => e.SaleId).IsUnique();
 
         // The e-NCF is unique per issuer: the same number can never exist twice
         // for the same RNC, no matter how many branches the tenant has.

@@ -16,4 +16,7 @@ public static class DgiiEndpoints
 
     // p. 22: GET {base}/{ambiente}/consultaresultado/api/consultas/estado?trackid=
     public const string StatusByTrackId = "consultaresultado/api/consultas/estado";
+
+    // p. 30: GET {base}/{ambiente}/consultatrackids/api/trackids/consulta?rncemisor=&encf=
+    public const string TrackIdByEncf = "consultatrackids/api/trackids/consulta";
 }

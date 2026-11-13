@@ -21,6 +21,15 @@ public sealed record DgiiReceipt(string? TrackId, string? Error, string? Message
 // One message the DGII attaches to a verdict: the only place it explains itself.
 public sealed record DgiiMessage(string? Value, int Code);
 
+// What the DGII answers when we ask by e-NCF whether it received the
+// document: the track id it gave it, the state it is in and the day it
+// received it. A track id that is not there means the DGII never got it,
+// which is the answer that lets a lost send be sent again.
+public sealed record DgiiTrackLookup(string? TrackId, string? Estado, DateTimeOffset? ReceivedAt)
+{
+    public bool NotFound => string.IsNullOrWhiteSpace(TrackId);
+}
+
 // The validation result of a received e-CF. SequenceConsumed is the one that
 // bites: the DGII sets it when the rejection makes the number unusable.
 public sealed record DgiiStatus(
@@ -91,4 +100,16 @@ internal sealed class DgiiMessageResponse
 
     [JsonPropertyName("codigo")]
     public int Code { get; set; }
+}
+
+internal sealed class DgiiTrackLookupResponse
+{
+    [JsonPropertyName("trackId")]
+    public string? TrackId { get; set; }
+
+    [JsonPropertyName("estado")]
+    public string? Estado { get; set; }
+
+    [JsonPropertyName("fechaRecepcion")]
+    public string? FechaRecepcion { get; set; }
 }

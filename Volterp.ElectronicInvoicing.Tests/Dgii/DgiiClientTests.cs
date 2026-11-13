@@ -259,6 +259,65 @@ public class DgiiClientTests
         => "<e-CF><Encabezado><IdDoc><eNCF>E320000000001</eNCF></IdDoc>" +
            "<Emisor><RNCEmisor>101500018</RNCEmisor></Emisor></Encabezado></e-CF>";
 
+    // "Descripción Técnica Servicios DGII", p. 30: the track id of a document
+    // is asked by the issuer RNC and the e-NCF. It is how a lost answer is
+    // recovered without sending the document twice.
+    [Fact]
+    public async Task GetTrackIdAsync_AsksForTheTrackIdOfTheEncf()
+    {
+        var handler = StubHttpMessageHandler.ReturningJson(
+            """{"trackId":"track-9","estado":"Aceptado","fechaRecepcion":"2026-11-13T10:00:00"}""");
+        var client = CreateClient(handler);
+
+        await client.GetTrackIdAsync("10100000101", "E320000000001", "jwt");
+
+        // "Descripción Técnica Servicios DGII", p. 30:
+        // GET {base}/{ambiente}/consultatrackids/api/trackids/consulta?rncemisor=&encf=
+        handler.LastUri.Should().Be(
+            "https://ecf.dgii.gov.do/testecf/consultatrackids/api/trackids/consulta?rncemisor=10100000101&encf=E320000000001");
+        handler.LastMethod.Should().Be("GET");
+        handler.LastAuthorization.Should().Be("bearer jwt");
+    }
+
+    [Fact]
+    public async Task GetTrackIdAsync_ReturnsTheTrackIdWithTheStateAndTheDayItArrived()
+    {
+        var handler = StubHttpMessageHandler.ReturningJson(
+            """{"trackId":"track-9","estado":"Aceptado","fechaRecepcion":"2026-11-13T10:00:00"}""");
+        var client = CreateClient(handler);
+
+        var lookup = await client.GetTrackIdAsync("10100000101", "E320000000001", "jwt");
+
+        lookup.TrackId.Should().Be("track-9");
+        lookup.Estado.Should().Be("Aceptado");
+        lookup.NotFound.Should().BeFalse();
+        lookup.ReceivedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetTrackIdAsync_WhenTheDgiiDoesNotHaveTheDocument_SaysItWasNotFound()
+    {
+        var handler = StubHttpMessageHandler.ReturningJson(
+            """{"trackId":"","estado":"No encontrado","fechaRecepcion":""}""");
+        var client = CreateClient(handler);
+
+        var lookup = await client.GetTrackIdAsync("10100000101", "E320000000001", "jwt");
+
+        lookup.NotFound.Should().BeTrue("a document the DGII never received can be sent again");
+    }
+
+    [Fact]
+    public async Task GetTrackIdAsync_WhenTheDgiiFails_ThrowsWithTheBodyItSent()
+    {
+        var handler = StubHttpMessageHandler.ReturningText("no disponible", HttpStatusCode.ServiceUnavailable);
+        var client = CreateClient(handler);
+
+        var act = () => client.GetTrackIdAsync("10100000101", "E320000000001", "jwt");
+
+        var exception = await act.Should().ThrowAsync<DgiiException>();
+        exception.Which.RawBody.Should().Be("no disponible");
+    }
+
     private static DgiiClient CreateClient(
         StubHttpMessageHandler handler,
         DgiiEnvironment environment = DgiiEnvironment.PreCertification)

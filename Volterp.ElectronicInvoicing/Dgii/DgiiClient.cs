@@ -110,6 +110,31 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
             messages);
     }
 
+    public async Task<DgiiTrackLookup> GetTrackIdAsync(string issuerTaxId, string encf, string token, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(issuerTaxId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(encf);
+        ArgumentException.ThrowIfNullOrWhiteSpace(token);
+
+        var url = BuildUrl(DgiiEndpoints.TrackIdByEncf)
+                  + "?rncemisor=" + Uri.EscapeDataString(issuerTaxId)
+                  + "&encf=" + Uri.EscapeDataString(encf);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Add("Authorization", $"bearer {token}");
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new DgiiException($"The DGII failed to answer for the e-CF {encf} ({response.StatusCode}).", body);
+
+        var parsed = Deserialize<DgiiTrackLookupResponse>(body, "track id");
+
+        return new DgiiTrackLookup(parsed.TrackId, parsed.Estado, ParseDate(parsed.FechaRecepcion));
+    }
+
     private string BuildUrl(string relativePath)
     {
         var baseUrl = _options.BaseUrl.TrimEnd('/');

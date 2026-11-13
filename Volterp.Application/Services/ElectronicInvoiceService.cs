@@ -31,6 +31,65 @@ public class ElectronicInvoiceService(
             .Run();
     }
 
+    public async Task<Either<Error, ElectronicInvoiceDto>> RecoverAsync(
+        Guid companyId, string issuerTaxId, string encf, CancellationToken ct = default)
+    {
+        return await EitherAsync<Error, string>
+            .FromRight(encf)
+            .Ensure(e => !string.IsNullOrWhiteSpace(e), new Error("The e-NCF cannot be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
+            .Ensure(_ => !string.IsNullOrWhiteSpace(issuerTaxId), new Error("The issuer RNC cannot be empty."))
+            .FlatMap(async e => await RecoverTheDocumentAsync(companyId, issuerTaxId, e, ct), ex => new Error(ex.Message))
+            .Map(invoice => invoice.MapTo<ElectronicInvoice, ElectronicInvoiceDto>())
+            .Run();
+    }
+
+    private async Task<ElectronicInvoice> RecoverTheDocumentAsync(
+        Guid companyId, string issuerTaxId, string encf, CancellationToken ct)
+    {
+        var invoice = await unitOfWork.ElectronicInvoices.GetByEncfAsync(companyId, issuerTaxId, encf, ct);
+
+        if (invoice is null)
+            throw new InvalidOperationException($"There is no e-CF {encf} of the issuer {issuerTaxId} for this company.");
+
+        // A verdict that is already final is not asked again.
+        if (invoice.Status is EcfStatus.Accepted or EcfStatus.AcceptedConditionally
+            or EcfStatus.Rejected or EcfStatus.Annulled)
+            return invoice;
+
+        var certificate = await certificateProvider.GetSigningCertificateAsync(issuerTaxId, ct);
+        var token = await authenticator.AuthenticateAsync(issuerTaxId, certificate, ct);
+
+        // Without a track id the answer of the send was lost. The DGII is asked
+        // whether it has the document instead of sending it again.
+        if (string.IsNullOrWhiteSpace(invoice.TrackId))
+        {
+            var lookup = await dgiiClient.GetTrackIdAsync(issuerTaxId, encf, token.Token, ct);
+
+            // The DGII never received it: the document stays pending and the
+            // queue is the one that sends it.
+            if (lookup.NotFound)
+                return invoice;
+
+            invoice.MarkSent(lookup.TrackId, lookup.ReceivedAt?.UtcDateTime ?? DateTime.UtcNow);
+        }
+
+        var status = await dgiiClient.GetStatusAsync(invoice.TrackId, token.Token, ct);
+
+        // A track id the DGII does not know is a failed query, not a verdict.
+        if (status.Verdict.ToEcfStatus() is null)
+            throw new InvalidOperationException($"The DGII does not know the track id {invoice.TrackId}.");
+
+        ApplyVerdict(invoice, status);
+
+        // The document was read without tracking, so the change is persisted
+        // on purpose.
+        await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
+        await unitOfWork.CommitAsync(ct);
+
+        return invoice;
+    }
+
     private async Task<ElectronicInvoice> IssueTheDocumentAsync(Guid saleId, Guid companyId, CancellationToken ct)
     {
         // Without an HTTP context the global tenant filter is off, so the sale
@@ -138,26 +197,7 @@ public class ElectronicInvoiceService(
             if (status.Verdict.ToEcfStatus() is null)
                 throw new InvalidOperationException($"The DGII does not know the track id {receipt.TrackId}.");
 
-            switch (status.Verdict)
-            {
-                case DgiiVerdict.Accepted:
-                    invoice.Accept();
-                    break;
-
-                case DgiiVerdict.AcceptedConditionally:
-                    invoice.AcceptConditionally(Describe(status, "The DGII accepted the e-CF with an observation it did not detail."));
-                    break;
-
-                case DgiiVerdict.Rejected:
-                    invoice.Reject(Describe(status, "The DGII rejected the e-CF without explaining why."));
-                    break;
-
-                case DgiiVerdict.InProcess:
-                    // The DGII is still validating the document: it stays in that
-                    // state and the verdict is asked again later.
-                    invoice.MarkInProcess();
-                    break;
-            }
+            ApplyVerdict(invoice, status);
 
             await unitOfWork.CommitAsync(ct);
 
@@ -173,6 +213,30 @@ public class ElectronicInvoiceService(
             await unitOfWork.CommitAsync(ct);
 
             throw;
+        }
+    }
+
+    private static void ApplyVerdict(ElectronicInvoice invoice, DgiiStatus status)
+    {
+        switch (status.Verdict)
+        {
+            case DgiiVerdict.Accepted:
+                invoice.Accept();
+                break;
+
+            case DgiiVerdict.AcceptedConditionally:
+                invoice.AcceptConditionally(Describe(status, "The DGII accepted the e-CF with an observation it did not detail."));
+                break;
+
+            case DgiiVerdict.Rejected:
+                invoice.Reject(Describe(status, "The DGII rejected the e-CF without explaining why."));
+                break;
+
+            case DgiiVerdict.InProcess:
+                // The DGII is still validating the document: it stays in that
+                // state and the verdict is asked again later.
+                invoice.MarkInProcess();
+                break;
         }
     }
 

@@ -471,7 +471,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.HasIndex("SaleId");
+                    b.HasIndex("SaleId").IsUnique();
 
                     b.HasIndex("IssuerTaxId", "ENCF")
                         .IsUnique();

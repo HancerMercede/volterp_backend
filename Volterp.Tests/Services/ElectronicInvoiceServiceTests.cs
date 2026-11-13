@@ -210,6 +210,68 @@ public class ElectronicInvoiceServiceTests
         _persisted.Should().BeNull();
     }
 
+    [Fact]
+    public async Task RecoverAsync_WhenTheAnswerOfTheSendWasLost_AdoptsTheTrackIdTheDgiiGave()
+    {
+        Given(Sale(), Company());
+        GivenDocumentByEncf(EcfStatus.Signed, "E320000000001");
+
+        var result = await Service().RecoverAsync(CompanyId, IssuerRnc, "E320000000001");
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        var dto = ((Either<Error, ElectronicInvoiceDto>.Right)result).Value;
+        dto.Status.Should().Be(EcfStatus.Accepted);
+        dto.TrackId.Should().Be("track-1");
+
+        // The DGII is asked by the issuer and the e-NCF, and the document is
+        // not sent again: sending it twice would burn the number twice.
+        _dgii.TrackIdRequests.Should().Be(1);
+        _dgii.LookupIssuer.Should().Be(IssuerRnc);
+        _dgii.LookupEncf.Should().Be("E320000000001");
+        _dgii.SendRequests.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RecoverAsync_WhenTheDgiiNeverReceivedTheDocument_LeavesItPending()
+    {
+        Given(Sale(), Company());
+        GivenDocumentByEncf(EcfStatus.Signed, "E320000000001");
+        _dgii.LookupTrackId = null;
+
+        var result = await Service().RecoverAsync(CompanyId, IssuerRnc, "E320000000001");
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        var dto = ((Either<Error, ElectronicInvoiceDto>.Right)result).Value;
+        dto.Status.Should().Be(EcfStatus.Signed, "the DGII never received it, so the queue is the one that sends it");
+        dto.TrackId.Should().BeNull();
+        _dgii.SendRequests.Should().Be(0);
+        _dgii.StatusRequests.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RecoverAsync_WhenTheDocumentAlreadyHasAVerdict_DoesNotAskTheDgii()
+    {
+        Given(Sale(), Company());
+        GivenDocumentByEncf(EcfStatus.Accepted, "E320000000001");
+
+        var result = await Service().RecoverAsync(CompanyId, IssuerRnc, "E320000000001");
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        _dgii.TrackIdRequests.Should().Be(0);
+        _dgii.StatusRequests.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RecoverAsync_WhenThereIsNoSuchDocument_ReturnsLeft()
+    {
+        Given(Sale(), Company());
+
+        var result = await Service().RecoverAsync(CompanyId, IssuerRnc, "E320000000999");
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Left>();
+        _dgii.SendRequests.Should().Be(0);
+    }
+
     private void Given(Sale sale, Company company)
     {
         _sales.Setup(r => r.GetSaleByIdAsync(sale.Id, It.IsAny<CancellationToken>())).ReturnsAsync(sale);
@@ -221,6 +283,21 @@ public class ElectronicInvoiceServiceTests
     private void GivenDocument(EcfStatus status, string encf)
     {
         _invoices.Setup(r => r.GetBySaleIdAsync(SaleId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ElectronicInvoice
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = CompanyId,
+                SaleId = SaleId,
+                ENCF = encf,
+                DocumentType = EcfDocumentType.Consumer,
+                IssuerTaxId = IssuerRnc,
+                Status = status
+            });
+    }
+
+    private void GivenDocumentByEncf(EcfStatus status, string encf)
+    {
+        _invoices.Setup(r => r.GetByEncfAsync(CompanyId, IssuerRnc, encf, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ElectronicInvoice
             {
                 Id = Guid.CreateVersion7(),
@@ -307,8 +384,12 @@ public class ElectronicInvoiceServiceTests
 
         public int SendRequests { get; private set; }
         public int StatusRequests { get; private set; }
+        public int TrackIdRequests { get; private set; }
         public string? SentXml { get; private set; }
         public string? StatusTrackId { get; private set; }
+        public string? LookupTrackId { get; set; } = "track-1";
+        public string? LookupIssuer { get; private set; }
+        public string? LookupEncf { get; private set; }
 
         public Task<string> GetSeedAsync(CancellationToken cancellationToken = default)
             => Task.FromResult("<SemillaModel><valor>abc</valor><fecha>2019-03-13T14:33:32-04:00</fecha></SemillaModel>");
@@ -340,6 +421,15 @@ public class ElectronicInvoiceServiceTests
                 true,
                 DateTimeOffset.UtcNow,
                 []));
+        }
+
+        public Task<DgiiTrackLookup> GetTrackIdAsync(string issuerTaxId, string encf, string token, CancellationToken cancellationToken = default)
+        {
+            TrackIdRequests++;
+            LookupIssuer = issuerTaxId;
+            LookupEncf = encf;
+
+            return Task.FromResult(new DgiiTrackLookup(LookupTrackId, "Aceptado", DateTimeOffset.UtcNow));
         }
     }
 }

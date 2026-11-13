@@ -57,6 +57,35 @@ public class ElectronicInvoiceEmissionTests
     }
 
     [Fact]
+    public async Task TheDatabaseRefusesTwoDocumentsForTheSameSale()
+    {
+        await using var fixture = new EmissionFixture();
+        await fixture.InitializeAsync();
+
+        await fixture.Service.IssueAsync(fixture.SaleId, fixture.CompanyId);
+
+        var second = new ElectronicInvoice
+        {
+            Id = Guid.CreateVersion7(),
+            CompanyId = fixture.CompanyId,
+            SaleId = fixture.SaleId,
+            ENCF = "E320000000002",
+            DocumentType = EcfDocumentType.Consumer,
+            IssuerTaxId = "10100000101",
+            SignedXml = "<ECF />",
+            Status = EcfStatus.Draft
+        };
+
+        fixture.Context.ElectronicInvoices.Add(second);
+
+        var act = async () => await fixture.Context.SaveChangesAsync();
+
+        // One sale, one document: two of them would burn two fiscal numbers
+        // for the same sale.
+        await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    [Fact]
     public async Task IssueAsync_WithTheMigratedDemoRange_EmitsTheNextNumber()
     {
         await using var fixture = new EmissionFixture(consumerSequence: 903);
@@ -373,5 +402,8 @@ public class ElectronicInvoiceEmissionTests
                 true,
                 DateTimeOffset.UtcNow,
                 []));
+
+        public Task<DgiiTrackLookup> GetTrackIdAsync(string issuerTaxId, string encf, string token, CancellationToken cancellationToken = default)
+            => Task.FromResult(new DgiiTrackLookup("track-1", "Aceptado", DateTimeOffset.UtcNow));
     }
 }

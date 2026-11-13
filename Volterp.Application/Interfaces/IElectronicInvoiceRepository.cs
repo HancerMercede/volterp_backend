@@ -9,4 +9,10 @@ public interface IElectronicInvoiceRepository : IRepositoryBase<ElectronicInvoic
     /// avoid a second document for a sale that already has one.
     /// </summary>
     Task<ElectronicInvoice?> GetBySaleIdAsync(Guid saleId, CancellationToken ct = default);
+
+    /// <summary>
+    /// The document of an e-NCF of an issuer. It is how a lost answer is
+    /// recovered: the document is asked for before it is sent again.
+    /// </summary>
+    Task<ElectronicInvoice?> GetByEncfAsync(Guid companyId, string issuerTaxId, string encf, CancellationToken ct = default);
 }

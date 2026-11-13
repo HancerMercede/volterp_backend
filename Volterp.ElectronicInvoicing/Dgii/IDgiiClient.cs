@@ -25,4 +25,10 @@ public interface IDgiiClient
     /// Asks for the validation verdict of a received e-CF.
     /// </summary>
     Task<DgiiStatus> GetStatusAsync(string trackId, string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Asks the DGII whether it received a document, by its issuer RNC and its
+    /// e-NCF. It is how a lost answer is recovered without sending twice.
+    /// </summary>
+    Task<DgiiTrackLookup> GetTrackIdAsync(string issuerTaxId, string encf, string token, CancellationToken cancellationToken = default);
 }
