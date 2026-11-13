@@ -1,0 +1,51 @@
+Documentaciones soporte para la autorización y certificación
+de Proveedores de Servicios de Facturación Electrónica.
+
+                     Presentar las siguientes documentaciones
+                                (debidamente nombradas):
+
+1. Anexo 1.1 -Política de Seguridad: Documento formal vigente que defina
+
+los controles de seguridad de la información.
+
+2. Anexo 1.2 - Política de Contingencia: Procedimientos y controles para
+
+asegurar la continuidad operativa ante eventos disruptivos.
+
+3. Anexo 1.3 - Política de Protección de Datos pública: Indicar ruta de
+
+su página web donde se encuentre colgado el documento sobre protección de
+datos personales, conforme a lo establecido en la Ley núm. 172-13.
+
+4. Anexo1.4 - Vías de asistencia habilitadas para los contribuyentes,
+
+incluyendo los canales disponibles y los tiempos de compromisos de respuesta.
+
+5. Anexo 1.5 - Información de contacto destinada a atender requerimientos de
+
+la DGII:
+                       1.5.1- Indicar nombre, cargo y nivel de responsabilidad.
+                       1.5.2- Correo electrónico.
+                       1.5.3- Teléfono de contacto directo.
+
+       �Importante!: Es responsabilidad del proveedor de servicios de
+       Facturación Electrónica mantener debidamente actualizadas estas
+       informaciones ante la Dirección General de Impuestos Internos (DGII),
+       conforme a lo establecido la normativa vigente. En caso contrario, podrá
+       ser pasible de las sanciones correspondientes.
+
+6. Anexo 1.6 - En caso de disponer, remitir certificación de seguridad vigente
+
+(ej. ISO 27001 u otra).
+
+                             Otras consideraciones técnicas:
+
+7. Contar con una bitácora de eventos (logs) que permita la trazabilidad y
+
+control de cambios.
+
+8. Disponer de procedimientos de respaldo y recuperación de la información.
+9. Disponer de una página web activa.
+
+@DGIIRD  | www.dgii.gov.do  Julio 2025
+
