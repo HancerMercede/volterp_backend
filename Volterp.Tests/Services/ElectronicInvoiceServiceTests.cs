@@ -1,8 +1,13 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Xml.Linq;
 using EitherWay;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using Volterp.Api.Helpers;
 using Volterp.Application.DTOs.ElectronicInvoiceDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
@@ -13,6 +18,9 @@ using Volterp.ElectronicInvoicing;
 using Volterp.ElectronicInvoicing.Abstractions;
 using Volterp.ElectronicInvoicing.Dgii;
 using Volterp.ElectronicInvoicing.Xml;
+using Volterp.Infrastructure.Data;
+using Volterp.Tests.Integration;
+using Volterp.Tests.TestHelpers;
 using Xunit;
 
 namespace Volterp.Tests.Services;
@@ -319,6 +327,45 @@ public class ElectronicInvoiceServiceTests
         _signedWith[document].Should().Be(certificate);
     }
 
+    [Fact]
+    public async Task IssueAsync_WithAConsumptionInvoiceBelowTheLimit_RecordsTheVerificationUrl()
+    {
+        Given(Sale(), Company());
+
+        var result = await Service().IssueAsync(SaleId, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        var dto = ((Either<Error, ElectronicInvoiceDto>.Right)result).Value;
+
+        // A consumption invoice below RD$250,000 travels as a summary, and
+        // the QR of its printed representation carries the timbre of that
+        // summary.
+        var expected = "https://fc.dgii.gov.do/testecf/consultatimbrefc"
+                       + $"?rncemisor={IssuerRnc}"
+                       + "&encf=E320000000001"
+                       + "&montototal=236.00"
+                       + "&codigoseguridad=BoXjC8";
+
+        _persisted!.QrUrl.Should().Be(expected);
+        dto.QrUrl.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task IssueAsync_WithAConsumptionInvoiceAboveTheLimit_RecordsNoVerificationUrl()
+    {
+        // Above RD$250,000 the invoice itself is the one that travels to the
+        // DGII: there is no summary and no timbre of one.
+        var sale = Sale();
+        sale.AddItem(Guid.CreateVersion7(), "Café molido", 2, 200000m, TaxCode.ItbisTasa1);
+        Given(sale, Company());
+
+        var result = await Service().IssueAsync(SaleId, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        _persisted!.Total.Should().Be(472236.00m);
+        _persisted.QrUrl.Should().BeNull();
+    }
+
     private void Given(Sale sale, Company company)
     {
         _sales.Setup(r => r.GetSaleByIdAsync(sale.Id, It.IsAny<CancellationToken>())).ReturnsAsync(sale);
@@ -367,7 +414,8 @@ public class ElectronicInvoiceServiceTests
             _signer.Object,
             _certificates.Object,
             authenticator,
-            _dgii);
+            _dgii,
+            dgiiOptions: new DgiiOptions { Environment = DgiiEnvironment.PreCertification });
     }
 
     private static Sale Sale(
@@ -478,5 +526,213 @@ public class ElectronicInvoiceServiceTests
 
             return Task.FromResult(new DgiiTrackLookup(LookupTrackId, "Aceptado", DateTimeOffset.UtcNow));
         }
+    }
+}
+
+// The QR of a document: the verification URL drawn as an image. The SVG is
+// the one the printed representation carries, because it scales without losing
+// lines; the PNG is the one a screen shows.
+public class ElectronicInvoiceQrCodeTests
+{
+    private const string VerificationUrl =
+        "https://fc.dgii.gov.do/ecf/consultatimbrefc?rncemisor=131880738&encf=E320000000064&montototal=6225.09&codigoseguridad=BoXjC8";
+
+    [Fact]
+    public void Svg_DrawsTheVerificationUrlAsAnImage()
+    {
+        var svg = QrCodeRenderer.Svg(VerificationUrl);
+
+        var document = XDocument.Parse(svg);
+
+        document.Root!.Name.LocalName.Should().Be("svg");
+    }
+
+    [Fact]
+    public void Png_DrawsTheVerificationUrlAsAnImage()
+    {
+        var png = QrCodeRenderer.Png(VerificationUrl);
+
+        png.Take(8).Should().Equal(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A);
+    }
+}
+
+// The QR of a document travels with the API: the frontend shows it on the
+// printed representation, and the URL it carries is the one the receiver opens
+// to check the document.
+public class ElectronicInvoiceQrEndpointTests : IClassFixture<ApiFactory>
+{
+    private readonly ApiFactory _factory;
+    private readonly HttpClient _client;
+
+    private static readonly object SeedLock = new();
+    private static bool _seeded;
+    private static Guid _invoiceId;
+    private static Guid _invoiceWithoutUrlId;
+
+    public ElectronicInvoiceQrEndpointTests(ApiFactory factory)
+    {
+        _factory = factory;
+        _client = factory.CreateClient();
+        _factory.EnsureSchemaCreated();
+
+        lock (SeedLock)
+        {
+            if (!_seeded)
+            {
+                SeedAsync().GetAwaiter().GetResult();
+                _seeded = true;
+            }
+        }
+    }
+
+    [Fact]
+    public async Task TheQrOfTheDocumentIsServedAsAnImage()
+    {
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var response = await _client.GetAsync($"/api/ElectronicInvoices/{_invoiceId}/qr.svg");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("image/svg+xml");
+
+        var body = await response.Content.ReadAsStringAsync();
+
+        XDocument.Parse(body).Root!.Name.LocalName.Should().Be("svg");
+    }
+
+    [Fact]
+    public async Task TheQrOfTheDocumentOfAnotherTenantIsNotServed()
+    {
+        SetAuth(Guid7TestValues.CompanyB);
+
+        var response = await _client.GetAsync($"/api/ElectronicInvoices/{_invoiceId}/qr.svg");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task TheQrOfADocumentWithoutAVerificationUrlIsNotServed()
+    {
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var response = await _client.GetAsync($"/api/ElectronicInvoices/{_invoiceWithoutUrlId}/qr.svg");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task TheQrOfTheDocumentIsServedAsAnImageOfPng()
+    {
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var response = await _client.GetAsync($"/api/ElectronicInvoices/{_invoiceId}/qr.png");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("image/png");
+
+        var body = await response.Content.ReadAsByteArrayAsync();
+
+        body.Take(4).Should().Equal(0x89, 0x50, 0x4E, 0x47);
+    }
+
+    [Fact]
+    public void TheApiCanBuildTheEmitterOfTheDocuments()
+    {
+        // The emitter carries the environment of the DGII, and the container
+        // has to be able to give it.
+        using var scope = _factory.Services.CreateScope();
+
+        var service = scope.ServiceProvider.GetRequiredService<IElectronicInvoiceService>();
+
+        service.Should().NotBeNull();
+    }
+
+    private void SetAuth(Guid companyId)
+    {
+        var token = JwtTestHelper.MintToken(_factory, companyId, Guid7TestValues.UserA);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    private async Task SeedAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+
+        db.Companies.Add(new Company
+        {
+            Id = Guid7TestValues.CompanyA,
+            Name = "Empresa",
+            TaxId = "101500018",
+            Address = "Dirección",
+            LegalName = "Empresa SRL",
+            Phone = "8090000000",
+            Email = "empresa@test.com"
+        });
+
+        var saleId = Guid.CreateVersion7();
+        var otherSaleId = Guid.CreateVersion7();
+
+        db.Sales.AddRange(
+            new Sale
+            {
+                Id = saleId,
+                CompanyId = Guid7TestValues.CompanyA,
+                Code = "V-0001",
+                Status = SaleStatus.Completed,
+                DocumentType = EcfDocumentType.Consumer,
+                Subtotal = 200m,
+                Itbis = 36m,
+                Total = 236m
+            },
+            new Sale
+            {
+                Id = otherSaleId,
+                CompanyId = Guid7TestValues.CompanyA,
+                Code = "V-0002",
+                Status = SaleStatus.Completed,
+                DocumentType = EcfDocumentType.Consumer,
+                Subtotal = 200m,
+                Itbis = 36m,
+                Total = 236m
+            });
+
+        _invoiceId = Guid.CreateVersion7();
+        _invoiceWithoutUrlId = Guid.CreateVersion7();
+
+        db.ElectronicInvoices.AddRange(
+            new ElectronicInvoice
+            {
+                Id = _invoiceId,
+                CompanyId = Guid7TestValues.CompanyA,
+                SaleId = saleId,
+                ENCF = "E320000000001",
+                DocumentType = EcfDocumentType.Consumer,
+                IssuerTaxId = "101500018",
+                Subtotal = 200m,
+                Itbis = 36m,
+                Total = 236m,
+                SignedXml = "<ECF />",
+                SecurityCode = "BoXjC8",
+                QrUrl = "https://fc.dgii.gov.do/testecf/consultatimbrefc?rncemisor=101500018&encf=E320000000001&montototal=236.00&codigoseguridad=BoXjC8",
+                Status = EcfStatus.Accepted
+            },
+            new ElectronicInvoice
+            {
+                Id = _invoiceWithoutUrlId,
+                CompanyId = Guid7TestValues.CompanyA,
+                SaleId = otherSaleId,
+                ENCF = "E320000000002",
+                DocumentType = EcfDocumentType.Consumer,
+                IssuerTaxId = "101500018",
+                Subtotal = 200m,
+                Itbis = 36m,
+                Total = 236m,
+                SignedXml = "<ECF />",
+                SecurityCode = "BoXjC8",
+                Status = EcfStatus.Accepted
+            });
+
+        await db.SaveChangesAsync();
     }
 }

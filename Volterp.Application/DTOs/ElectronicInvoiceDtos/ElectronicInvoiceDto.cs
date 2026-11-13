@@ -18,6 +18,7 @@ public record ElectronicInvoiceDto : IMapFrom<ElectronicInvoice>
     public EcfStatus Status { get; set; }
     public string? TrackId { get; set; }
     public string? SecurityCode { get; set; }
+    public string? QrUrl { get; set; }
     public string? VerdictNote { get; set; }
     public DateTime? SignedAt { get; set; }
     public DateTime? SentAt { get; set; }
@@ -37,6 +38,7 @@ public record ElectronicInvoiceDto : IMapFrom<ElectronicInvoice>
         Status = source.Status;
         TrackId = source.TrackId;
         SecurityCode = source.SecurityCode;
+        QrUrl = source.QrUrl;
         VerdictNote = source.VerdictNote;
         SignedAt = source.SignedAt;
         SentAt = source.SentAt;

@@ -9,6 +9,7 @@ using Volterp.Domain.Policies;
 using Volterp.ElectronicInvoicing;
 using Volterp.ElectronicInvoicing.Abstractions;
 using Volterp.ElectronicInvoicing.Dgii;
+using Volterp.ElectronicInvoicing.Qr;
 using Volterp.ElectronicInvoicing.Signing;
 using Volterp.ElectronicInvoicing.Xml;
 
@@ -21,9 +22,14 @@ public class ElectronicInvoiceService(
     ISigningCertificateProvider certificateProvider,
     DgiiAuthenticator authenticator,
     IDgiiClient dgiiClient,
-    VerdictCheckBackoff? backoff = null) : IElectronicInvoiceService
+    VerdictCheckBackoff? backoff = null,
+    DgiiOptions? dgiiOptions = null) : IElectronicInvoiceService
 {
     private readonly VerdictCheckBackoff _backoff = backoff ?? VerdictCheckBackoff.Default();
+
+    // The environment the ERP talks to the DGII in: the verification URL of
+    // a document points at the same one.
+    private readonly DgiiOptions _dgiiOptions = dgiiOptions ?? new DgiiOptions();
 
     public async Task<Either<Error, ElectronicInvoiceDto>> IssueAsync(Guid saleId, Guid companyId, CancellationToken ct = default)
     {
@@ -199,6 +205,10 @@ public class ElectronicInvoiceService(
 
         var itbis = document.Totals.ItbisTotal ?? 0m;
 
+        // The security code the taxpayer prints next to the QR: it comes
+        // out of the signature, so it is only known once it is signed.
+        var securityCode = EcfSecurityCode.From(signedXml);
+
         var invoice = new ElectronicInvoice
         {
             Id = Guid.CreateVersion7(),
@@ -215,9 +225,12 @@ public class ElectronicInvoiceService(
             Itbis = itbis,
             Total = document.Totals.Total,
 
-            // The security code the taxpayer prints next to the QR: it comes
-            // out of the signature, so it is only known once it is signed.
-            SecurityCode = EcfSecurityCode.From(signedXml)
+            SecurityCode = securityCode,
+
+            // The URL the receiver opens to check the document. It travels
+            // with the document, so it is only known once the amounts and the
+            // security code are.
+            QrUrl = VerificationUrlOf(documentType, document.Totals.Total, issuer.TaxId, encf, securityCode)
         };
 
         invoice.Sign(signedXml, signedAt);
@@ -263,6 +276,15 @@ public class ElectronicInvoiceService(
             throw;
         }
     }
+
+    // A consumption invoice below RD$250,000 travels to the DGII as a summary
+    // and its printed representation carries the timbre of that summary. The
+    // rest of the documents have no timbre of a summary to point at.
+    private string? VerificationUrlOf(
+        EcfDocumentType documentType, decimal total, string issuerTaxId, string encf, string securityCode)
+        => documentType == EcfDocumentType.Consumer && total < RfceDocument.MaximumAmount
+            ? EcfVerificationUrl.ForRfceTimbre(_dgiiOptions.Environment, issuerTaxId, encf, total, securityCode)
+            : null;
 
     private void ApplyVerdict(ElectronicInvoice invoice, DgiiStatus status)
     {
