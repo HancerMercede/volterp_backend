@@ -53,6 +53,11 @@ public class ElectronicInvoiceService(
         if (existing is not null)
             return existing;
 
+        if (sale.DocumentType is EcfDocumentType.DebitNote or EcfDocumentType.CreditNote
+            && !sale.HasDocumentReference)
+            throw new InvalidOperationException(
+                $"The e-CF {(int)sale.DocumentType} requires the document it modifies.");
+
         var issuer = await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct);
 
         if (issuer is null)
@@ -68,11 +73,21 @@ public class ElectronicInvoiceService(
         var encf = ElectronicInvoiceSequence.BuildEncf(documentType, sequence);
         var signedAt = DateTime.UtcNow;
 
+        // The range the number came from is the one that holds it, and it
+        // carries the day the authorized sequence expires.
+        var range = await unitOfWork.ElectronicInvoiceSequences.GetByCondictionsAsync(
+            r => r.CompanyId == companyId
+                && r.IssuerTaxId == issuer.TaxId
+                && r.DocumentType == documentType
+                && r.From <= sequence && sequence <= r.To,
+            ct);
+
         // Fail-closed: the types that need the expiry of the authorized
         // sequence fail here until that date is on record.
         var document = SaleEcfDocumentMapper.Map(sale, issuer, new EcfIssuance
         {
             ENCF = encf,
+            SequenceExpiresAt = range?.ExpiresAt,
             SignedAt = signedAt
         });
 

@@ -3,6 +3,7 @@ using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
 using Volterp.Domain.Time;
 using Volterp.ElectronicInvoicing;
+using Volterp.ElectronicInvoicing.Xml;
 
 namespace Volterp.Domain.Entities;
 
@@ -25,6 +26,18 @@ public class Sale : AuditEntity, ITenantScoped
     
     public EcfDocumentType DocumentType { get; set; } = EcfDocumentType.Consumer;
     public string? ReceptorTaxId { get; set; }
+
+    // The document a credit or debit note modifies: a note never edits the
+    // document it corrects, it points at it.
+    public string? ModifiedENCF { get; set; }
+    public DateTime? ModifiedAt { get; set; }
+    public EcfModificationCode? ModificationCode { get; set; }
+    public string? ModificationReason { get; set; }
+
+    public bool HasDocumentReference =>
+        !string.IsNullOrWhiteSpace(ModifiedENCF)
+        && ModifiedAt is not null
+        && ModificationCode is not null;
     
     public decimal Subtotal { get; set; }
     public decimal Itbis { get; set; }

@@ -24,6 +24,9 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         entity.Property(e => e.Status).HasConversion<int>();
         entity.Property(e => e.DocumentType).HasConversion<int>();
         entity.Property(e => e.ReceptorTaxId).HasMaxLength(20);
+        entity.Property(e => e.ModifiedENCF).HasMaxLength(13);
+        entity.Property(e => e.ModificationCode).HasConversion<int>();
+        entity.Property(e => e.ModificationReason).HasMaxLength(90);
 
         entity.HasOne(e => e.Company)
             .WithMany(c => c.Sales)

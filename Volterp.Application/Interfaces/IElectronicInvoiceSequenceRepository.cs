@@ -7,4 +7,5 @@ namespace Volterp.Application.Interfaces;
 public interface IElectronicInvoiceSequenceRepository : IRepositoryBase<ElectronicInvoiceSequence>
 {
     Task<int> NextSequenceAsync(Guid companyId, EcfDocumentType documentType, CancellationToken ct = default);
+    Task<int> NextSequenceAsync(Guid companyId, string issuerTaxId, EcfDocumentType documentType, CancellationToken ct = default);
 }

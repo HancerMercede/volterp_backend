@@ -57,6 +57,18 @@ public class ElectronicInvoiceEmissionTests
     }
 
     [Fact]
+    public async Task IssueAsync_WithTheMigratedDemoRange_EmitsTheNextNumber()
+    {
+        await using var fixture = new EmissionFixture(consumerSequence: 903);
+        await fixture.InitializeAsync();
+
+        var result = await fixture.Service.IssueAsync(fixture.SaleId, fixture.CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        ((Either<Error, ElectronicInvoiceDto>.Right)result).Value.ENCF.Should().Be("E320000000904");
+    }
+
+    [Fact]
     public async Task IssueAsync_TwiceForTwoSalesOfTheSameIssuer_TakesTwoConsecutiveNumbers()
     {
         await using var fixture = new EmissionFixture();
@@ -70,6 +82,61 @@ public class ElectronicInvoiceEmissionTests
 
         var invoices = await fixture.Context.ElectronicInvoices.OrderBy(i => i.ENCF).ToListAsync();
         invoices.Should().HaveCount(2);
+    }
+
+    [Theory]
+    [InlineData(EcfDocumentType.DebitNote)]
+    [InlineData(EcfDocumentType.CreditNote)]
+    public async Task IssueAsync_ForANoteThatModifiesADocument_WritesTheInformationReference(EcfDocumentType documentType)
+    {
+        await using var fixture = new EmissionFixture();
+        await fixture.InitializeAsync();
+
+        var noteId = await fixture.AddNoteAsync(
+            documentType,
+            "E310000000901", new DateTime(2026, 10, 1), EcfModificationCode.CorrectsAmounts, "Ajuste del monto");
+
+        var result = await fixture.Service.IssueAsync(noteId, fixture.CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+
+        var invoice = await fixture.Context.ElectronicInvoices.SingleAsync(i => i.SaleId == noteId);
+        invoice.DocumentType.Should().Be(documentType);
+        invoice.SignedXml.Should().Contain("<NCFModificado>E310000000901</NCFModificado>");
+        invoice.SignedXml.Should().Contain("<CodigoModificacion>3</CodigoModificacion>");
+        invoice.SignedXml.Should().Contain("<RazonModificacion>Ajuste del monto</RazonModificacion>");
+
+        if (documentType == EcfDocumentType.CreditNote)
+            invoice.SignedXml.Should().Contain("<IndicadorNotaCredito>1</IndicadorNotaCredito>");
+    }
+
+    [Theory]
+    [InlineData(EcfDocumentType.DebitNote)]
+    [InlineData(EcfDocumentType.CreditNote)]
+    public async Task IssueAsync_ForANoteWithoutAReference_FailsClosed(EcfDocumentType documentType)
+    {
+        await using var fixture = new EmissionFixture();
+        await fixture.InitializeAsync();
+
+        var noteId = await fixture.AddNoteAsync(
+            documentType,
+            referencedEncf: null,
+            referencedAt: null,
+            modificationCode: null);
+
+        var result = await fixture.Service.IssueAsync(noteId, fixture.CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Left>();
+        var error = ((Either<Error, ElectronicInvoiceDto>.Left)result).Value;
+        error.Message.Should().Contain("modifies");
+
+        (await fixture.Context.ElectronicInvoices.CountAsync()).Should().Be(0);
+        (await fixture.Context.ElectronicInvoiceSequences
+            .Where(s => s.DocumentType == documentType)
+            .Select(s => s.CurrentSequence)
+            .SingleAsync()).Should().Be(0,
+            "a note without a reference does not take a number");
+        fixture.Dgii.SendRequests.Should().Be(0);
     }
 
     [Fact]
@@ -88,7 +155,10 @@ public class ElectronicInvoiceEmissionTests
         error.Message.Should().Contain("company");
 
         (await fixture.Context.ElectronicInvoices.CountAsync()).Should().Be(0);
-        (await fixture.Context.ElectronicInvoiceSequences.CountAsync()).Should().Be(0,
+        (await fixture.Context.ElectronicInvoiceSequences
+            .Where(s => s.DocumentType == EcfDocumentType.Consumer)
+            .Select(s => s.CurrentSequence)
+            .SingleAsync()).Should().Be(0,
             "a refused emission does not take a number from the issuer");
         fixture.Dgii.SendRequests.Should().Be(0);
     }
@@ -98,9 +168,11 @@ public class ElectronicInvoiceEmissionTests
         private const string IssuerRnc = "10100000101";
 
         private readonly SqliteConnection _connection;
+        private readonly int _consumerSequence;
 
-        public EmissionFixture()
+        public EmissionFixture(int consumerSequence = 0)
         {
+            _consumerSequence = consumerSequence;
             _connection = new SqliteConnection("DataSource=:memory:");
             _connection.Open();
 
@@ -141,6 +213,12 @@ public class ElectronicInvoiceEmissionTests
                 Sale(SecondSaleId, CompanyId, "V-0002"),
                 Sale(OtherSaleId, OtherCompanyId, "V-0003"));
 
+            Context.ElectronicInvoiceSequences.AddRange(
+                Range(CompanyId, IssuerRnc, EcfDocumentType.Consumer, _consumerSequence),
+                Range(CompanyId, IssuerRnc, EcfDocumentType.FiscalCredit),
+                Range(CompanyId, IssuerRnc, EcfDocumentType.DebitNote),
+                Range(CompanyId, IssuerRnc, EcfDocumentType.CreditNote));
+
             await Context.SaveChangesAsync();
 
             var certificates = new Mock<ISigningCertificateProvider>();
@@ -168,6 +246,57 @@ public class ElectronicInvoiceEmissionTests
             Address = "Calle Principal 1, Santo Domingo",
             Phone = "809-555-1234",
             Email = "facturacion@distribuidora.do"
+        };
+
+        public async Task<Guid> AddNoteAsync(
+            EcfDocumentType documentType,
+            string? referencedEncf,
+            DateTime? referencedAt,
+            EcfModificationCode? modificationCode,
+            string? modificationReason = null)
+        {
+            var note = new Sale
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = CompanyId,
+                Code = $"V-NOTE-{Guid.NewGuid():N}"[..20],
+                Status = SaleStatus.Completed,
+                DocumentType = documentType,
+                ReceptorTaxId = "101010101",
+                ClienteName = "Cliente de Prueba SRL",
+                CreatedAt = new DateTime(2026, 11, 4),
+                ModifiedENCF = referencedEncf,
+                ModifiedAt = referencedAt,
+                ModificationCode = modificationCode,
+                ModificationReason = modificationReason
+            };
+
+            note.AddItem(Guid.CreateVersion7(), "Café molido", 2, 100m, TaxCode.ItbisTasa1);
+
+            Context.Sales.Add(note);
+            await Context.SaveChangesAsync();
+
+            return note.Id;
+        }
+
+        // The range the DGII granted to the issuer: 1 to 10,000,000, and 1 to
+        // 50,000,000 for the consumer invoice, which carries no expiry date.
+        private static ElectronicInvoiceSequence Range(
+            Guid companyId,
+            string issuerTaxId,
+            EcfDocumentType documentType,
+            int currentSequence = 0) => new()
+        {
+            Id = Guid.CreateVersion7(),
+            CompanyId = companyId,
+            IssuerTaxId = issuerTaxId,
+            DocumentType = documentType,
+            From = 1,
+            To = documentType == EcfDocumentType.Consumer ? 50_000_000 : 10_000_000,
+            ExpiresAt = documentType is EcfDocumentType.Consumer or EcfDocumentType.CreditNote
+                ? null
+                : new DateTime(2028, 12, 31),
+            CurrentSequence = currentSequence
         };
 
         private static Sale Sale(Guid id, Guid companyId, string code)

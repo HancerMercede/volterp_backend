@@ -1,42 +1,21 @@
 using Volterp.Domain.Entities;
 using Volterp.ElectronicInvoicing;
+using Volterp.ElectronicInvoicing.Schemas;
 using Volterp.ElectronicInvoicing.Xml;
 
 namespace Volterp.Application.Mappers;
 
-/// <summary>
-/// What the ERP has to provide to issue a document: the number the DGII
-/// assigned and the moment the document is signed.
-/// </summary>
 public sealed record EcfIssuance
 {
-    /// <summary>The e-NCF of the document.</summary>
     public required string ENCF { get; init; }
 
-    /// <summary>
-    /// When the authorized sequence of e-NCF expires. Only the types that
-    /// require it use it.
-    /// </summary>
     public DateTime? SequenceExpiresAt { get; init; }
 
-    /// <summary>When the document is signed, in the issuer's local time.</summary>
     public required DateTime SignedAt { get; init; }
 }
 
-/// <summary>
-/// Turns a sale into the document the DGII expects. The rules of each type of
-/// document live in its profile, so the same sale becomes a fiscal credit or a
-/// consumer invoice without the caller knowing the differences.
-/// </summary>
 public static class SaleEcfDocumentMapper
 {
-    /// <summary>
-    /// Maps a sale into the document the DGII expects.
-    /// </summary>
-    /// <param name="sale">The sale to issue.</param>
-    /// <param name="issuer">The company that issues the document.</param>
-    /// <param name="issuance">The number and the moment of the document.</param>
-    /// <exception cref="InvalidOperationException">The sale cannot become a document of its type.</exception>
     public static EcfDocument Map(Sale sale, Company issuer, EcfIssuance issuance)
     {
         ArgumentNullException.ThrowIfNull(sale);
@@ -65,6 +44,7 @@ public static class SaleEcfDocumentMapper
             {
                 ENCF = issuance.ENCF,
                 SequenceExpiresAt = issuance.SequenceExpiresAt,
+                CreditNoteBeyondThirtyDays = MapCreditNoteBeyondThirtyDays(sale, issuance.SignedAt),
                 TypeIncome = profile.TypeIncome,
                 PaymentType = profile.PaymentType
             },
@@ -72,7 +52,35 @@ public static class SaleEcfDocumentMapper
             Buyer = MapBuyer(sale, profile),
             Totals = EcfTotalsCalculator.Calculate(items),
             Items = items,
+            Reference = MapReference(sale),
             SignedAt = issuance.SignedAt
+        };
+    }
+
+    private static bool? MapCreditNoteBeyondThirtyDays(Sale sale, DateTime signedAt)
+    {
+        if (sale.DocumentType != EcfDocumentType.CreditNote || sale.ModifiedAt is null)
+            return null;
+
+        return signedAt.Date > sale.ModifiedAt.Value.Date.AddDays(30);
+    }
+
+    private static EcfReference? MapReference(Sale sale)
+    {
+        if (!EcfSchemas.For(sale.DocumentType).IsRequired("InformacionReferencia"))
+            return null;
+
+        if (!sale.HasDocumentReference)
+            throw new InvalidOperationException(
+                $"The e-CF {sale.DocumentType} requires the document it modifies.");
+
+        return new EcfReference
+        {
+            ModifiedENCF = sale.ModifiedENCF,
+            OtherContributorTaxId = sale.ReceptorTaxId,
+            ModifiedAt = sale.ModifiedAt,
+            ModificationCode = sale.ModificationCode,
+            ModificationReason = sale.ModificationReason
         };
     }
 

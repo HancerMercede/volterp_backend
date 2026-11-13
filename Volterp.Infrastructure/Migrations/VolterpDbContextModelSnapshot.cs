@@ -500,6 +500,20 @@ namespace Volterp.Infrastructure.Migrations
                     b.Property<int>("DocumentType")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("From")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("IssuerTaxId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("To")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -508,7 +522,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId", "DocumentType")
+                    b.HasIndex("IssuerTaxId", "DocumentType", "From")
                         .IsUnique();
 
                     b.ToTable("ElectronicInvoiceSequences");
@@ -864,6 +878,20 @@ namespace Volterp.Infrastructure.Migrations
                     b.Property<decimal>("Itbis")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<int?>("ModificationCode")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ModificationReason")
+                        .HasMaxLength(90)
+                        .HasColumnType("character varying(90)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ModifiedENCF")
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("text");
