@@ -20,4 +20,8 @@ public interface IElectronicInvoiceService
     // and the ones the DGII is still validating get the next appointment with
     // the backoff. It answers how many documents were asked again.
     Task<Either<Error, int>> RetrackAsync(Guid companyId, CancellationToken ct = default);
+
+    // The durable emission queue: signed documents are claimed, sent and
+    // scheduled for another attempt when the DGII cannot be reached.
+    Task<Either<Error, int>> ProcessPendingAsync(Guid companyId, CancellationToken ct = default);
 }

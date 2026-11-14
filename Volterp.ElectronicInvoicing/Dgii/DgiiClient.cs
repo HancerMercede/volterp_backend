@@ -25,7 +25,9 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
 
         if (!response.IsSuccessStatusCode)
             throw new DgiiException(
-                $"The DGII refused to hand out a seed ({response.StatusCode}).", body);
+                $"The DGII refused to hand out a seed ({response.StatusCode}).",
+                body,
+                statusCode: response.StatusCode);
 
         return body;
     }
@@ -42,7 +44,10 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw new DgiiException($"The DGII rejected the signed seed ({response.StatusCode}).", body);
+            throw new DgiiException(
+                $"The DGII rejected the signed seed ({response.StatusCode}).",
+                body,
+                statusCode: response.StatusCode);
 
         var parsed = Deserialize<DgiiTokenResponse>(body, "token");
         if (string.IsNullOrWhiteSpace(parsed.Token))
@@ -68,7 +73,10 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw new DgiiException($"The DGII rejected the e-CF file ({response.StatusCode}).", body);
+            throw new DgiiException(
+                $"The DGII rejected the e-CF file ({response.StatusCode}).",
+                body,
+                statusCode: response.StatusCode);
 
         var parsed = Deserialize<DgiiReceiptResponse>(body, "acknowledgement");
 
@@ -91,7 +99,10 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw new DgiiException($"The DGII failed to answer the status of {trackId} ({response.StatusCode}).", body);
+            throw new DgiiException(
+                $"The DGII failed to answer the status of {trackId} ({response.StatusCode}).",
+                body,
+                statusCode: response.StatusCode);
 
         var parsed = Deserialize<DgiiStatusResponse>(body, "status");
 
@@ -128,7 +139,10 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
-            throw new DgiiException($"The DGII failed to answer for the e-CF {encf} ({response.StatusCode}).", body);
+            throw new DgiiException(
+                $"The DGII failed to answer for the e-CF {encf} ({response.StatusCode}).",
+                body,
+                statusCode: response.StatusCode);
 
         var parsed = Deserialize<DgiiTrackLookupResponse>(body, "track id");
 

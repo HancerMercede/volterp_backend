@@ -1,3 +1,4 @@
+using System.Net;
 using EitherWay;
 using Volterp.Application.DTOs.ElectronicInvoiceDtos;
 using Volterp.Application.Exceptions.AppErrors;
@@ -23,9 +24,17 @@ public class ElectronicInvoiceService(
     DgiiAuthenticator authenticator,
     IDgiiClient dgiiClient,
     VerdictCheckBackoff? backoff = null,
-    DgiiOptions? dgiiOptions = null) : IElectronicInvoiceService
+    DgiiOptions? dgiiOptions = null,
+    EmissionRetryBackoff? retryBackoff = null,
+    TimeProvider? timeProvider = null) : IElectronicInvoiceService
 {
+    private const int EmissionBatchSize = 50;
+    private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(5);
+
     private readonly VerdictCheckBackoff _backoff = backoff ?? VerdictCheckBackoff.Default();
+    private readonly EmissionRetryBackoff _retryBackoff = retryBackoff ?? EmissionRetryBackoff.Default();
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+    private readonly ContingencyWindow _window = new();
 
     // The environment the ERP talks to the DGII in: the verification URL of
     // a document points at the same one.
@@ -62,6 +71,149 @@ public class ElectronicInvoiceService(
             .Ensure(id => id != Guid.Empty, new Error("companyId must not be empty."))
             .FlatMap(async id => await RetrackTheDueDocumentsAsync(id, ct), ex => new Error(ex.Message))
             .Run();
+    }
+
+    public async Task<Either<Error, int>> ProcessPendingAsync(Guid companyId, CancellationToken ct = default)
+    {
+        return await EitherAsync<Error, Guid>
+            .FromRight(companyId)
+            .Ensure(id => id != Guid.Empty, new Error("companyId must not be empty."))
+            .FlatMap(async id => await ProcessPendingInvoicesAsync(id, ct), ex => new Error(ex.Message))
+            .Run();
+    }
+
+    private async Task<int> ProcessPendingInvoicesAsync(Guid companyId, CancellationToken ct)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var pending = await unitOfWork.ElectronicInvoices.GetPendingForEmissionAsync(
+            companyId,
+            now,
+            _window.QueueCutoff(now),
+            EmissionBatchSize,
+            ct);
+
+        var leaseOwner = $"{Environment.MachineName}:{Guid.NewGuid():N}";
+        var processed = 0;
+
+        foreach (var candidate in pending)
+        {
+            var leaseUntil = now.Add(LeaseDuration);
+            var claimed = await unitOfWork.ElectronicInvoices.TryClaimAsync(
+                companyId,
+                candidate.Id,
+                leaseOwner,
+                leaseUntil,
+                now,
+                ct);
+
+            if (!claimed)
+                continue;
+
+            var invoice = await unitOfWork.ElectronicInvoices.GetByCompanyAndIdAsync(
+                companyId,
+                candidate.Id,
+                ct);
+
+            if (invoice is null)
+                continue;
+
+            try
+            {
+                if (_window.PassedTheWindow(invoice.CreatedAt, now))
+                {
+                    invoice.MarkForReview(
+                        "The e-CF passed the 72-hour window of the contingency instructivo.");
+                }
+                else
+                {
+                    await SendPendingAsync(invoice, now, ct);
+                }
+
+                processed++;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                if (IsFiscalRejection(exception, out var reason))
+                    invoice.Reject(reason);
+                else
+                    ScheduleTheNextAttempt(invoice, exception, now);
+            }
+
+            invoice.ReleaseLease();
+            invoice.MarkUpdated();
+            await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
+            await unitOfWork.CommitAsync(ct);
+        }
+
+        return processed;
+    }
+
+    private async Task SendPendingAsync(ElectronicInvoice invoice, DateTime now, CancellationToken ct)
+    {
+        var certificate = await certificateProvider.GetSigningCertificateAsync(invoice.IssuerTaxId, ct);
+        var token = await authenticator.AuthenticateAsync(invoice.IssuerTaxId, certificate, ct);
+
+        // After the first attempt the answer may have been lost. The DGII is
+        // asked by e-NCF before the document is sent again.
+        if (invoice.AttemptCount > 1)
+        {
+            var lookup = await dgiiClient.GetTrackIdAsync(
+                invoice.IssuerTaxId,
+                invoice.ENCF,
+                token.Token,
+                ct);
+
+            if (!lookup.NotFound)
+            {
+                invoice.MarkSent(
+                    lookup.TrackId!,
+                    lookup.ReceivedAt?.UtcDateTime ?? now);
+                return;
+            }
+        }
+
+        var receipt = await dgiiClient.SendElectronicInvoiceAsync(invoice.SignedXml, token.Token, ct);
+
+        if (receipt.IsRejected)
+        {
+            invoice.Reject(receipt.Error ?? receipt.Message ?? "The DGII refused the e-CF.");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(receipt.TrackId))
+            throw new InvalidOperationException("The DGII answered the e-CF without a track id.");
+
+        invoice.MarkSent(receipt.TrackId, now);
+    }
+
+    private void ScheduleTheNextAttempt(ElectronicInvoice invoice, Exception exception, DateTime now)
+    {
+        var attemptsAlreadyMade = Math.Max(0, invoice.AttemptCount - 1);
+
+        invoice.VerdictNote = exception.Message;
+        invoice.ScheduleNextAttempt(now.Add(_retryBackoff.DelayFor(attemptsAlreadyMade)));
+    }
+
+    private static bool IsFiscalRejection(Exception exception, out string reason)
+    {
+        if (exception is DgiiException
+            {
+                StatusCode: HttpStatusCode.BadRequest or HttpStatusCode.UnprocessableEntity
+            } dgiiException)
+        {
+            reason = string.IsNullOrWhiteSpace(dgiiException.RawBody)
+                ? dgiiException.Message
+                : dgiiException.RawBody;
+            reason = reason.Length > 1000 ? reason[..1000] : reason;
+            return true;
+        }
+
+        reason = string.Empty;
+        return false;
     }
 
     private async Task<ElectronicInvoice> RecoverTheDocumentAsync(
@@ -218,6 +370,7 @@ public class ElectronicInvoiceService(
             DocumentType = documentType,
             IssuerTaxId = issuer.TaxId,
             ReceiverTaxId = sale.ReceptorTaxId,
+            OriginalXml = xml,
 
             // The amounts of the document the DGII received: the lines add up
             // before the ITBIS, and the breakdown by rate lives in the XML.

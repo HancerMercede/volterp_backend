@@ -53,6 +53,7 @@ public class DgiiClientTests
 
         var exception = await act.Should().ThrowAsync<DgiiException>();
         exception.Which.RawBody.Should().Be("no disponible");
+        exception.Which.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
     }
 
     [Fact]
