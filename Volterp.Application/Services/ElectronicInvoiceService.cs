@@ -82,6 +82,56 @@ public class ElectronicInvoiceService(
             .Run();
     }
 
+    public async Task<Either<Error, ElectronicInvoiceStateSurfaceDto>> GetStateAsync(
+        Guid companyId, int limit, CancellationToken ct = default)
+    {
+        return await EitherAsync<Error, Guid>
+            .FromRight(companyId)
+            .Ensure(id => id != Guid.Empty, new Error("companyId must not be empty."))
+            .Ensure(_ => limit > 0, new Error("limit must be greater than zero."))
+            .FlatMap(async id => await BuildTheStateSurfaceAsync(id, limit, ct), ex => new Error(ex.Message))
+            .Run();
+    }
+
+    private async Task<ElectronicInvoiceStateSurfaceDto> BuildTheStateSurfaceAsync(
+        Guid companyId, int limit, CancellationToken ct)
+    {
+        var open = await unitOfWork.ElectronicInvoices.GetOpenAsync(companyId, ct);
+
+        // One classification for the two: the count and the list come out of
+        // the same set of documents, so they cannot disagree.
+        var classified = open
+            .Select(invoice => (
+                Invoice: invoice,
+                State: EcfFiscalStateClassifier.Classify(invoice.Status, invoice.RequiresReview)))
+            .Where(x => x.State.HasValue)
+            .Select(x => (x.Invoice, State: x.State.GetValueOrDefault()))
+            .ToList();
+
+        var grouped = classified.GroupBy(x => x.State).ToDictionary(g => g.Key, g => g.Count());
+
+        var counts = new ElectronicInvoiceStateCounts
+        {
+            PendingEmission = grouped.GetValueOrDefault(EcfFiscalState.PendingEmission),
+            InProcess = grouped.GetValueOrDefault(EcfFiscalState.InProcess),
+            Rejected = grouped.GetValueOrDefault(EcfFiscalState.Rejected),
+            RequiresReview = grouped.GetValueOrDefault(EcfFiscalState.RequiresReview)
+        };
+
+        // The list is the most recent ones: the count covers all of them.
+        var invoices = classified
+            .OrderByDescending(x => x.Invoice.CreatedAt)
+            .Take(limit)
+            .Select(x => x.Invoice.MapTo<ElectronicInvoice, ElectronicInvoiceStateDto>() with { FiscalState = x.State })
+            .ToList();
+
+        return new ElectronicInvoiceStateSurfaceDto
+        {
+            Counts = counts,
+            Invoices = invoices
+        };
+    }
+
     private async Task<int> ProcessPendingInvoicesAsync(Guid companyId, CancellationToken ct)
     {
         var now = _timeProvider.GetUtcNow().UtcDateTime;

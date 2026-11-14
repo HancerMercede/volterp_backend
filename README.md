@@ -115,6 +115,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Purchases** | CRUD `/api/purchases` |
 | **Companies** | CRUD `/api/companies` |
 | **Company Certificates** | `GET /api/CompanyCertificates`, `POST /api/CompanyCertificates` (admin) |
+| **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (conteo por estado y comprobantes abiertos del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png` |
 | **Accounting** | CRUD `/api/accounting-transactions` |
 
 La credencial del certificado se guarda cifrada y nunca vuelve por la respuesta. Para firmar e-CF, el ERP la interpreta como el sobre `{"pfx": "<base64 del .p12>", "password": "<password del .p12>"}`: es el único secreto del emisor, porque la DGII autentica los web services con la firma del certificado.

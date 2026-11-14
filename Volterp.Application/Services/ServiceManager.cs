@@ -40,6 +40,8 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
     private IElectronicInvoiceSequenceService? _electronicInvoiceSequences;
     public IElectronicInvoiceSequenceService ElectronicInvoiceSequences => _electronicInvoiceSequences ??= new ElectronicInvoiceSequenceService(unitOfWork);
 
+    public IElectronicInvoiceService ElectronicInvoices => electronicInvoices;
+
     private IDashboardService? _dashboard;
     public IDashboardService Dashboard => _dashboard ??= new DashboardService(unitOfWork);
 }

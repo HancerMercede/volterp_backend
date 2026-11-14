@@ -53,4 +53,12 @@ public interface IElectronicInvoiceRepository : IRepositoryBase<ElectronicInvoic
     /// off, so the company travels by hand.
     /// </summary>
     Task<IReadOnlyList<ElectronicInvoice>> GetDueForCheckAsync(Guid companyId, DateTime now, CancellationToken ct = default);
+
+    /// <summary>
+    /// The documents of a company that are still open: the ones the tenant
+    /// has to act on. The closed verdicts come from the library, so the set
+    /// of open documents and the classification of a document cannot
+    /// disagree about which verdicts close it.
+    /// </summary>
+    Task<IReadOnlyList<ElectronicInvoice>> GetOpenAsync(Guid companyId, CancellationToken ct = default);
 }

@@ -27,4 +27,10 @@ public interface IElectronicInvoiceService
     // The durable emission queue: signed documents are claimed, sent and
     // scheduled for another attempt when the DGII cannot be reached.
     Task<Either<Error, int>> ProcessPendingAsync(Guid companyId, CancellationToken ct = default);
+
+    // The surface of the fiscal state: the count by state and the open
+    // documents of the company. The count and the list come from the same
+    // classification, so they cannot disagree.
+    Task<Either<Error, ElectronicInvoiceStateSurfaceDto>> GetStateAsync(
+        Guid companyId, int limit, CancellationToken ct = default);
 }

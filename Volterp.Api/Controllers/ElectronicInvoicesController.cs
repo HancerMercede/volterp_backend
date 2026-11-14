@@ -1,6 +1,7 @@
 using System.Text;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
+using Volterp.Application.DTOs.ElectronicInvoiceDtos;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 
@@ -9,8 +10,23 @@ namespace Volterp.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ElectronicInvoicesController(IUnitOfWork unitOfWork) : BaseController
+public class ElectronicInvoicesController(IUnitOfWork unitOfWork, IServiceManager serviceManager) : BaseController
 {
+    // The fiscal state of the tenant: the count by state and the open
+    // documents. The company comes from the token.
+    [HttpGet("state")]
+    public async Task<ActionResult<ElectronicInvoiceStateSurfaceDto>> GetState(
+        [FromQuery] int limit = 50, CancellationToken ct = default)
+    {
+        var companyId = GetCurrentUserCompanyId();
+        var result = await serviceManager.ElectronicInvoices.GetStateAsync(companyId, limit, ct);
+
+        return result.Match<ActionResult<ElectronicInvoiceStateSurfaceDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            surface => Ok(surface)
+        );
+    }
+
     [HttpGet("{id}/qr.svg")]
     public async Task<IActionResult> GetQrSvg(Guid id, CancellationToken ct = default)
     {

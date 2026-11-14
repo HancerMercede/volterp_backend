@@ -108,4 +108,35 @@ public class ElectronicInvoiceRepository(VolterpDbContext context)
                 && e.NextCheckAt <= now)
             .OrderBy(e => e.NextCheckAt)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<ElectronicInvoice>> GetOpenAsync(Guid companyId, CancellationToken ct = default)
+    {
+        // The verdicts that close a document come from the library: the query
+        // and the classification of a document cannot disagree about them.
+        var closed = EcfFiscalStateClassifier.ClosedStatuses;
+
+        // The signed XML is not read: the surface only needs the state of the
+        // document, and the XML is the heaviest column of the table. The
+        // document comes back with the columns the surface reads.
+        return await Set()
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(e => e.CompanyId == companyId && !closed.Contains(e.Status))
+            .Select(e => new ElectronicInvoice
+            {
+                Id = e.Id,
+                CompanyId = e.CompanyId,
+                SaleId = e.SaleId,
+                ENCF = e.ENCF,
+                DocumentType = e.DocumentType,
+                Status = e.Status,
+                VerdictNote = e.VerdictNote,
+                RequiresReview = e.RequiresReview,
+                SentAt = e.SentAt,
+                NextCheckAt = e.NextCheckAt,
+                StatusCheckCount = e.StatusCheckCount,
+                CreatedAt = e.CreatedAt
+            })
+            .ToListAsync(ct);
+    }
 }
