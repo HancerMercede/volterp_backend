@@ -115,8 +115,45 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Purchases** | CRUD `/api/purchases` |
 | **Companies** | CRUD `/api/companies` |
 | **Company Certificates** | `GET /api/CompanyCertificates`, `POST /api/CompanyCertificates` (admin) |
-| **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (conteo por estado y comprobantes abiertos del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png` |
+| **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png` |
 | **Accounting** | CRUD `/api/accounting-transactions` |
+
+`GET /api/ElectronicInvoices/state` contesta el estado fiscal del tenant (la empresa sale del token, nunca de la petición):
+
+```json
+{
+  "counts": {
+    "pendingEmission": 2,
+    "inProcess": 1,
+    "rejected": 0,
+    "requiresReview": 1,
+    "total": 4
+  },
+  "invoices": [
+    {
+      "id": "0192…",
+      "saleId": "0192…",
+      "encf": "E320000000001",
+      "documentType": "Consumer",
+      "fiscalState": "PendingEmission",
+      "status": "Signed",
+      "verdictNote": null,
+      "requiresReview": false,
+      "sentAt": null,
+      "nextCheckAt": null,
+      "statusCheckCount": 0,
+      "rawResponse": null,
+      "sequenceConsumed": null,
+      "receivedAt": null,
+      "lastError": null
+    }
+  ]
+}
+```
+
+- `fiscalState` es la clasificación del estado fiscal: `PendingEmission` (firmado y esperando en la cola, todavía no salió hacia la DGII), `InProcess` (la DGII lo tiene y todavía no lo validó), `Rejected` (la DGII lo rechazó) o `RequiresReview` (no se pudo firmar, así que no llegó a la DGII). Un comprobante ya cerrado no tiene estado fiscal.
+- `?limit` (default 50) acota el listado; el conteo siempre cubre todos los comprobantes abiertos.
+- `rawResponse` es el cuerpo crudo de la última respuesta de la DGII (ahí quedan los códigos de sus mensajes), `sequenceConsumed` es lo que la DGII dice del número (si el rechazo lo volvió inservible), `receivedAt` es cuándo lo recibió y `lastError` el motivo del último fallo al hablar con la DGII.
 
 La credencial del certificado se guarda cifrada y nunca vuelve por la respuesta. Para firmar e-CF, el ERP la interpreta como el sobre `{"pfx": "<base64 del .p12>", "password": "<password del .p12>"}`: es el único secreto del emisor, porque la DGII autentica los web services con la firma del certificado.
 

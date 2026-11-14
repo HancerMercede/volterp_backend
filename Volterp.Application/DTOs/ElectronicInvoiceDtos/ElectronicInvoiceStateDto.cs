@@ -14,8 +14,11 @@ public record ElectronicInvoiceStateDto : IMapFrom<ElectronicInvoice>
 
     // The fiscal state is not a field of the document: it is the
     // classification of its status and its review flag. The status travels
-    // with it to say how far the document got with the DGII.
-    public EcfFiscalState FiscalState { get; set; }
+    // with it to say how far the document got with the DGII. It is null for a
+    // closed document: a closed document has no state the tenant has to act
+    // on, and the enum starts at one, so the default of the property would
+    // be a state that does not exist.
+    public EcfFiscalState? FiscalState { get; set; }
     public EcfStatus Status { get; set; }
 
     public string? VerdictNote { get; set; }
@@ -40,6 +43,7 @@ public record ElectronicInvoiceStateDto : IMapFrom<ElectronicInvoice>
         ENCF = source.ENCF;
         DocumentType = source.DocumentType;
         Status = source.Status;
+        FiscalState = EcfFiscalStateClassifier.Classify(source.Status, source.RequiresReview);
         VerdictNote = source.VerdictNote;
         RequiresReview = source.RequiresReview;
         SentAt = source.SentAt;
