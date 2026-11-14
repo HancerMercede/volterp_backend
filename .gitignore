@@ -28,3 +28,6 @@ Release/
 *.pfx
 *.pem
 *.key
+
+# La carpeta local del certificado y su password: nada de eso entra al repo
+certificado/
