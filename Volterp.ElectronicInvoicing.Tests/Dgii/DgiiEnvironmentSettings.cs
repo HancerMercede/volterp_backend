@@ -5,12 +5,13 @@ namespace Volterp.ElectronicInvoicing.Tests.Dgii;
 
 // A test that only runs when the DGII is configured. The circuit against the
 // real DGII needs the base URL and the issuer's certificate, and neither
-// belongs in the repository: they come from the environment.
+// belongs in the repository: they come from the environment. The certificate
+// is optional: against the simulator one made here is enough.
 public sealed class DgiiEnvironmentFactAttribute : FactAttribute
 {
     public DgiiEnvironmentFactAttribute()
     {
-        if (DgiiEnvironmentSettings.BaseUrl is null || DgiiEnvironmentSettings.CertificatePath is null)
+        if (DgiiEnvironmentSettings.BaseUrl is null)
             Skip = "The DGII environment is not configured.";
     }
 }
