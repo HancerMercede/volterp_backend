@@ -790,6 +790,12 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Lo que hace T50** ✓: (a) el `HasData` del modelo se va ✓ (ni la empresa ni el admin ✓) → el snapshot deja de sembrarlos ✓ → la migración de EF **borra esas dos filas** donde estén ✓ (solo esas ✓) · (b) el **alta real del primer tenant** ✓: un comando de despliegue ✓ que crea la empresa con su **RNC real** ✓ y su primer admin ✓ con una **contraseña generada mostrada una vez** ✓ → reutiliza `CompanyService` ✓, `UserService` ✓ e `IPasswordHasher` ✓ → **sin API nueva** ✓ → el front no se entera ✓ → y el ambiente de desarrollo lo usa igual ✓.
   - **Lo que el owner dejó claro** ✓: la **data de la base** (los tenants de demo ✓) **no se borra** ✓ y los clientes nuevos **no la ven** ✓ porque no les pertenece ✓ (todo es por tenant ✓) → T50a queda cancelada ✓; lo que cambia es la **data hardcode del modelo** ✓.
 
+- **L61** (2026-11-14) — **T46 verificada por un verificador independiente** ✓ → **0 bloqueantes nuevos** ✓ → y **las mutaciones muerden** ✓.
+  - **Lo que corrió** ✓: build del candidato **0 errores / 45 warnings** ✓ (los 45 son preexistentes ✓) · enfocados **144/144** ✓ · suite **664/664** ✓ (default ✓ y sin paralelismo ✓) → la corrección **no rompió nada** ✓ (incluido T45 ✓).
+  - **Las mutaciones** ✓: quitar el `IgnoreQueryFilters` → **2/2 rojo** ✓ · compartir el scope → **1/2 rojo** ✓ (el documento queda `Sent` ✓) · quitar el `try/catch` por documento → **1 rojo** ✓ · quitar el `Ensure` de la venta completada → **1 rojo** ✓ → los tests **muerden** ✓ (que era justo lo que falló ayer ✓).
+  - **Los probes propios** ✓: **5/5** ✓ (la query con dos empresas ✓, el ciclo completo con el **rechazo** de la DGII ✓, el aislamiento y el fallback ✓, el update fail-closed ✓ y el `Pending` que sigue funcionando ✓).
+  - **Los riesgos abiertos, reproducidos 3/3** ✓: el *last-write-wins* pisa un veredicto final ✓ · una falla de persistencia quema la secuencia ✓ · dos `Issue` concurrentes queman un 2º número ✓ → **`a758e7e` no tocó ese código** ✓ → son riesgos **preexistentes** ✓, no regresiones ✓ → son los tres que L51 ya anotaba ✓ → quedan como trabajo futuro ✓ (no bloquean la unidad ✓).
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
