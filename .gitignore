@@ -22,3 +22,9 @@ obj/
 Debug/
 Release/
 *.csproj.user
+
+# Certificados del cliente: nunca se commitean (el .p12 y su password son del cliente)
+*.p12
+*.pfx
+*.pem
+*.key
