@@ -420,6 +420,9 @@ namespace Volterp.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
                     b.Property<string>("LeaseOwner")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -440,6 +443,12 @@ namespace Volterp.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("RawResponse")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("ReceiverTaxId")
                         .HasMaxLength(13)
                         .HasColumnType("character varying(13)");
@@ -456,6 +465,9 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool?>("SequenceConsumed")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("SignedAt")
                         .HasColumnType("timestamp with time zone");

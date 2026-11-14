@@ -138,7 +138,11 @@ public class ElectronicInvoiceRetrackTests
         processed.Status.Should().Be(EcfStatus.Accepted);
 
         failed.Status.Should().Be(EcfStatus.InProcess);
-        failed.VerdictNote.Should().Contain("The DGII did not answer.");
+
+        // The reason of the failure lives beside the answer of the DGII: it
+        // does not take the place of what the DGII said.
+        failed.LastError.Should().Contain("The DGII did not answer.");
+        failed.VerdictNote.Should().BeNull();
         failed.NextCheckAt.Should().NotBeNull("a failed check is tried again later");
         _invoices.Verify(i => i.UpdateAsync(failed, It.IsAny<CancellationToken>()), Times.Once);
     }

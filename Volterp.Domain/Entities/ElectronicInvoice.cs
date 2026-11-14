@@ -31,6 +31,22 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
     public EcfStatus Status { get; set; } = EcfStatus.Draft;
     public string? VerdictNote { get; set; }
 
+    // What the DGII answered the last time it was talked to: the body of the
+    // conversation carries the codes of its messages and the detail of what
+    // it said.
+    public string? RawResponse { get; set; }
+
+    // The sequence the DGII says it consumed: a rejection that makes the
+    // number unusable.
+    public bool? SequenceConsumed { get; set; }
+
+    // The day the DGII says it received the document.
+    public DateTime? ReceivedAt { get; set; }
+
+    // The reason of the last failure to talk to the DGII. It lives beside the
+    // answer of the DGII: one does not wipe the other.
+    public string? LastError { get; set; }
+
     // The appointment of the next verdict check and the number of checks the
     // document already carries: the wait grows with it.
     public DateTime? NextCheckAt { get; set; }
@@ -177,6 +193,21 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
 
         VerdictNote = reason;
         RequiresReview = true;
+    }
+
+    // The answer of the DGII to the last conversation with it: the body of the
+    // conversation and the two facts it states about the document. What the
+    // DGII does not say does not erase what it said before.
+    public void RecordDgiiResponse(string? rawBody = null, bool? sequenceConsumed = null, DateTime? receivedAt = null)
+    {
+        if (!string.IsNullOrWhiteSpace(rawBody))
+            RawResponse = rawBody;
+
+        if (sequenceConsumed.HasValue)
+            SequenceConsumed = sequenceConsumed;
+
+        if (receivedAt.HasValue)
+            ReceivedAt = receivedAt;
     }
 
     private void RequirePendingVerdict(EcfStatus target)

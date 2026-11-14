@@ -173,6 +173,20 @@ public class DgiiClientTests
     }
 
     [Fact]
+    public async Task SendElectronicInvoiceAsync_CarriesTheBodyOfTheAcknowledgement()
+    {
+        const string body = """{"trackId":"track-1","error":null,"mensaje":"Recibido"}""";
+        var handler = StubHttpMessageHandler.ReturningJson(body);
+        var client = CreateClient(handler);
+
+        var receipt = await client.SendElectronicInvoiceAsync(Document(), "jwt");
+
+        // What the DGII answered is kept with the document: the codes of its
+        // messages only live in the body.
+        receipt.RawBody.Should().Be(body);
+    }
+
+    [Fact]
     public async Task GetStatusAsync_AsksForTheVerdictOfTheTrackId()
     {
         var handler = StubHttpMessageHandler.ReturningJson(
@@ -185,6 +199,21 @@ public class DgiiClientTests
         // GET {base}/{ambiente}/consultaresultado/api/consultas/estado?trackid=
         handler.LastUri.Should().Contain("/consultaresultado/api/consultas/estado?trackid=track-1");
         handler.LastAuthorization.Should().Be("bearer jwt");
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_CarriesTheBodyOfTheAnswer()
+    {
+        const string body =
+            """{"trackId":"track-1","codigo":2,"estado":"Rechazado","secuenciaUtilizada":true,"mensajes":[{"valor":"El RNC del receptor no existe","codigo":7}]}""";
+        var handler = StubHttpMessageHandler.ReturningJson(body);
+        var client = CreateClient(handler);
+
+        var status = await client.GetStatusAsync("track-1", "jwt");
+
+        // The answer of the DGII travels with the document: the code of each
+        // of its messages only lives in the body.
+        status.RawBody.Should().Be(body);
     }
 
     [Theory]

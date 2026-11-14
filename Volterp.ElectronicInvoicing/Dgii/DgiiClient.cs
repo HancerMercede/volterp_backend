@@ -80,7 +80,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
 
         var parsed = Deserialize<DgiiReceiptResponse>(body, "acknowledgement");
 
-        return new DgiiReceipt(parsed.TrackId, parsed.Error, parsed.Message);
+        return new DgiiReceipt(parsed.TrackId, parsed.Error, parsed.Message) { RawBody = body };
     }
 
     public async Task<DgiiStatus> GetStatusAsync(string trackId, string token, CancellationToken cancellationToken = default)
@@ -118,7 +118,8 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
             parsed.Encf,
             parsed.SecuenciaUtilizada,
             ParseDate(parsed.FechaRecepcion),
-            messages);
+            messages)
+        { RawBody = body };
     }
 
     public async Task<DgiiTrackLookup> GetTrackIdAsync(string issuerTaxId, string encf, string token, CancellationToken cancellationToken = default)

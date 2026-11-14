@@ -139,7 +139,11 @@ public class ElectronicInvoiceQueueTests
         // the DGII, not a rejection of the document.
         invoice.Status.Should().Be(EcfStatus.Signed);
         invoice.TrackId.Should().BeNull();
-        invoice.VerdictNote.Should().Contain("The DGII did not answer.");
+
+        // The reason of the failure lives beside the answer of the DGII: it
+        // does not take the place of what the DGII said.
+        invoice.LastError.Should().Contain("The DGII did not answer.");
+        invoice.VerdictNote.Should().BeNull();
     }
 
     [Fact]
@@ -154,7 +158,7 @@ public class ElectronicInvoiceQueueTests
 
         invoice.Status.Should().Be(EcfStatus.Signed);
         invoice.NextAttemptAt.Should().NotBeNull();
-        invoice.VerdictNote.Should().Contain("ServiceUnavailable");
+        invoice.LastError.Should().Contain("ServiceUnavailable");
     }
 
     [Fact]

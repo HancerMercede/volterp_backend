@@ -24,6 +24,15 @@ public record ElectronicInvoiceStateDto : IMapFrom<ElectronicInvoice>
     public DateTime? NextCheckAt { get; set; }
     public int StatusCheckCount { get; set; }
 
+    // What the DGII answered: the body of the conversation, the sequence it
+    // consumed and the day it received the document.
+    public string? RawResponse { get; set; }
+    public bool? SequenceConsumed { get; set; }
+    public DateTime? ReceivedAt { get; set; }
+
+    // The reason of the last failure to talk to the DGII.
+    public string? LastError { get; set; }
+
     public void MapFrom(ElectronicInvoice source)
     {
         Id = source.Id;
@@ -36,5 +45,9 @@ public record ElectronicInvoiceStateDto : IMapFrom<ElectronicInvoice>
         SentAt = source.SentAt;
         NextCheckAt = source.NextCheckAt;
         StatusCheckCount = source.StatusCheckCount;
+        RawResponse = source.RawResponse;
+        SequenceConsumed = source.SequenceConsumed;
+        ReceivedAt = source.ReceivedAt;
+        LastError = source.LastError;
     }
 }

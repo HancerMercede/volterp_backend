@@ -16,6 +16,10 @@ public sealed record DgiiToken(string Token, DateTimeOffset? ExpiresAt, DateTime
 public sealed record DgiiReceipt(string? TrackId, string? Error, string? Message)
 {
     public bool IsRejected => !string.IsNullOrWhiteSpace(Error);
+
+    // The body of the acknowledgement: what the DGII said, with the codes of
+    // its messages.
+    public string? RawBody { get; init; }
 }
 
 // One message the DGII attaches to a verdict: the only place it explains itself.
@@ -38,9 +42,14 @@ public sealed record DgiiStatus(
     string? StatusText,
     string? Rnc,
     string? Encf,
-    bool SequenceConsumed,
+    bool? SequenceConsumed,
     DateTimeOffset? ReceivedAt,
-    IReadOnlyList<DgiiMessage> Messages);
+    IReadOnlyList<DgiiMessage> Messages)
+{
+    // The body of the answer: what the DGII said, with the codes of its
+    // messages.
+    public string? RawBody { get; init; }
+}
 
 internal sealed class DgiiTokenResponse
 {
@@ -84,7 +93,7 @@ internal sealed class DgiiStatusResponse
     public string? Encf { get; set; }
 
     [JsonPropertyName("secuenciaUtilizada")]
-    public bool SecuenciaUtilizada { get; set; }
+    public bool? SecuenciaUtilizada { get; set; }
 
     [JsonPropertyName("fechaRecepcion")]
     public string? FechaRecepcion { get; set; }

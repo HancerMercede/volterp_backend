@@ -136,6 +136,10 @@ public class ElectronicInvoiceRepository(VolterpDbContext context)
                 SentAt = e.SentAt,
                 NextCheckAt = e.NextCheckAt,
                 StatusCheckCount = e.StatusCheckCount,
+                RawResponse = e.RawResponse,
+                SequenceConsumed = e.SequenceConsumed,
+                ReceivedAt = e.ReceivedAt,
+                LastError = e.LastError,
                 CreatedAt = e.CreatedAt
             })
             .ToListAsync(ct);

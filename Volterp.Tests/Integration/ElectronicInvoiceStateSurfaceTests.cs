@@ -25,6 +25,8 @@ public class ElectronicInvoiceStateSurfaceTests
 {
     private const string RejectionReason = "El RNC del receptor no existe.";
     private const string ReviewObservation = "El certificado del emisor expiró.";
+    private const string RawResponse = """{"codigo":2,"estado":"Rechazado","secuenciaUtilizada":true,"mensajes":[{"valor":"El RNC del receptor no existe","codigo":7}]}""";
+    private static readonly DateTime ReceivedAt = new(2026, 11, 14, 10, 0, 0, DateTimeKind.Utc);
 
     [Fact]
     public async Task TheCountAndTheListCannotDisagree()
@@ -103,6 +105,24 @@ public class ElectronicInvoiceStateSurfaceTests
     }
 
     [Fact]
+    public async Task TheDocumentCarriesWhatTheDgiiAnswered()
+    {
+        await using var fixture = new StateFixture();
+        await fixture.InitializeAsync();
+
+        var surface = await SurfaceOf(fixture, fixture.CompanyId, 50);
+
+        var rejected = surface.Invoices.Single(i => i.ENCF == fixture.RejectedEncf);
+
+        // The front shows what the DGII answered: the body of the
+        // conversation, the sequence it consumed and the day it received the
+        // document.
+        rejected.RawResponse.Should().Be(RawResponse);
+        rejected.SequenceConsumed.Should().BeTrue();
+        rejected.ReceivedAt.Should().Be(ReceivedAt);
+    }
+
+    [Fact]
     public async Task TheClosedDocumentsDoNotAppear()
     {
         await using var fixture = new StateFixture();
@@ -160,6 +180,7 @@ public class ElectronicInvoiceStateSurfaceTests
         public Guid OtherCompanyId { get; private set; }
         public Guid SaleOfThePendingDocument { get; private set; }
         public string OtherCompanyEncf { get; private set; } = string.Empty;
+        public string RejectedEncf { get; private set; } = string.Empty;
         public string AcceptedEncf { get; private set; } = string.Empty;
         public string ConditionallyAcceptedEncf { get; private set; } = string.Empty;
         public string AnnulledEncf { get; private set; } = string.Empty;
@@ -176,13 +197,21 @@ public class ElectronicInvoiceStateSurfaceTests
                 Company(OtherCompanyId, "101500019"));
 
             SaleOfThePendingDocument = Guid.CreateVersion7();
+            RejectedEncf = "E310000000005";
 
             Context.ElectronicInvoices.AddRange(
                 Document(CompanyId, EcfStatus.Signed, "E310000000001", SaleOfThePendingDocument),
                 Document(CompanyId, EcfStatus.Signed, "E310000000002"),
                 Document(CompanyId, EcfStatus.Sent, "E310000000003"),
                 Document(CompanyId, EcfStatus.InProcess, "E310000000004"),
-                Document(CompanyId, EcfStatus.Rejected, "E310000000005", verdictNote: RejectionReason),
+                Document(
+                    CompanyId,
+                    EcfStatus.Rejected,
+                    RejectedEncf,
+                    verdictNote: RejectionReason,
+                    rawResponse: RawResponse,
+                    sequenceConsumed: true,
+                    receivedAt: ReceivedAt),
                 Document(CompanyId, EcfStatus.Draft, "E310000000006", verdictNote: ReviewObservation, requiresReview: true),
                 // A draft nobody has to look at should not exist: it fails
                 // closed into the review.
@@ -208,7 +237,10 @@ public class ElectronicInvoiceStateSurfaceTests
             string encf,
             Guid? saleId = null,
             string? verdictNote = null,
-            bool requiresReview = false)
+            bool requiresReview = false,
+            string? rawResponse = null,
+            bool? sequenceConsumed = null,
+            DateTime? receivedAt = null)
         {
             var sale = saleId ?? Guid.CreateVersion7();
 
@@ -240,7 +272,10 @@ public class ElectronicInvoiceStateSurfaceTests
                 SignedXml = "<ECF />",
                 Status = status,
                 VerdictNote = verdictNote,
-                RequiresReview = requiresReview
+                RequiresReview = requiresReview,
+                RawResponse = rawResponse,
+                SequenceConsumed = sequenceConsumed,
+                ReceivedAt = receivedAt
             };
         }
 

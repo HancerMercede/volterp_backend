@@ -187,6 +187,10 @@ public class ElectronicInvoiceService(
             }
             catch (Exception exception)
             {
+                // What the DGII sent is the answer of the last conversation,
+                // even when the conversation failed.
+                RecordTheBodyOfTheDgii(invoice, exception);
+
                 if (IsFiscalRejection(exception, out var reason))
                     invoice.Reject(reason);
                 else
@@ -219,6 +223,7 @@ public class ElectronicInvoiceService(
 
             if (!lookup.NotFound)
             {
+                invoice.RecordDgiiResponse(receivedAt: lookup.ReceivedAt?.UtcDateTime);
                 invoice.MarkSent(
                     lookup.TrackId!,
                     lookup.ReceivedAt?.UtcDateTime ?? now);
@@ -227,6 +232,10 @@ public class ElectronicInvoiceService(
         }
 
         var receipt = await dgiiClient.SendElectronicInvoiceAsync(invoice.SignedXml, token.Token, ct);
+
+        // The acknowledgement is a conversation with the DGII: its body says
+        // what it answered.
+        invoice.RecordDgiiResponse(receipt.RawBody);
 
         if (receipt.IsRejected)
         {
@@ -244,8 +253,17 @@ public class ElectronicInvoiceService(
     {
         var attemptsAlreadyMade = Math.Max(0, invoice.AttemptCount - 1);
 
-        invoice.VerdictNote = exception.Message;
+        // The reason of the failure lives beside the answer of the DGII: one
+        // does not wipe the other.
+        invoice.LastError = exception.Message;
         invoice.ScheduleNextAttempt(now.Add(_retryBackoff.DelayFor(attemptsAlreadyMade)));
+    }
+
+    // The body the DGII sent is the answer of the last conversation with it.
+    private static void RecordTheBodyOfTheDgii(ElectronicInvoice invoice, Exception exception)
+    {
+        if (exception is DgiiException { RawBody: { } body })
+            invoice.RecordDgiiResponse(body);
     }
 
     private static bool IsFiscalRejection(Exception exception, out string reason)
@@ -316,7 +334,8 @@ public class ElectronicInvoiceService(
             {
                 // One document cannot stop the pass of the others: its failure
                 // is kept and its next check is scheduled.
-                invoice.VerdictNote = exception.Message;
+                RecordTheBodyOfTheDgii(invoice, exception);
+                invoice.LastError = exception.Message;
                 ScheduleTheNextCheck(invoice);
                 await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
                 await unitOfWork.CommitAsync(ct);
@@ -344,10 +363,18 @@ public class ElectronicInvoiceService(
             if (lookup.NotFound)
                 return false;
 
+            invoice.RecordDgiiResponse(receivedAt: lookup.ReceivedAt?.UtcDateTime);
             invoice.MarkSent(lookup.TrackId, lookup.ReceivedAt?.UtcDateTime ?? DateTime.UtcNow);
         }
 
         var status = await dgiiClient.GetStatusAsync(invoice.TrackId, token.Token, ct);
+
+        // The answer of the DGII: its body and the two facts it states about
+        // the document.
+        invoice.RecordDgiiResponse(
+            status.RawBody,
+            status.SequenceConsumed,
+            status.ReceivedAt?.UtcDateTime);
 
         // A track id the DGII does not know is a failed query, not a verdict.
         if (status.Verdict.ToEcfStatus() is null)
