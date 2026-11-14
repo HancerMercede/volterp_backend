@@ -107,6 +107,32 @@ public class SaleElectronicInvoiceTests
     }
 
     [Fact]
+    public async Task UpdateSaleAsync_WhenTheSaleIsAlreadyCompleted_ReturnsLeftAndLeavesTheSaleUnchanged()
+    {
+        Given();
+        _sale.Status = SaleStatus.Completed;
+        _sale.CalculateTotals();
+        var originalTotal = _sale.Total;
+        var request = new UpdateSaleRequest(
+            null,
+            "Cliente",
+            SaleStatus.Pending,
+            200m,
+            null,
+            [new CreateSaleItemRequest(Guid.CreateVersion7(), "Café molido", null, null, null, 2, 100m, 200m)]);
+
+        var result = await Service().UpdateSaleAsync(SaleId, CompanyId, request, null);
+
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Be("A completed sale cannot be updated.");
+
+        _sale.Status.Should().Be(SaleStatus.Completed);
+        _sale.Total.Should().Be(originalTotal, "the fiscal document of the sale must keep matching it");
+        _sales.Verify(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CompleteSaleAsync_WhenTheSignatureFails_LeavesTheSaleCompletedAndTheDocumentForReview()
     {
         Given();

@@ -94,6 +94,8 @@ public class SaleService(IUnitOfWork unitOfWork, IElectronicInvoiceService elect
             .Ensure(sale => sale is not null, new Error("Sale not found."))
             .Ensure(_ => request.Status != SaleStatus.Completed,
                 new Error("A sale can only be completed through the completion operation."))
+            .Ensure(sale => sale is not null && sale.Status != SaleStatus.Completed,
+                new Error("A completed sale cannot be updated."))
             .FlatMap(async sale =>
             {
                 // The code is resolved before any stock movement: a rejected code

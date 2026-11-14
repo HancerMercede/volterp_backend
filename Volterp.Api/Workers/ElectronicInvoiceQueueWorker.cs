@@ -47,66 +47,80 @@ public sealed class ElectronicInvoiceQueueWorker(
 
     public async Task ProcessPendingAsync(CancellationToken ct)
     {
-        using var scope = scopeFactory.CreateScope();
-        var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-        var service = scope.ServiceProvider.GetRequiredService<IElectronicInvoiceService>();
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        var cutoff = new ContingencyWindow().QueueCutoff(now);
+        IReadOnlyList<Guid> companyIds;
 
-        var companyIds = await unitOfWork.ElectronicInvoices.GetCompanyIdsWithPendingEmissionAsync(
-            now,
-            cutoff,
-            CompanyBatchSize,
-            ct);
-
-        foreach (var companyId in companyIds)
+        using (var emissionScope = scopeFactory.CreateScope())
         {
-            try
-            {
-                var result = await service.ProcessPendingAsync(companyId, ct);
+            var unitOfWork = emissionScope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+            var service = emissionScope.ServiceProvider.GetRequiredService<IElectronicInvoiceService>();
+            var now = timeProvider.GetUtcNow().UtcDateTime;
+            var cutoff = new ContingencyWindow().QueueCutoff(now);
 
-                if (result is Either<Error, int>.Left failure)
+            companyIds = await unitOfWork.ElectronicInvoices.GetCompanyIdsWithPendingEmissionAsync(
+                now,
+                cutoff,
+                CompanyBatchSize,
+                ct);
+
+            foreach (var companyId in companyIds)
+            {
+                try
+                {
+                    var result = await service.ProcessPendingAsync(companyId, ct);
+
+                    if (result is Either<Error, int>.Left failure)
+                    {
+                        logger.LogError(
+                            "The electronic invoice queue of company {CompanyId} failed: {Error}",
+                            companyId,
+                            failure.Value.Message);
+                    }
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception exception)
                 {
                     logger.LogError(
-                        "The electronic invoice queue of company {CompanyId} failed: {Error}",
-                        companyId,
-                        failure.Value.Message);
+                        exception,
+                        "The electronic invoice queue of company {CompanyId} failed.",
+                        companyId);
                 }
             }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception exception)
-            {
-                logger.LogError(
-                    exception,
-                    "The electronic invoice queue of company {CompanyId} failed.",
-                    companyId);
-            }
+        }
 
-            try
-            {
-                var result = await service.RetrackAsync(companyId, ct);
+        // The queue leaves its documents tracked in the DbContext. The retrack
+        // reads them detached and writes them back, so it needs a fresh scope.
+        using (var retrackScope = scopeFactory.CreateScope())
+        {
+            var service = retrackScope.ServiceProvider.GetRequiredService<IElectronicInvoiceService>();
 
-                if (result is Either<Error, int>.Left failure)
+            foreach (var companyId in companyIds)
+            {
+                try
+                {
+                    var result = await service.RetrackAsync(companyId, ct);
+
+                    if (result is Either<Error, int>.Left failure)
+                    {
+                        logger.LogError(
+                            "The electronic invoice retrack of company {CompanyId} failed: {Error}",
+                            companyId,
+                            failure.Value.Message);
+                    }
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception exception)
                 {
                     logger.LogError(
-                        "The electronic invoice retrack of company {CompanyId} failed: {Error}",
-                        companyId,
-                        failure.Value.Message);
+                        exception,
+                        "The electronic invoice retrack of company {CompanyId} failed.",
+                        companyId);
                 }
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception exception)
-            {
-                logger.LogError(
-                    exception,
-                    "The electronic invoice retrack of company {CompanyId} failed.",
-                    companyId);
             }
         }
     }

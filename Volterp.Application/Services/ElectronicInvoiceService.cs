@@ -293,15 +293,31 @@ public class ElectronicInvoiceService(
     private async Task<int> RetrackTheDueDocumentsAsync(Guid companyId, CancellationToken ct)
     {
         // The company travels by hand: the retrack runs without an HTTP
-        // context, and without one the global tenant filter is off.
+        // context, so the query has to bypass the tenant filter.
         var due = await unitOfWork.ElectronicInvoices.GetDueForCheckAsync(companyId, DateTime.UtcNow, ct);
 
         foreach (var invoice in due)
         {
-            if (await AskTheVerdictAsync(invoice, invoice.IssuerTaxId, ct))
+            try
             {
-                // The documents are read without tracking, so the change is
-                // persisted on purpose.
+                if (await AskTheVerdictAsync(invoice, invoice.IssuerTaxId, ct))
+                {
+                    // The documents are read without tracking, so the change is
+                    // persisted on purpose.
+                    await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
+                    await unitOfWork.CommitAsync(ct);
+                }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                // One document cannot stop the pass of the others: its failure
+                // is kept and its next check is scheduled.
+                invoice.VerdictNote = exception.Message;
+                ScheduleTheNextCheck(invoice);
                 await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
                 await unitOfWork.CommitAsync(ct);
             }

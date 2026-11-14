@@ -107,6 +107,43 @@ public class ElectronicInvoiceRetrackTests
     }
 
     [Fact]
+    public async Task RetrackAsync_WhenTheDgiiRejectsTheVerdict_RecordsTheRejectionAndItsReason()
+    {
+        _dgii.Verdict = DgiiVerdict.Rejected;
+        _dgii.Reason = "El RNC del receptor no existe.";
+        var invoice = Due();
+        Given(invoice);
+
+        var result = await Service().RetrackAsync(CompanyId);
+
+        result.Should().BeOfType<Either<Error, int>.Right>();
+        invoice.Status.Should().Be(EcfStatus.Rejected);
+        invoice.VerdictNote.Should().Be("El RNC del receptor no existe.");
+        invoice.NextCheckAt.Should().BeNull("a terminal verdict is not asked again");
+        _invoices.Verify(i => i.UpdateAsync(invoice, It.IsAny<CancellationToken>()), Times.Once);
+        _unitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RetrackAsync_WhenOneDocumentFails_ContinuesWithTheNextOne()
+    {
+        _dgii.FailingTrackId = "track-failed";
+        var failed = Due(trackId: "track-failed");
+        var processed = Due(trackId: "track-processed");
+        Given(failed, processed);
+
+        var result = await Service().RetrackAsync(CompanyId);
+
+        result.Should().BeOfType<Either<Error, int>.Right>();
+        processed.Status.Should().Be(EcfStatus.Accepted);
+
+        failed.Status.Should().Be(EcfStatus.InProcess);
+        failed.VerdictNote.Should().Contain("The DGII did not answer.");
+        failed.NextCheckAt.Should().NotBeNull("a failed check is tried again later");
+        _invoices.Verify(i => i.UpdateAsync(failed, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task RetrackAsync_PersistsTheDocumentsItChanged()
     {
         Given(Due());
@@ -128,10 +165,10 @@ public class ElectronicInvoiceRetrackTests
         _invoices.Verify(i => i.GetDueForCheckAsync(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
-    private void Given(ElectronicInvoice invoice)
+    private void Given(params ElectronicInvoice[] invoices)
     {
         _invoices.Setup(r => r.GetDueForCheckAsync(CompanyId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync([invoice]);
+            .ReturnsAsync(invoices);
     }
 
     private ElectronicInvoiceService Service()
@@ -148,7 +185,7 @@ public class ElectronicInvoiceRetrackTests
             new VerdictCheckBackoff(TimeSpan.FromMinutes(1), TimeSpan.FromHours(4), 0.2, () => 0.5));
     }
 
-    private static ElectronicInvoice Due() => new()
+    private static ElectronicInvoice Due(string trackId = "track-1") => new()
     {
         Id = Guid.CreateVersion7(),
         CompanyId = CompanyId,
@@ -156,7 +193,7 @@ public class ElectronicInvoiceRetrackTests
         ENCF = "E320000000001",
         DocumentType = EcfDocumentType.Consumer,
         IssuerTaxId = IssuerRnc,
-        TrackId = "track-1",
+        TrackId = trackId,
         Status = EcfStatus.InProcess,
         NextCheckAt = DateTime.UtcNow.AddMinutes(-1),
         StatusCheckCount = 1
@@ -188,6 +225,8 @@ public class ElectronicInvoiceRetrackTests
     private sealed class DgiiStub : IDgiiClient
     {
         public DgiiVerdict Verdict { get; set; } = DgiiVerdict.Accepted;
+        public string? Reason { get; set; }
+        public string? FailingTrackId { get; set; }
 
         public int StatusRequests { get; private set; }
         public int TrackIdRequests { get; private set; }
@@ -204,6 +243,9 @@ public class ElectronicInvoiceRetrackTests
 
         public Task<DgiiStatus> GetStatusAsync(string trackId, string token, CancellationToken cancellationToken = default)
         {
+            if (trackId == FailingTrackId)
+                throw new HttpRequestException("The DGII did not answer.");
+
             StatusRequests++;
             StatusTrackId = trackId;
 
@@ -215,7 +257,7 @@ public class ElectronicInvoiceRetrackTests
                 "E320000000001",
                 true,
                 DateTimeOffset.UtcNow,
-                []));
+                Reason is null ? [] : [new DgiiMessage(Reason, 1001)]));
         }
 
         public Task<DgiiTrackLookup> GetTrackIdAsync(string issuerTaxId, string encf, string token, CancellationToken cancellationToken = default)

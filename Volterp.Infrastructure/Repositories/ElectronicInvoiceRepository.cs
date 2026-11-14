@@ -101,6 +101,7 @@ public class ElectronicInvoiceRepository(VolterpDbContext context)
 
     public async Task<IReadOnlyList<ElectronicInvoice>> GetDueForCheckAsync(Guid companyId, DateTime now, CancellationToken ct = default)
         => await Set()
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(e => e.CompanyId == companyId
                 && (e.Status == EcfStatus.Sent || e.Status == EcfStatus.InProcess)

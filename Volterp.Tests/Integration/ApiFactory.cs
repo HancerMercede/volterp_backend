@@ -14,11 +14,17 @@ namespace Volterp.Tests.Integration;
 public sealed class ApiFactory : WebApplicationFactory<ApiAssemblyMarker>
 {
     private readonly SqliteConnection _connection;
+    private readonly Action<IServiceCollection>? _configureServices;
 
     public ApiFactory()
     {
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
+    }
+
+    internal ApiFactory(Action<IServiceCollection> configureServices) : this()
+    {
+        _configureServices = configureServices;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -35,6 +41,8 @@ public sealed class ApiFactory : WebApplicationFactory<ApiAssemblyMarker>
             services.AddDbContext<VolterpDbContext>(options =>
                 options.UseSqlite(_connection)
                        .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
+
+            _configureServices?.Invoke(services);
         });
     }
 
