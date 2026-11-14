@@ -312,7 +312,12 @@ public class ElectronicInvoiceService(
         var existing = await unitOfWork.ElectronicInvoices.GetBySaleIdAsync(saleId, ct);
 
         if (existing is not null)
+        {
+            if (existing.Status == EcfStatus.Draft && existing.RequiresReview)
+                throw new InvalidOperationException("The e-CF of the sale is pending signature and requires review.");
+
             return existing;
+        }
 
         if (sale.DocumentType is EcfDocumentType.DebitNote or EcfDocumentType.CreditNote
             && !sale.HasDocumentReference)
@@ -324,42 +329,10 @@ public class ElectronicInvoiceService(
         if (issuer is null)
             throw new InvalidOperationException($"The company {companyId} does not exist.");
 
-        // The certificate belongs to the issuer and there is no fallback, so the
-        // issuance fails closed without one. It is resolved before the number
-        // is taken, so a missing certificate does not burn an e-NCF.
-        var certificate = await certificateProvider.GetSigningCertificateAsync(issuer.TaxId, ct);
-
         var documentType = sale.DocumentType;
         var sequence = await unitOfWork.ElectronicInvoiceSequences.NextSequenceAsync(companyId, documentType, ct);
         var encf = ElectronicInvoiceSequence.BuildEncf(documentType, sequence);
         var signedAt = DateTime.UtcNow;
-
-        // The range the number came from is the one that holds it, and it
-        // carries the day the authorized sequence expires.
-        var range = await unitOfWork.ElectronicInvoiceSequences.GetByCondictionsAsync(
-            r => r.CompanyId == companyId
-                && r.IssuerTaxId == issuer.TaxId
-                && r.DocumentType == documentType
-                && r.From <= sequence && sequence <= r.To,
-            ct);
-
-        // Fail-closed: the types that need the expiry of the authorized
-        // sequence fail here until that date is on record.
-        var document = SaleEcfDocumentMapper.Map(sale, issuer, new EcfIssuance
-        {
-            ENCF = encf,
-            SequenceExpiresAt = range?.ExpiresAt,
-            SignedAt = signedAt
-        });
-
-        var xml = writer.Write(document);
-        var signedXml = signer.Sign(xml, certificate);
-
-        var itbis = document.Totals.ItbisTotal ?? 0m;
-
-        // The security code the taxpayer prints next to the QR: it comes
-        // out of the signature, so it is only known once it is signed.
-        var securityCode = EcfSecurityCode.From(signedXml);
 
         var invoice = new ElectronicInvoice
         {
@@ -369,65 +342,77 @@ public class ElectronicInvoiceService(
             ENCF = encf,
             DocumentType = documentType,
             IssuerTaxId = issuer.TaxId,
-            ReceiverTaxId = sale.ReceptorTaxId,
-            OriginalXml = xml,
+            ReceiverTaxId = sale.ReceptorTaxId
+        };
+
+        try
+        {
+            // The range the number came from is the one that holds it, and it
+            // carries the day the authorized sequence expires.
+            var range = await unitOfWork.ElectronicInvoiceSequences.GetByCondictionsAsync(
+                r => r.CompanyId == companyId
+                    && r.IssuerTaxId == issuer.TaxId
+                    && r.DocumentType == documentType
+                    && r.From <= sequence && sequence <= r.To,
+                ct);
+
+            // Fail-closed: the types that need the expiry of the authorized
+            // sequence fail here until that date is on record.
+            var document = SaleEcfDocumentMapper.Map(sale, issuer, new EcfIssuance
+            {
+                ENCF = encf,
+                SequenceExpiresAt = range?.ExpiresAt,
+                SignedAt = signedAt
+            });
+
+            var itbis = document.Totals.ItbisTotal ?? 0m;
 
             // The amounts of the document the DGII received: the lines add up
             // before the ITBIS, and the breakdown by rate lives in the XML.
-            Subtotal = document.Totals.Total - itbis,
-            Itbis = itbis,
-            Total = document.Totals.Total,
+            invoice.Subtotal = document.Totals.Total - itbis;
+            invoice.Itbis = itbis;
+            invoice.Total = document.Totals.Total;
 
-            SecurityCode = securityCode,
+            var xml = writer.Write(document);
+            invoice.OriginalXml = xml;
+
+            // The certificate belongs to the issuer and there is no fallback,
+            // so the signature fails closed without it.
+            var certificate = await certificateProvider.GetSigningCertificateAsync(issuer.TaxId, ct);
+            var signedXml = signer.Sign(xml, certificate);
+
+            // The security code the taxpayer prints next to the QR: it comes
+            // out of the signature, so it is only known once it is signed.
+            var securityCode = EcfSecurityCode.From(signedXml);
 
             // The URL the receiver opens to check the document. It travels
             // with the document, so it is only known once the amounts and the
             // security code are.
-            QrUrl = VerificationUrlOf(documentType, document.Totals.Total, issuer.TaxId, encf, securityCode)
-        };
+            var qrUrl = VerificationUrlOf(documentType, document.Totals.Total, issuer.TaxId, encf, securityCode);
 
-        invoice.Sign(signedXml, signedAt);
-
-        // The document is persisted before it is sent: if the answer never
-        // arrives, the signed document and its number are on record.
-        await unitOfWork.ElectronicInvoices.AddAsync(invoice, ct);
-        await unitOfWork.CommitAsync(ct);
-
-        try
-        {
-            var token = await authenticator.AuthenticateAsync(issuer.TaxId, certificate, ct);
-            var receipt = await dgiiClient.SendElectronicInvoiceAsync(signedXml, token.Token, ct);
-
-            if (receipt.IsRejected || string.IsNullOrWhiteSpace(receipt.TrackId))
-                throw new InvalidOperationException(
-                    $"The DGII refused the e-CF {encf}: {receipt.Error ?? receipt.Message ?? "it answered without a track id."}");
-
-            invoice.MarkSent(receipt.TrackId, DateTime.UtcNow);
-            await unitOfWork.CommitAsync(ct);
-
-            var status = await dgiiClient.GetStatusAsync(receipt.TrackId, token.Token, ct);
-
-            // A track id the DGII does not know is a failed query, not a verdict.
-            if (status.Verdict.ToEcfStatus() is null)
-                throw new InvalidOperationException($"The DGII does not know the track id {receipt.TrackId}.");
-
-            ApplyVerdict(invoice, status);
-
-            await unitOfWork.CommitAsync(ct);
-
-            return invoice;
+            invoice.Sign(signedXml, signedAt);
+            invoice.SecurityCode = securityCode;
+            invoice.QrUrl = qrUrl;
         }
         catch (Exception exception)
         {
-            // The document keeps the state it really reached and the reason it
-            // stopped there: a document that was never sent never claims to be
-            // sent.
-            invoice.VerdictNote = exception.Message;
-            invoice.MarkUpdated();
-            await unitOfWork.CommitAsync(ct);
+            // Once the number is taken, the document has to stay on record:
+            // a number without a document is a fiscal hole.
+            invoice.MarkForReview(exception.Message);
+
+            await unitOfWork.ElectronicInvoices.AddAsync(invoice, CancellationToken.None);
+            await unitOfWork.CommitAsync(CancellationToken.None);
 
             throw;
         }
+
+        // The document is persisted before it is sent: the queue sends it in
+        // the background and the signed document and its number are on
+        // record.
+        await unitOfWork.ElectronicInvoices.AddAsync(invoice, ct);
+        await unitOfWork.CommitAsync(ct);
+
+        return invoice;
     }
 
     // A consumption invoice below RD$250,000 travels to the DGII as a summary

@@ -32,6 +32,8 @@ public class ElectronicInvoiceQueueWorkerTests
             .ReturnsAsync(Either<Error, int>.ToRight(1));
         service.Setup(s => s.ProcessPendingAsync(SecondCompany, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Either<Error, int>.ToRight(2));
+        service.Setup(s => s.RetrackAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Either<Error, int>.ToRight(1));
 
         using var provider = Provider(invoices, service);
         var worker = Worker(provider);
@@ -40,6 +42,8 @@ public class ElectronicInvoiceQueueWorkerTests
 
         service.Verify(s => s.ProcessPendingAsync(FirstCompany, It.IsAny<CancellationToken>()), Times.Once);
         service.Verify(s => s.ProcessPendingAsync(SecondCompany, It.IsAny<CancellationToken>()), Times.Once);
+        service.Verify(s => s.RetrackAsync(FirstCompany, It.IsAny<CancellationToken>()), Times.Once);
+        service.Verify(s => s.RetrackAsync(SecondCompany, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

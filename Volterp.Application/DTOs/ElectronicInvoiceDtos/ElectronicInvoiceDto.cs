@@ -20,6 +20,7 @@ public record ElectronicInvoiceDto : IMapFrom<ElectronicInvoice>
     public string? SecurityCode { get; set; }
     public string? QrUrl { get; set; }
     public string? VerdictNote { get; set; }
+    public bool RequiresReview { get; set; }
     public DateTime? SignedAt { get; set; }
     public DateTime? SentAt { get; set; }
 
@@ -40,6 +41,7 @@ public record ElectronicInvoiceDto : IMapFrom<ElectronicInvoice>
         SecurityCode = source.SecurityCode;
         QrUrl = source.QrUrl;
         VerdictNote = source.VerdictNote;
+        RequiresReview = source.RequiresReview;
         SignedAt = source.SignedAt;
         SentAt = source.SentAt;
     }

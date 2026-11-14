@@ -8,7 +8,7 @@ using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Application.Services;
 
-public class SaleService(IUnitOfWork unitOfWork) : ISaleService
+public class SaleService(IUnitOfWork unitOfWork, IElectronicInvoiceService electronicInvoices) : ISaleService
 {
     private const string CodeAlreadyInUseMessage = "The code is already in use.";
 
@@ -92,6 +92,8 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, ct),
                 ex => new Error(ex.Message))
             .Ensure(sale => sale is not null, new Error("Sale not found."))
+            .Ensure(_ => request.Status != SaleStatus.Completed,
+                new Error("A sale can only be completed through the completion operation."))
             .FlatMap(async sale =>
             {
                 // The code is resolved before any stock movement: a rejected code
@@ -198,6 +200,14 @@ public class SaleService(IUnitOfWork unitOfWork) : ISaleService
 
                 await unitOfWork.Sales.UpdateSaleAsync(sale, ct);
                 await unitOfWork.CommitAsync(ct);
+
+                // The e-CF of the sale is queued here and the durable queue
+                // sends it in the background. The sale is a commercial fact:
+                // the fiscal document of the client cannot undo it, and the
+                // document that could not be signed stays on record for a
+                // human.
+                await electronicInvoices.IssueAsync(sale.Id, companyId, ct);
+
                 return sale;
             }, ex => new Error(ex.Message))
             .Map(sale => sale.MapTo<Sale, SaleDto>())

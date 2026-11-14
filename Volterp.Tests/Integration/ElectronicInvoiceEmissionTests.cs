@@ -23,11 +23,12 @@ using Xunit;
 namespace Volterp.Tests.Integration;
 
 // The emission over the real stack: the repositories, the atomic sequence,
-// the writer and the signer, with the DGII on the other side of the wire.
+// the writer and the signer. The document is left signed and waiting: the
+// queue is the one that talks to the DGII.
 public class ElectronicInvoiceEmissionTests
 {
     [Fact]
-    public async Task IssueAsync_IssuesTheDocumentAndPersistsItWithItsTrackIdAndVerdict()
+    public async Task IssueAsync_PersistsTheDocumentSignedAndWaitingForTheQueue()
     {
         await using var fixture = new EmissionFixture();
         await fixture.InitializeAsync();
@@ -37,7 +38,7 @@ public class ElectronicInvoiceEmissionTests
         result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
         var dto = ((Either<Error, ElectronicInvoiceDto>.Right)result).Value;
         dto.ENCF.Should().Be("E320000000001");
-        dto.Status.Should().Be(EcfStatus.Accepted);
+        dto.Status.Should().Be(EcfStatus.Signed);
 
         var invoice = await fixture.Context.ElectronicInvoices.SingleAsync();
 
@@ -46,14 +47,45 @@ public class ElectronicInvoiceEmissionTests
         invoice.SaleId.Should().Be(fixture.SaleId);
         invoice.DocumentType.Should().Be(EcfDocumentType.Consumer);
         invoice.IssuerTaxId.Should().Be("10100000101");
-        invoice.Status.Should().Be(EcfStatus.Accepted);
-        invoice.TrackId.Should().Be("track-1");
+        invoice.Status.Should().Be(EcfStatus.Signed);
+        invoice.TrackId.Should().BeNull();
         invoice.SignedXml.Should().Contain("Signature");
         invoice.SignedAt.Should().NotBeNull();
-        invoice.SentAt.Should().NotBeNull();
+        invoice.SentAt.Should().BeNull();
         invoice.Subtotal.Should().Be(200m);
         invoice.Itbis.Should().Be(36m);
         invoice.Total.Should().Be(236m);
+
+        // The queue is the one that sends the document to the DGII.
+        fixture.Dgii.SendRequests.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ProcessPendingAsync_ThenRetrackAsync_AcceptsTheDocumentSentByTheQueue()
+    {
+        await using var fixture = new EmissionFixture();
+        await fixture.InitializeAsync();
+
+        await fixture.Service.IssueAsync(fixture.SaleId, fixture.CompanyId);
+        await fixture.Service.ProcessPendingAsync(fixture.CompanyId);
+
+        fixture.Context.ChangeTracker.Clear();
+        var sent = await fixture.Context.ElectronicInvoices.SingleAsync();
+        sent.Status.Should().Be(EcfStatus.Sent);
+        sent.NextCheckAt.Should().NotBeNull();
+        sent.NextCheckAt.Should().BeOnOrBefore(DateTime.UtcNow);
+
+        fixture.Context.ChangeTracker.Clear();
+
+        var retrack = await fixture.Service.RetrackAsync(fixture.CompanyId);
+
+        retrack.Should().BeOfType<Either<Error, int>.Right>();
+        fixture.Dgii.StatusRequests.Should().Be(1);
+
+        fixture.Context.ChangeTracker.Clear();
+        var accepted = await fixture.Context.ElectronicInvoices.SingleAsync();
+        accepted.Status.Should().Be(EcfStatus.Accepted);
+        fixture.Dgii.StatusRequests.Should().Be(1);
     }
 
     [Fact]
@@ -415,6 +447,7 @@ public class ElectronicInvoiceEmissionTests
     private sealed class DgiiStub : IDgiiClient
     {
         public int SendRequests { get; private set; }
+        public int StatusRequests { get; private set; }
 
         public Task<string> GetSeedAsync(CancellationToken cancellationToken = default)
             => Task.FromResult("<SemillaModel><valor>abc</valor><fecha>2019-03-13T14:33:32-04:00</fecha></SemillaModel>");
@@ -430,7 +463,10 @@ public class ElectronicInvoiceEmissionTests
         }
 
         public Task<DgiiStatus> GetStatusAsync(string trackId, string token, CancellationToken cancellationToken = default)
-            => Task.FromResult(new DgiiStatus(
+        {
+            StatusRequests++;
+
+            return Task.FromResult(new DgiiStatus(
                 trackId,
                 DgiiVerdict.Accepted,
                 "Aceptado",
@@ -439,6 +475,7 @@ public class ElectronicInvoiceEmissionTests
                 true,
                 DateTimeOffset.UtcNow,
                 []));
+        }
 
         public Task<DgiiTrackLookup> GetTrackIdAsync(string issuerTaxId, string encf, string token, CancellationToken cancellationToken = default)
             => Task.FromResult(new DgiiTrackLookup("track-1", "Aceptado", DateTimeOffset.UtcNow));

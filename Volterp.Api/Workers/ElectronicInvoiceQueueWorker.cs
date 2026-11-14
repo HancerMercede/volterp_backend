@@ -84,6 +84,30 @@ public sealed class ElectronicInvoiceQueueWorker(
                     "The electronic invoice queue of company {CompanyId} failed.",
                     companyId);
             }
+
+            try
+            {
+                var result = await service.RetrackAsync(companyId, ct);
+
+                if (result is Either<Error, int>.Left failure)
+                {
+                    logger.LogError(
+                        "The electronic invoice retrack of company {CompanyId} failed: {Error}",
+                        companyId,
+                        failure.Value.Message);
+                }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(
+                    exception,
+                    "The electronic invoice retrack of company {CompanyId} failed.",
+                    companyId);
+            }
         }
     }
 }

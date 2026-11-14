@@ -26,7 +26,8 @@ using Xunit;
 namespace Volterp.Tests.Services;
 
 // The orchestrator of the emission: a completed sale becomes a signed
-// document, sent to the DGII, with the verdict on record.
+// document that waits in the durable queue, and the queue is the one that
+// talks to the DGII.
 public class ElectronicInvoiceServiceTests
 {
     // The signer of the tests answers with a document that carries a
@@ -76,7 +77,7 @@ public class ElectronicInvoiceServiceTests
     }
 
     [Fact]
-    public async Task IssueAsync_WithACompletedSale_IssuesTheDocumentAndLandsTheVerdict()
+    public async Task IssueAsync_WithACompletedSale_PersistsTheDocumentPendingAndDoesNotCallTheDgii()
     {
         Given(Sale(), Company());
 
@@ -85,7 +86,11 @@ public class ElectronicInvoiceServiceTests
         result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
         var dto = ((Either<Error, ElectronicInvoiceDto>.Right)result).Value;
         dto.ENCF.Should().Be("E320000000001");
-        dto.Status.Should().Be(EcfStatus.Accepted);
+
+        // The document waits in the queue: it is signed and persisted, and
+        // the verdict is not here yet.
+        dto.Status.Should().Be(EcfStatus.Signed);
+        dto.TrackId.Should().BeNull();
 
         // The number comes from the sequence of the issuer, and it is the only
         // one that is taken.
@@ -94,12 +99,10 @@ public class ElectronicInvoiceServiceTests
         // The document that was signed carries the number the DGII will read.
         _signedXmls.Should().Contain(xml => xml.Contains("<eNCF>E320000000001</eNCF>"));
 
-        // And the DGII received the signed document, not the unsigned one.
-        _dgii.SendRequests.Should().Be(1);
-        _dgii.SentXml.Should().Be(SignedXml);
-        _dgii.StatusTrackId.Should().Be("track-1");
+        // The send is the queue's job, not the issue's.
+        _dgii.SendRequests.Should().Be(0);
 
-        // The document is on record with its track id and its verdict.
+        // The document is on record, signed and waiting for the queue.
         _persisted.Should().NotBeNull();
         _persisted!.CompanyId.Should().Be(CompanyId);
         _persisted.SaleId.Should().Be(SaleId);
@@ -107,8 +110,8 @@ public class ElectronicInvoiceServiceTests
         _persisted.DocumentType.Should().Be(EcfDocumentType.Consumer);
         _persisted.IssuerTaxId.Should().Be(IssuerRnc);
         _persisted.SignedXml.Should().Be(SignedXml);
-        _persisted.TrackId.Should().Be("track-1");
-        _persisted.Status.Should().Be(EcfStatus.Accepted);
+        _persisted.TrackId.Should().BeNull();
+        _persisted.Status.Should().Be(EcfStatus.Signed);
 
         // The security code is taken out of the signature, so it is on record
         // with the document.
@@ -134,6 +137,33 @@ public class ElectronicInvoiceServiceTests
     }
 
     [Fact]
+    public async Task IssueAsync_WhenTheExistingDocumentNeedsSignature_ReturnsLeft()
+    {
+        Given(Sale(), Company());
+        _invoices.Setup(r => r.GetBySaleIdAsync(SaleId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ElectronicInvoice
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = CompanyId,
+                SaleId = SaleId,
+                ENCF = "E320000000001",
+                DocumentType = EcfDocumentType.Consumer,
+                IssuerTaxId = IssuerRnc,
+                Status = EcfStatus.Draft,
+                RequiresReview = true
+            });
+
+        var result = await Service().IssueAsync(SaleId, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Left>();
+        var error = ((Either<Error, ElectronicInvoiceDto>.Left)result).Value;
+        error.Message.Should().Contain("pending signature");
+
+        _sequences.Verify(s => s.NextSequenceAsync(It.IsAny<Guid>(), It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>()), Times.Never);
+        _dgii.SendRequests.Should().Be(0);
+    }
+
+    [Fact]
     public async Task IssueAsync_WithASaleOfAnotherCompany_ReturnsLeft()
     {
         Given(Sale(companyId: OtherCompanyId), Company());
@@ -152,7 +182,7 @@ public class ElectronicInvoiceServiceTests
     }
 
     [Fact]
-    public async Task IssueAsync_WithoutAnActiveCertificateOfTheIssuer_ReturnsLeft()
+    public async Task IssueAsync_WithoutAnActiveCertificateOfTheIssuer_LeavesTheDocumentForReview()
     {
         Given(Sale(), Company());
         _certificates.Setup(c => c.GetSigningCertificateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -166,34 +196,43 @@ public class ElectronicInvoiceServiceTests
         error.Message.Should().Contain("no active signing certificate");
 
         // The certificate is asked for by the RNC of the issuer, and without
-        // it the emission fails closed: no document and no trip to the DGII.
+        // it the document is not signed: there is no fallback.
         _certificates.Verify(c => c.GetSigningCertificateAsync(IssuerRnc, It.IsAny<CancellationToken>()), Times.Once);
         _dgii.SendRequests.Should().Be(0);
-        _persisted.Should().BeNull();
+
+        // The failure is not lost: the document stays on record for a human.
+        _persisted.Should().NotBeNull();
+        _persisted!.Status.Should().Be(EcfStatus.Draft);
+        _persisted.RequiresReview.Should().BeTrue();
+        _persisted.VerdictNote.Should().Contain("no active signing certificate");
+        _persisted.SignedXml.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task IssueAsync_WhenTheDgiiRefusesTheDocument_KeepsTheDocumentOutOfSent()
+    public async Task IssueAsync_WhenTheDgiiRefusesTheDocument_LeavesTheRefusalToTheQueue()
     {
         Given(Sale(), Company());
         _dgii.Refusal = "El archivo no cumple con el formato";
 
         var result = await Service().IssueAsync(SaleId, CompanyId);
 
-        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Left>();
-        var error = ((Either<Error, ElectronicInvoiceDto>.Left)result).Value;
-        error.Message.Should().Contain("El archivo no cumple con el formato");
+        // The issue does not talk to the DGII: the document leaves pending
+        // and the refusal of the DGII is the queue's business.
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        ((Either<Error, ElectronicInvoiceDto>.Right)result).Value.Status.Should().Be(EcfStatus.Signed);
+        _dgii.SendRequests.Should().Be(0);
 
-        // The document is on record as signed, and it does not claim to be
-        // sent: it never was.
-        _persisted.Should().NotBeNull();
-        _persisted!.Status.Should().Be(EcfStatus.Signed);
-        _persisted.TrackId.Should().BeNull();
-        _dgii.StatusRequests.Should().Be(0);
+        // The queue sends the document and the refusal of the DGII lands on it.
+        GivenPending(_persisted!);
+        await Service().ProcessPendingAsync(CompanyId);
+
+        _dgii.SendRequests.Should().Be(1);
+        _persisted!.Status.Should().Be(EcfStatus.Rejected);
+        _persisted.VerdictNote.Should().Be("El archivo no cumple con el formato");
     }
 
     [Fact]
-    public async Task IssueAsync_WhenTheVerdictIsInProcess_KeepsTheDocumentInProcess()
+    public async Task IssueAsync_DoesNotAskTheDgiiForAVerdict()
     {
         Given(Sale(), Company());
         _dgii.Verdict = DgiiVerdict.InProcess;
@@ -202,16 +241,18 @@ public class ElectronicInvoiceServiceTests
 
         result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
         var dto = ((Either<Error, ElectronicInvoiceDto>.Right)result).Value;
-        dto.Status.Should().Be(EcfStatus.InProcess);
+        dto.Status.Should().Be(EcfStatus.Signed);
 
+        // Nobody asked about the document yet: it has no track id, and the
+        // verdict of the DGII is asked by the queue.
+        _dgii.StatusRequests.Should().Be(0);
         _persisted.Should().NotBeNull();
-        _persisted!.Status.Should().Be(EcfStatus.InProcess,
-            "the DGII is still validating the document, so it is not accepted yet");
-        _persisted.TrackId.Should().Be("track-1");
+        _persisted!.Status.Should().Be(EcfStatus.Signed);
+        _persisted.TrackId.Should().BeNull();
     }
 
     [Fact]
-    public async Task IssueAsync_WhenTheTypeNeedsTheExpiryOfTheSequence_ReturnsLeft()
+    public async Task IssueAsync_WhenTheMapperFailsAfterTakingTheNumber_LeavesTheDocumentForReview()
     {
         var sale = Sale(EcfDocumentType.FiscalCredit);
         sale.ReceptorTaxId = "101010101";
@@ -226,7 +267,15 @@ public class ElectronicInvoiceServiceTests
         var error = ((Either<Error, ElectronicInvoiceDto>.Left)result).Value;
         error.Message.Should().Contain("sequence");
         _dgii.SendRequests.Should().Be(0);
-        _persisted.Should().BeNull();
+
+        // The number is linked to the document even though the mapper failed:
+        // a number without a document would be a fiscal hole.
+        _persisted.Should().NotBeNull();
+        _persisted!.ENCF.Should().Be("E310000000001");
+        _persisted.Status.Should().Be(EcfStatus.Draft);
+        _persisted.RequiresReview.Should().BeTrue();
+        _persisted.VerdictNote.Should().Contain("sequence");
+        _persisted.SignedXml.Should().BeEmpty();
     }
 
     [Fact]
@@ -305,8 +354,8 @@ public class ElectronicInvoiceServiceTests
         var result = await Service().IssueAsync(SaleId, CompanyId);
 
         result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
-        ((Either<Error, ElectronicInvoiceDto>.Right)result).Value.Status.Should().Be(EcfStatus.Accepted);
-        _dgii.SendRequests.Should().Be(1);
+        ((Either<Error, ElectronicInvoiceDto>.Right)result).Value.Status.Should().Be(EcfStatus.Signed);
+        _persisted!.Status.Should().Be(EcfStatus.Signed);
     }
 
     [Fact]
@@ -402,6 +451,21 @@ public class ElectronicInvoiceServiceTests
                 IssuerTaxId = IssuerRnc,
                 Status = status
             });
+    }
+
+    // The document the issue leaves behind is the one the queue takes.
+    private void GivenPending(ElectronicInvoice invoice)
+    {
+        _invoices.Setup(i => i.GetPendingForEmissionAsync(
+                CompanyId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([invoice]);
+
+        _invoices.Setup(i => i.TryClaimAsync(
+                CompanyId, It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        _invoices.Setup(i => i.GetByCompanyAndIdAsync(CompanyId, invoice.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(invoice);
     }
 
     private ElectronicInvoiceService Service()

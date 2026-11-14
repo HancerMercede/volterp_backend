@@ -46,6 +46,43 @@ public class ElectronicInvoiceRepositoryTests
     }
 
     [Fact]
+    public async Task GetDueForCheckAsync_ReturnsTheDocumentTheQueueSentWhenItsAppointmentPassed()
+    {
+        await using var fixture = new InvoiceFixture();
+        await fixture.InitializeAsync();
+
+        var invoice = fixture.Invoice(EcfStatus.Sent);
+        invoice.TrackId = "track-1";
+        invoice.NextCheckAt = DateTime.UtcNow.AddMinutes(-1);
+        fixture.Context.ElectronicInvoices.Add(invoice);
+        await fixture.Context.SaveChangesAsync();
+
+        var due = await fixture.Repository.GetDueForCheckAsync(fixture.CompanyId, DateTime.UtcNow);
+
+        due.Should().ContainSingle().Which.ENCF.Should().Be(invoice.ENCF);
+    }
+
+    [Fact]
+    public async Task GetCompanyIdsWithPendingEmissionAsync_IncludesACompanyWithASentDocumentDueForVerdict()
+    {
+        await using var fixture = new InvoiceFixture();
+        await fixture.InitializeAsync();
+
+        var invoice = fixture.Invoice(EcfStatus.Sent);
+        invoice.TrackId = "track-1";
+        invoice.NextCheckAt = DateTime.UtcNow.AddMinutes(-1);
+        fixture.Context.ElectronicInvoices.Add(invoice);
+        await fixture.Context.SaveChangesAsync();
+
+        var companyIds = await fixture.Repository.GetCompanyIdsWithPendingEmissionAsync(
+            DateTime.UtcNow,
+            DateTime.UtcNow.AddDays(-3),
+            100);
+
+        companyIds.Should().Contain(fixture.CompanyId);
+    }
+
+    [Fact]
     public async Task UnitOfWork_CommitsTheDocument_AndItIsReachableFromTheApplicationLayer()
     {
         await using var fixture = new InvoiceFixture();

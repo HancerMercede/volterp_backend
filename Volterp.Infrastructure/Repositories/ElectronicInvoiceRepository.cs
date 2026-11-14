@@ -44,12 +44,15 @@ public class ElectronicInvoiceRepository(VolterpDbContext context)
         => await Set()
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(e => e.Status == EcfStatus.Signed
-                && !e.RequiresReview
-                && e.CreatedAt >= cutoff
-                && e.CreatedAt <= now
-                && (e.NextAttemptAt == null || e.NextAttemptAt <= now)
-                && (e.LeaseUntil == null || e.LeaseUntil <= now))
+            .Where(e => (e.Status == EcfStatus.Signed
+                    && !e.RequiresReview
+                    && e.CreatedAt >= cutoff
+                    && e.CreatedAt <= now
+                    && (e.NextAttemptAt == null || e.NextAttemptAt <= now)
+                    && (e.LeaseUntil == null || e.LeaseUntil <= now))
+                || ((e.Status == EcfStatus.Sent || e.Status == EcfStatus.InProcess)
+                    && e.NextCheckAt != null
+                    && e.NextCheckAt <= now))
             .Select(e => e.CompanyId)
             .Distinct()
             .Take(limit)
@@ -100,7 +103,7 @@ public class ElectronicInvoiceRepository(VolterpDbContext context)
         => await Set()
             .AsNoTracking()
             .Where(e => e.CompanyId == companyId
-                && e.Status == EcfStatus.InProcess
+                && (e.Status == EcfStatus.Sent || e.Status == EcfStatus.InProcess)
                 && e.NextCheckAt != null
                 && e.NextCheckAt <= now)
             .OrderBy(e => e.NextCheckAt)

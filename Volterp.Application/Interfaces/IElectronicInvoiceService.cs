@@ -8,6 +8,9 @@ public interface IElectronicInvoiceService
 {
     // The company travels by hand: the emission runs without an HTTP context,
     // and without one the global tenant filter is off.
+    //
+    // The document of a completed sale: it is signed and persisted, and it
+    // waits in the durable queue for the worker that sends it to the DGII.
     Task<Either<Error, ElectronicInvoiceDto>> IssueAsync(Guid saleId, Guid companyId, CancellationToken ct = default);
 
     // The recovery of a document whose answer was lost: the DGII is asked
