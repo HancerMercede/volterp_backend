@@ -391,6 +391,9 @@ namespace Volterp.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
@@ -417,8 +420,21 @@ namespace Volterp.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("LeaseOwner")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("LeaseUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("NextCheckAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OriginalXml")
+                        .HasColumnType("text");
 
                     b.Property<string>("QrUrl")
                         .HasMaxLength(500)
@@ -427,6 +443,9 @@ namespace Volterp.Infrastructure.Migrations
                     b.Property<string>("ReceiverTaxId")
                         .HasMaxLength(13)
                         .HasColumnType("character varying(13)");
+
+                    b.Property<bool>("RequiresReview")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid>("SaleId")
                         .HasColumnType("uuid");
@@ -477,12 +496,15 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.HasIndex("SaleId").IsUnique();
+                    b.HasIndex("SaleId")
+                        .IsUnique();
 
                     b.HasIndex("IssuerTaxId", "ENCF")
                         .IsUnique();
 
                     b.HasIndex("CompanyId", "Status", "NextCheckAt");
+
+                    b.HasIndex("CompanyId", "Status", "NextAttemptAt", "LeaseUntil");
 
                     b.ToTable("ElectronicInvoices");
                 });
@@ -529,6 +551,8 @@ namespace Volterp.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
 
                     b.HasIndex("IssuerTaxId", "DocumentType", "From")
                         .IsUnique();

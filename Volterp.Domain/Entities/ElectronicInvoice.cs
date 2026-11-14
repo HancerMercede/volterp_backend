@@ -19,6 +19,8 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
     public decimal Itbis { get; set; }
     public decimal Total { get; set; }
 
+    // The unsigned XML stays beside the signed one so the signature can be audited.
+    public string? OriginalXml { get; set; }
     public string SignedXml { get; set; } = string.Empty;
     public DateTime? SignedAt { get; set; }
     public string? TrackId { get; set; }
@@ -33,6 +35,19 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
     // document already carries: the wait grows with it.
     public DateTime? NextCheckAt { get; set; }
     public int StatusCheckCount { get; set; }
+
+    // The worker that took the document and the moment its hold ends: a
+    // worker that dies leaves the document to the next one.
+    public string? LeaseOwner { get; set; }
+    public DateTime? LeaseUntil { get; set; }
+
+    // The attempts the document already had and the moment the next one is
+    // due.
+    public int AttemptCount { get; set; }
+    public DateTime? NextAttemptAt { get; set; }
+
+    // The document is out of the automatic queue and a human has to take it.
+    public bool RequiresReview { get; set; }
 
     public Sale Sale { get; set; } = null!;
     public Company Company { get; set; } = null!;
@@ -64,6 +79,10 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
         TrackId = trackId;
         SentAt = sentAt;
         Status = EcfStatus.Sent;
+
+        // The document is with the DGII but nobody asked for its verdict yet:
+        // the appointment is what keeps it from being forgotten.
+        NextCheckAt = sentAt;
     }
 
     public void MarkInProcess()
@@ -96,7 +115,10 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
 
     public void Reject(string reason)
     {
-        RequirePendingVerdict(EcfStatus.Rejected);
+        // The DGII refuses the document either at reception, before it is
+        // sent, or in the validation that follows.
+        if (Status is not (EcfStatus.Signed or EcfStatus.Sent or EcfStatus.InProcess))
+            throw InvalidTransition(EcfStatus.Rejected);
 
         if (string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("The rejection reason cannot be empty.", nameof(reason));
@@ -120,10 +142,41 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
     // the appointment of a document that reached a final verdict is gone.
     public void ScheduleNextCheck(DateTime nextCheckAt)
     {
-        RequirePendingVerdict(EcfStatus.InProcess);
+        // The document waits for a verdict: the DGII said it is validating it
+        // or it was received and nobody asked about it yet.
+        if (Status is not (EcfStatus.Sent or EcfStatus.InProcess))
+            throw InvalidTransition(EcfStatus.InProcess);
 
         StatusCheckCount++;
         NextCheckAt = nextCheckAt;
+    }
+
+    // The hold of the worker ends with its work: the document goes back to
+    // the queue and the next worker can take it.
+    public void ReleaseLease()
+    {
+        LeaseOwner = null;
+        LeaseUntil = null;
+    }
+
+    // The attempt did not reach the DGII and the document waits for the next
+    // one.
+    public void ScheduleNextAttempt(DateTime nextAttemptAt)
+    {
+        if (Status != EcfStatus.Signed)
+            throw InvalidTransition(EcfStatus.Signed);
+
+        NextAttemptAt = nextAttemptAt;
+    }
+
+    // The document is out of the automatic queue: a human has to take it.
+    public void MarkForReview(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new ArgumentException("The reason cannot be empty.", nameof(reason));
+
+        VerdictNote = reason;
+        RequiresReview = true;
     }
 
     private void RequirePendingVerdict(EcfStatus target)

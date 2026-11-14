@@ -23,6 +23,10 @@ public class ElectronicInvoiceConfiguration : IEntityTypeConfiguration<Electroni
         // and state.
         entity.HasIndex(e => new { e.CompanyId, e.Status, e.NextCheckAt });
 
+        // The worker finds the documents whose attempt is due and whose lease
+        // has expired.
+        entity.HasIndex(e => new { e.CompanyId, e.Status, e.NextAttemptAt, e.LeaseUntil });
+
         entity.Property(e => e.ENCF).IsRequired().HasMaxLength(13);
         entity.Property(e => e.DocumentType).HasConversion<int>().IsRequired();
         entity.Property(e => e.IssuerTaxId).IsRequired().HasMaxLength(13);
@@ -30,12 +34,14 @@ public class ElectronicInvoiceConfiguration : IEntityTypeConfiguration<Electroni
         entity.Property(e => e.Subtotal).HasPrecision(18, 2);
         entity.Property(e => e.Itbis).HasPrecision(18, 2);
         entity.Property(e => e.Total).HasPrecision(18, 2);
+        entity.Property(e => e.OriginalXml).HasColumnType("text");
         entity.Property(e => e.SignedXml).IsRequired().HasColumnType("text");
         entity.Property(e => e.TrackId).HasMaxLength(100);
         entity.Property(e => e.SecurityCode).HasMaxLength(20);
         entity.Property(e => e.QrUrl).HasMaxLength(500);
         entity.Property(e => e.Status).HasConversion<int>().IsRequired();
         entity.Property(e => e.VerdictNote).HasMaxLength(1000);
+        entity.Property(e => e.LeaseOwner).HasMaxLength(200);
 
         entity.HasOne(e => e.Company)
             .WithMany(c => c.ElectronicInvoices)
