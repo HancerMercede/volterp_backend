@@ -15,6 +15,7 @@ using Xunit;
 
 namespace Volterp.Tests.Integration;
 
+[Collection("VolterpApiFactory")]
 public class SupplierTenantIsolationTests : IClassFixture<ApiFactory>
 {
     private readonly ApiFactory _factory;

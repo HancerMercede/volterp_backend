@@ -14,6 +14,7 @@ namespace Volterp.Tests.Integration;
 
 // The surface of the fiscal state as the tenant sees it: the company comes
 // from the token and never from the request.
+[Collection("VolterpApiFactory")]
 public class ElectronicInvoiceStateEndpointTests : IClassFixture<ApiFactory>
 {
     private const string PendingEncf = "E320000000001";

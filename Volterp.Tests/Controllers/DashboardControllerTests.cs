@@ -22,6 +22,7 @@ namespace Volterp.Tests.Controllers;
 /// The dashboard endpoint contract: two optional query parameters, one for the
 /// global scope and one for the chart window (feature dashboard-period-filters).
 /// </summary>
+[Collection("VolterpApiFactory")]
 public class DashboardControllerTests : IClassFixture<ApiFactory>
 {
     private readonly ApiFactory _factory;

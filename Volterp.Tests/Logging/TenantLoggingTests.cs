@@ -10,6 +10,7 @@ using Xunit;
 
 namespace Volterp.Tests.Logging;
 
+[Collection("VolterpApiFactory")]
 public class TenantLoggingTests : IClassFixture<ApiFactory>
 {
     private readonly ApiFactory _factory;

@@ -623,6 +623,7 @@ public class ElectronicInvoiceQrCodeTests
 // The QR of a document travels with the API: the frontend shows it on the
 // printed representation, and the URL it carries is the one the receiver opens
 // to check the document.
+[Collection("VolterpApiFactory")]
 public class ElectronicInvoiceQrEndpointTests : IClassFixture<ApiFactory>
 {
     private readonly ApiFactory _factory;

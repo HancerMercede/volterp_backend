@@ -25,6 +25,7 @@ namespace Volterp.Tests.Integration;
 
 // The worker runs without an HTTP request. The container still gives it the
 // HttpTenantContext, so its queries have to carry the company by hand.
+[Collection("VolterpApiFactory")]
 public class ElectronicInvoiceWorkerContextTests
 {
     [Fact]

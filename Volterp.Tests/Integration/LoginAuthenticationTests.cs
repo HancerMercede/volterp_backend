@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Volterp.Tests.Integration;
 
+[Collection("VolterpApiFactory")]
 public class LoginAuthenticationTests : IClassFixture<ApiFactory>
 {
     private const string SeededUsername = "admin";

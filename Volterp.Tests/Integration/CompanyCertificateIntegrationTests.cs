@@ -14,6 +14,7 @@ using Xunit;
 
 namespace Volterp.Tests.Integration;
 
+[Collection("VolterpApiFactory")]
 public class CompanyCertificateIntegrationTests : IClassFixture<ApiFactory>
 {
     private const string Credential = "psfe-api-key-DO-NOT-LEAK";
