@@ -139,6 +139,29 @@ namespace Volterp.Infrastructure.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // Before this migration the index was unique by company and
+            // document type, and the code of that state allocated the sequence
+            // with ON CONFLICT (CompanyId, DocumentType), which needs that
+            // uniqueness. This migration moved the uniqueness to (issuer, type,
+            // range) and the model now allows several ranges per issuer and
+            // type: once a second range exists, the old model cannot hold the
+            // data, so the rollback refuses with an explanation instead of
+            // failing later with a duplicate key.
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM "ElectronicInvoiceSequences"
+                        GROUP BY "CompanyId", "DocumentType"
+                        HAVING count(*) > 1
+                    ) THEN
+                        RAISE EXCEPTION 'The rollback of AddEcfRangesAndNoteReferences needs one range per company and document type: this database has more than one range for some of them, and the model before this migration cannot hold them.';
+                    END IF;
+                END
+                $$;
+                """);
+
             migrationBuilder.DropIndex(
                 name: "IX_ElectronicInvoiceSequences_IssuerTaxId_DocumentType_From",
                 table: "ElectronicInvoiceSequences");
@@ -175,6 +198,9 @@ namespace Volterp.Infrastructure.Migrations
                 name: "ExpiresAt",
                 table: "ElectronicInvoiceSequences");
 
+            // The index that existed before this migration was unique by company
+            // and document type. It comes back unique, as the code of that
+            // state needs it to be.
             migrationBuilder.CreateIndex(
                 name: "IX_ElectronicInvoiceSequences_CompanyId_DocumentType",
                 table: "ElectronicInvoiceSequences",
