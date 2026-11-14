@@ -685,6 +685,13 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **El orden que hay que respetar** ✓: `T41` primero ✓ · `T29 → T34` ✓ · `T25 → T38` ✓ · `T25 + T34 → T39` ✓ · `T39 + T41 → T42` ✓ · `T32 → T33` ✓ (T33 reutiliza la lógica de T32 ✓).
   - **La foto de T41, medida** ✓: el árbol **no compila por un solo error** ✓ (`CS0117` en `ElectronicInvoiceService.cs:205` ✓ — el pattern-match de `DgiiException { StatusCode: … }` contra una excepción que no tiene esa propiedad ✓), no por ruido ✓.
 
+- **L47** (2026-11-14) — **T41 (la cola durable) cerrada** ✓: el worker terminó las cuatro piezas que L45 dejó anotadas ✓ → el árbol **compila limpio** ✓ (**0 errores y 0 warnings** ✓) y la suite está **verde** ✓ (**643/643** en el ERP ✓ y **109** de la library ✓, con **2 skipped** ✓ — los dos E2E que dependen de las variables de entorno ✓).
+  - **El status HTTP en `DgiiException`** ✓: `StatusCode` nullable ✓ (un fallo de red **no** tiene status ✓) y los cinco `throw` del cliente lo pasan ✓ → con eso el dominio separa **"la DGII respondió y rechazó"** (terminal ✓) de **"no pudimos hablar con la DGII"** (transitorio ✓), que era la regla central de T41 ✓.
+  - **La migración** ✓: `20261114011904_AddDurableElectronicInvoiceQueue` ✓ con las cinco columnas de la cola (`AttemptCount` ✓, `LeaseOwner` ✓, `LeaseUntil` ✓, `NextAttemptAt` ✓, `RequiresReview` ✓) **más `OriginalXml`** ✓ (el original junto al firmado ✓) y el índice `(CompanyId, Status, NextAttemptAt, LeaseUntil)` ✓.
+  - **El worker en background** ✓: `Volterp.Api/Workers/ElectronicInvoiceQueueWorker.cs` ✓ — recorre las empresas con pendientes ✓, reclama con lease ✓ y **aísla la falla por documento** ✓ (una empresa que falla no corta el lote ✓), registrado en el DI ✓ (`AddHostedService` ✓) y sin correr en el ambiente de pruebas ✓.
+  - **El reclamo es atómico** ✓: `TryClaimAsync` hace la condición y la toma en **una sola sentencia** ✓ (`ExecuteUpdateAsync` ✓) e incrementa el contador de intentos en esa misma sentencia ✓ → dos workers pueden ver el documento, pero **solo uno lo toma** ✓.
+  - **Lo que falta para cerrar la fase de la cola** ✓: la **emisión asíncrona** (L25 ✓ — *"la venta se completa al instante y el e-CF se emite en segundo plano"* ✓): hoy `IssueAsync` **manda el documento a la DGII de forma sincrónica** ✓ (línea 399 ✓) y **nadie en producción llama a `IssueAsync`** ✓ (solo los tests ✓) → la venta completada **todavía no encola** nada ✓ → eso es **T41b** ✓.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)

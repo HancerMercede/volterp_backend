@@ -12,6 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Volterp.Api.Configuration;
 using Volterp.Api.Http;
+using Volterp.Api.Workers;
 using Volterp.Application.Abstractions;
 using Volterp.Application.Diagnostics;
 using Volterp.Application.Services;
@@ -90,6 +91,7 @@ public static class ServiceExtensions
         // The emission runs without an HTTP context: the company travels by
         // hand on every call.
         services.AddScoped<IElectronicInvoiceService, ElectronicInvoiceService>();
+        services.AddHostedService<ElectronicInvoiceQueueWorker>();
     }
 
     public static void ConfigureControllers(IServiceCollection services)
