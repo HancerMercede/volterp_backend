@@ -17,7 +17,7 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
     public ICompanyService Companies => _companies  ??= new CompanyService(unitOfWork);
 
     private ISaleService? _sales;
-    public ISaleService Sales => _sales ??= new SaleService(unitOfWork, electronicInvoices);
+    public ISaleService Sales => _sales ??= new SaleService(unitOfWork, electronicInvoices, normalDocuments: NormalFiscalDocuments);
 
     private ISupplierService? _suppliers;
     public ISupplierService Suppliers => _suppliers ??= new SupplierService(unitOfWork);
@@ -44,4 +44,7 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
 
     private IDashboardService? _dashboard;
     public IDashboardService Dashboard => _dashboard ??= new DashboardService(unitOfWork);
+
+    private INormalFiscalDocumentService? _normalFiscalDocuments;
+    public INormalFiscalDocumentService NormalFiscalDocuments => _normalFiscalDocuments ??= new NormalFiscalDocumentService(unitOfWork);
 }

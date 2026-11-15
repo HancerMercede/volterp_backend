@@ -5,9 +5,8 @@ using Volterp.ElectronicInvoicing.Xml;
 namespace Volterp.Domain.Entities;
 
 // The range of e-NCF the DGII granted to an issuer, with the position inside
-// it. The taxpayer loads the range: the same range serves the electronic and
-// the paper documents, so an electronic number never repeats one already
-// issued on paper.
+// it. The taxpayer loads the range: it serves the electronic documents, and
+// the normal (paper) documents have a range of their own.
 public class ElectronicInvoiceSequence : AuditEntity, ITenantScoped
 {
     public Guid Id { get; set; }

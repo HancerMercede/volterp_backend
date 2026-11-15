@@ -1,4 +1,5 @@
 using EitherWay;
+using Volterp.Application.DTOs.NormalFiscalDocumentDtos;
 using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
@@ -11,10 +12,12 @@ namespace Volterp.Application.Services;
 public class SaleService(
     IUnitOfWork unitOfWork,
     IElectronicInvoiceService electronicInvoices,
-    TimeProvider? timeProvider = null) : ISaleService
+    TimeProvider? timeProvider = null,
+    INormalFiscalDocumentService? normalDocuments = null) : ISaleService
 {
     private const string CodeAlreadyInUseMessage = "The code is already in use.";
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+    private readonly INormalFiscalDocumentService? _normalDocuments = normalDocuments;
 
     public async Task<PagedResult<SaleDto>> GetAllSalesAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
@@ -205,16 +208,30 @@ public class SaleService(
                 });
 
                 await unitOfWork.Sales.UpdateSaleAsync(sale, ct);
-                await unitOfWork.CommitAsync(ct);
 
                 var now = _timeProvider.GetUtcNow().UtcDateTime;
+
                 if (!CompanyEmissionModeService.UsesElectronicEmission(sale.Company, now))
                 {
-                    // TODO(T39): issue the normal fiscal comprobante from the
-                    // same authorized range. Until that path exists, paper mode
-                    // and an active contingency deliberately create no e-CF.
+                    if (_normalDocuments is null)
+                        throw new InvalidOperationException(
+                            "The service of the normal fiscal documents is not registered.");
+
+                    // The paper document takes its number from the range the
+                    // DGII authorized for the normal documents, and the
+                    // number, the document and the completion of the sale land
+                    // together. A document that could not be issued leaves the
+                    // sale incomplete: the caller gets the reason.
+                    var issued = await _normalDocuments.IssueAsync(sale.Id, companyId, userId, ct);
+
+                    issued.Match<NormalFiscalDocumentDto>(
+                        error => throw new InvalidOperationException(error.Message),
+                        document => document);
+
                     return sale;
                 }
+
+                await unitOfWork.CommitAsync(ct);
 
                 // The e-CF of the sale is queued here and the durable queue
                 // sends it in the background. The sale is a commercial fact:

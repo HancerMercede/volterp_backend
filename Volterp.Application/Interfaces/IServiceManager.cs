@@ -15,5 +15,6 @@ public interface IServiceManager
     ICompanyCertificateService CompanyCertificates { get; }
     IElectronicInvoiceSequenceService ElectronicInvoiceSequences { get; }
     IElectronicInvoiceService ElectronicInvoices { get; }
+    INormalFiscalDocumentService NormalFiscalDocuments { get; }
     IDashboardService Dashboard { get; }
 }

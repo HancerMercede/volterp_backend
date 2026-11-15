@@ -29,6 +29,8 @@ public class VolterpDbContext(
     public DbSet<CompanyCertificate> CompanyCertificates => Set<CompanyCertificate>();
     public DbSet<ElectronicInvoice> ElectronicInvoices => Set<ElectronicInvoice>();
     public DbSet<ReceivedElectronicInvoice> ReceivedElectronicInvoices => Set<ReceivedElectronicInvoice>();
+    public DbSet<NormalFiscalDocument> NormalFiscalDocuments => Set<NormalFiscalDocument>();
+    public DbSet<NormalFiscalSequence> NormalFiscalSequences => Set<NormalFiscalSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

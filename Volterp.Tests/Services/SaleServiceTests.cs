@@ -1,6 +1,7 @@
 ﻿using EitherWay;
 using FluentAssertions;
 using Moq;
+using Volterp.Application.DTOs.NormalFiscalDocumentDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
@@ -1633,5 +1634,125 @@ public class  SaleServiceTests
         mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(code);
         mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);
+    }
+
+    [Fact]
+    public async Task CompleteSaleAsync_InPaperMode_RecordsTheNormalDocumentAndIssuesNoElectronicInvoice()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockNormalDocuments = new Mock<INormalFiscalDocumentService>();
+
+        var company = new Company
+        {
+            Id = Guid7TestValues.CompanyA,
+            TaxId = "10100000101",
+            EmissionMode = CompanyEmissionMode.Paper
+        };
+
+        var sale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending,
+            DocumentType = EcfDocumentType.Consumer, Company = company,
+            ReceptorTaxId = "101010101", ClienteName = "Cliente de Prueba",
+            Items = new List<SaleItem>
+            {
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sale);
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product>());
+        mockNormalDocuments.Setup(d => d.IssueAsync(
+                Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Either<Error, NormalFiscalDocumentDto>.ToRight(new NormalFiscalDocumentDto
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = Guid7TestValues.CompanyA,
+                SaleId = Guid7TestValues.SaleA,
+                Number = "B0200000001",
+                DocumentType = NormalFiscalDocumentType.Consumer,
+                IssuerTaxId = "10100000101"
+            }));
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(
+            mockUnitOfWork.Object, _emissions.Object, normalDocuments: mockNormalDocuments.Object);
+
+        // ACT
+        var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        sale.Status.Should().Be(SaleStatus.Completed);
+
+        mockNormalDocuments.Verify(d => d.IssueAsync(
+            Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA,
+            It.IsAny<CancellationToken>()), Times.Once);
+
+        _emissions.Verify(e => e.IssueAsync(
+            It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CompleteSaleAsync_InPaperMode_WhenTheDocumentFails_DoesNotCompleteTheSale()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockNormalDocuments = new Mock<INormalFiscalDocumentService>();
+
+        var company = new Company
+        {
+            Id = Guid7TestValues.CompanyA,
+            TaxId = "10100000101",
+            EmissionMode = CompanyEmissionMode.Paper
+        };
+
+        var sale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending,
+            DocumentType = EcfDocumentType.Consumer, Company = company,
+            ReceptorTaxId = "101010101", ClienteName = "Cliente de Prueba",
+            Items = new List<SaleItem>
+            {
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sale);
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product>());
+        mockNormalDocuments.Setup(d => d.IssueAsync(
+                It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Either<Error, NormalFiscalDocumentDto>.ToLeft(
+                new Error("The authorized range of normal documents for the type 2 is exhausted.")));
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(
+            mockUnitOfWork.Object, _emissions.Object, normalDocuments: mockNormalDocuments.Object);
+
+        // ACT
+        var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT - the caller gets an error, not a crash, and nothing is committed.
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Contain("exhausted");
+        mockUnitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

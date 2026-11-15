@@ -16,8 +16,15 @@ public interface IUnitOfWork
     ICompanyCertificateRepository CompanyCertificates { get; }
     IElectronicInvoiceRepository ElectronicInvoices { get; }
     IReceivedElectronicInvoiceRepository ReceivedElectronicInvoices { get; }
+    INormalFiscalDocumentRepository NormalFiscalDocuments { get; }
+    INormalFiscalSequenceRepository NormalFiscalSequences { get; }
     ICodeGenerator Codes { get; }
     IDashboardRepository Dashboard { get; }
     Task<int> CommitAsync(CancellationToken ct = default);
+
+    // The transaction that makes a fiscal number and the document that
+    // carries it land together.
+    Task BeginTransactionAsync(CancellationToken ct = default);
+    Task RollbackTransactionAsync(CancellationToken ct = default);
     void Dispose();
 }

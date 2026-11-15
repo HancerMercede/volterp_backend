@@ -3,6 +3,7 @@ using FluentAssertions;
 using Moq;
 using Volterp.Application.DTOs.CompanyDtos.EmissionMode;
 using Volterp.Application.DTOs.ElectronicInvoiceDtos;
+using Volterp.Application.DTOs.NormalFiscalDocumentDtos;
 using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
@@ -29,6 +30,7 @@ public class CompanyEmissionModeTests
     private readonly Mock<ICompanyRepository> _companies = new();
     private readonly Mock<IElectronicInvoiceRepository> _invoices = new();
     private readonly Mock<IElectronicInvoiceService> _issues = new();
+    private readonly Mock<INormalFiscalDocumentService> _normalDocuments = new();
 
     private Company _company = null!;
     private Sale _sale = null!;
@@ -40,6 +42,18 @@ public class CompanyEmissionModeTests
         _unitOfWork.Setup(u => u.Companies).Returns(_companies.Object);
         _unitOfWork.Setup(u => u.ElectronicInvoices).Returns(_invoices.Object);
         _unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        _normalDocuments.Setup(d => d.IssueAsync(
+                SaleId, CompanyId, It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Either<Error, NormalFiscalDocumentDto>.ToRight(new NormalFiscalDocumentDto
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = CompanyId,
+                SaleId = SaleId,
+                Number = "B0200000001",
+                DocumentType = NormalFiscalDocumentType.Consumer,
+                IssuerTaxId = "130862346"
+            }));
 
         _products.Setup(p => p.GetProductsByIdsAsync(
                 It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
@@ -89,6 +103,19 @@ public class CompanyEmissionModeTests
             It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
         _invoices.Verify(i => i.AddAsync(
             It.IsAny<ElectronicInvoice>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PaperMode_RecordsTheNormalDocumentOfTheSale()
+    {
+        GivenCompany(CompanyEmissionMode.Paper);
+
+        await CompleteSaleAsync();
+
+        // The paper document takes its number from the range the DGII
+        // authorized for the normal documents.
+        _normalDocuments.Verify(d => d.IssueAsync(
+            SaleId, CompanyId, It.IsAny<Guid?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]
@@ -226,6 +253,10 @@ public class CompanyEmissionModeTests
 
         _sales.Setup(s => s.GetSaleByIdAsync(SaleId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(_sale);
+
+        // The paper document takes the RNC of the issuer from the company.
+        _companies.Setup(c => c.GetCompanyByIdAsync(CompanyId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(_company);
     }
 
     private async Task<Either<Error, SaleDto>> CompleteSaleAsync(bool expectsSuccess = true)
@@ -233,7 +264,8 @@ public class CompanyEmissionModeTests
         var service = new SaleService(
             _unitOfWork.Object,
             _issues.Object,
-            new FixedTimeProvider(Now));
+            new FixedTimeProvider(Now),
+            _normalDocuments.Object);
 
         var result = await service.CompleteSaleAsync(SaleId, CompanyId, Guid.CreateVersion7());
 

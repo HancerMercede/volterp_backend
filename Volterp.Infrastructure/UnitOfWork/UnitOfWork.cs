@@ -22,6 +22,8 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     private readonly Lazy<ICompanyCertificateRepository> _companyCertificates = new(() => new CompanyCertificateRepository(context));
     private readonly Lazy<IElectronicInvoiceRepository> _electronicInvoices = new(() => new ElectronicInvoiceRepository(context));
     private readonly Lazy<IReceivedElectronicInvoiceRepository> _receivedElectronicInvoices = new(() => new ReceivedElectronicInvoiceRepository(context));
+    private readonly Lazy<INormalFiscalDocumentRepository> _normalFiscalDocuments = new(() => new NormalFiscalDocumentRepository(context));
+    private readonly Lazy<INormalFiscalSequenceRepository> _normalFiscalSequences = new(() => new NormalFiscalSequenceRepository(context));
     private readonly Lazy<ICodeGenerator> _codes = new(() => new CodeGenerator(new CodeSequenceRepository(context)));
 
     public IUserRepository Users => _users.Value;
@@ -39,6 +41,8 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     public ICompanyCertificateRepository CompanyCertificates => _companyCertificates.Value;
     public IElectronicInvoiceRepository ElectronicInvoices => _electronicInvoices.Value;
     public IReceivedElectronicInvoiceRepository ReceivedElectronicInvoices => _receivedElectronicInvoices.Value;
+    public INormalFiscalDocumentRepository NormalFiscalDocuments => _normalFiscalDocuments.Value;
+    public INormalFiscalSequenceRepository NormalFiscalSequences => _normalFiscalSequences.Value;
     public ICodeGenerator Codes => _codes.Value;
 
     public async Task<int> CommitAsync(CancellationToken ct = default)
@@ -55,6 +59,25 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
         }
 
         return affected;
+    }
+
+    public async Task BeginTransactionAsync(CancellationToken ct = default)
+    {
+        // The fiscal number and the document that carries it have to land
+        // together, so the transaction is opened before the number is taken.
+        if (context.Database.CurrentTransaction is null)
+            await context.Database.BeginTransactionAsync(ct);
+    }
+
+    public async Task RollbackTransactionAsync(CancellationToken ct = default)
+    {
+        var transaction = context.Database.CurrentTransaction;
+
+        if (transaction is null)
+            return;
+
+        await transaction.RollbackAsync(ct);
+        await transaction.DisposeAsync();
     }
 
     public void Dispose() => context.Dispose();
