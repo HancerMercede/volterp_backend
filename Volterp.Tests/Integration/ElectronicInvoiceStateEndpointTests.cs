@@ -1,12 +1,16 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.Extensions.DependencyInjection;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.ElectronicInvoicing;
 using Volterp.Infrastructure.Data;
+using Volterp.Infrastructure.Migrations;
 using Volterp.Tests.TestHelpers;
 using Xunit;
 
@@ -20,7 +24,10 @@ public class ElectronicInvoiceStateEndpointTests : IClassFixture<ApiFactory>
     private const string PendingEncf = "E320000000001";
     private const string OtherTenantEncf = "E320000000002";
     private const string RejectedEncf = "E320000000003";
+    private const string WithTokenEncf = "E320000000004";
+    private const string CutEncf = "E320000000005";
     private const string RejectionReason = "El RNC del receptor no existe.";
+    private const string TokenOfTheDgii = "eyJhbGciOiJIUzI1NiJ9.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
 
     private readonly ApiFactory _factory;
     private readonly HttpClient _client;
@@ -102,6 +109,76 @@ public class ElectronicInvoiceStateEndpointTests : IClassFixture<ApiFactory>
             "the count covers all the open documents, not only the listed ones");
     }
 
+    [Fact]
+    public async Task TheTokenOfTheDgiiNeverComesOut()
+    {
+        SetAuth(Guid7TestValues.CompanyB);
+
+        var response = await _client.GetAsync("/api/ElectronicInvoices/state");
+        var body = await response.Content.ReadAsStringAsync();
+
+        // The token of the DGII is a credential: the state of the tenant is
+        // not the place where it travels.
+        body.Should().NotContain(TokenOfTheDgii);
+    }
+
+    [Fact]
+    public async Task TheBodyOfTheDgiiThatWasCutSaysSo()
+    {
+        SetAuth(Guid7TestValues.CompanyB);
+
+        var response = await _client.GetAsync("/api/ElectronicInvoices/state");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        var invoice = document.RootElement.GetProperty("invoices").EnumerateArray()
+            .Single(i => i.GetProperty("encf").GetString() == CutEncf);
+
+        var raw = invoice.GetProperty("rawResponse").GetString();
+
+        // The row cannot grow without limit, and the cut is visible: the
+        // front has to know that the answer it shows is not the whole one.
+        raw!.Length.Should().BeLessThan(5_000);
+        raw.Should().EndWith("[truncated]");
+    }
+
+    [Fact]
+    public void TheDownOfTheMigrationOfTheResponsesDropsTheColumnsThatHoldThem()
+    {
+        // The migration of T47 added the four columns with what the DGII
+        // answered, and its Down drops them: the answers are gone with them.
+        var migration = new AddDgiiResponses();
+        var builder = new MigrationBuilder("Npgsql");
+
+        typeof(AddDgiiResponses)
+            .GetMethod("Down", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(migration, [builder]);
+
+        var dropped = builder.Operations.OfType<DropColumnOperation>().Select(o => o.Name);
+
+        dropped.Should().Contain(["RawResponse", "SequenceConsumed", "ReceivedAt", "LastError"]);
+    }
+
+    [Fact]
+    public void TheReadmeSaysThatTheDownOfThatMigrationDeletesTheAnswers()
+    {
+        // The rollback destroys what the DGII answered: whoever reverts it
+        // has to know it before, not after.
+        var readme = Readme();
+
+        readme.Should().Contain("20261114221020_AddDgiiResponses");
+        readme.Should().Contain("borra las respuestas registradas");
+    }
+
+    private static string Readme()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Volterp.slnx")))
+            directory = directory.Parent;
+
+        return File.ReadAllText(Path.Combine(directory!.FullName, "README.md"));
+    }
+
     private void SetAuth(Guid companyId)
     {
         var token = JwtTestHelper.MintToken(_factory, companyId, Guid7TestValues.UserA);
@@ -140,6 +217,8 @@ public class ElectronicInvoiceStateEndpointTests : IClassFixture<ApiFactory>
 
         var rejectedSaleId = Guid.CreateVersion7();
         var otherTenantSaleId = Guid.CreateVersion7();
+        var tokenSaleId = Guid.CreateVersion7();
+        var cutSaleId = Guid.CreateVersion7();
 
         db.Sales.AddRange(
             new Sale
@@ -174,7 +253,45 @@ public class ElectronicInvoiceStateEndpointTests : IClassFixture<ApiFactory>
                 Subtotal = 200m,
                 Itbis = 36m,
                 Total = 236m
+            },
+            new Sale
+            {
+                Id = tokenSaleId,
+                CompanyId = Guid7TestValues.CompanyB,
+                Code = "V-0004",
+                Status = SaleStatus.Completed,
+                DocumentType = EcfDocumentType.Consumer,
+                Subtotal = 200m,
+                Itbis = 36m,
+                Total = 236m
+            },
+            new Sale
+            {
+                Id = cutSaleId,
+                CompanyId = Guid7TestValues.CompanyB,
+                Code = "V-0005",
+                Status = SaleStatus.Completed,
+                DocumentType = EcfDocumentType.Consumer,
+                Subtotal = 200m,
+                Itbis = 36m,
+                Total = 236m
             });
+
+        // The answer of a gateway that answers with a pathological body: it
+        // is cut when it goes on record.
+        var cutInvoice = new ElectronicInvoice
+        {
+            Id = Guid.CreateVersion7(),
+            CompanyId = Guid7TestValues.CompanyB,
+            SaleId = cutSaleId,
+            ENCF = CutEncf,
+            DocumentType = EcfDocumentType.Consumer,
+            IssuerTaxId = "130862354",
+            SignedXml = "<ECF />",
+            Status = EcfStatus.Signed
+        };
+
+        cutInvoice.RecordDgiiResponse(new string('x', 50_000));
 
         db.ElectronicInvoices.AddRange(
             new ElectronicInvoice
@@ -210,7 +327,22 @@ public class ElectronicInvoiceStateEndpointTests : IClassFixture<ApiFactory>
                 IssuerTaxId = "130862354",
                 SignedXml = "<ECF />",
                 Status = EcfStatus.Signed
-            });
+            },
+            new ElectronicInvoice
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = Guid7TestValues.CompanyB,
+                SaleId = tokenSaleId,
+                ENCF = WithTokenEncf,
+                DocumentType = EcfDocumentType.Consumer,
+                IssuerTaxId = "130862354",
+                SignedXml = "<ECF />",
+                Status = EcfStatus.InProcess,
+                // The body of the conversation of the token can carry the
+                // token of the DGII: it is a credential.
+                RawResponse = $$"""{"token":"{{TokenOfTheDgii}}","expira":"2026-11-14T11:00:00"}"""
+            },
+            cutInvoice);
 
         await db.SaveChangesAsync();
     }

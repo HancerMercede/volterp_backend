@@ -415,6 +415,50 @@ public class ElectronicInvoiceServiceTests
         _persisted.QrUrl.Should().BeNull();
     }
 
+    [Fact]
+    public async Task ProcessPendingAsync_WhenTheDgiiAnswersWithAPathologicalBody_KeepsItCutAndTheDocumentGoesOn()
+    {
+        Given(Sale(), Company());
+        _dgii.AcknowledgementBody = new string('x', 50_000);
+
+        await Service().IssueAsync(SaleId, CompanyId);
+        GivenPending(_persisted!);
+        await Service().ProcessPendingAsync(CompanyId);
+
+        // The body of the DGII is a diagnostic, not a payload: the row cannot
+        // grow without limit, and the cut says so.
+        _persisted!.RawResponse!.Length.Should().BeLessThan(50_000);
+        _persisted.RawResponse.Should().EndWith("[truncated]");
+
+        // And the cut does not break the emission: the document went to the
+        // DGII and waits for its verdict.
+        _dgii.SendRequests.Should().Be(1);
+        _persisted.Status.Should().Be(EcfStatus.Sent);
+        _persisted.TrackId.Should().Be("track-1");
+    }
+
+    [Fact]
+    public async Task ProcessPendingAsync_WhenTheConversationOfTheTokenFails_DoesNotLeaveItsBodyOnTheDocument()
+    {
+        Given(Sale(), Company());
+        _dgii.TokenFailure = new DgiiException(
+            "The DGII rejected the signed seed (BadRequest).",
+            """{"token":"eyJhbGciOiJIUzI1NiJ9.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk","expira":"2026-11-14T11:00:00"}""",
+            statusCode: HttpStatusCode.BadRequest);
+
+        await Service().IssueAsync(SaleId, CompanyId);
+        GivenPending(_persisted!);
+        await Service().ProcessPendingAsync(CompanyId);
+
+        // The body of the conversation of the token can carry the token of
+        // the DGII: it is a credential and it does not go on record.
+        _persisted!.RawResponse.Should().BeNull();
+        _persisted.VerdictNote.Should().NotContain("eyJ");
+
+        // The reason of the failure is still there: only the body is gone.
+        _persisted.VerdictNote.Should().Contain("signed seed");
+    }
+
     private void Given(Sale sale, Company company)
     {
         _sales.Setup(r => r.GetSaleByIdAsync(sale.Id, It.IsAny<CancellationToken>())).ReturnsAsync(sale);
@@ -541,6 +585,14 @@ public class ElectronicInvoiceServiceTests
 
         public string? Refusal { get; set; }
 
+        // The body of the acknowledgement of the send: the DGII answers with
+        // more or less of it, and a pathological one has to be cut.
+        public string? AcknowledgementBody { get; set; }
+
+        // The failure of the conversation of the token: its body can carry
+        // the token of the DGII.
+        public Exception? TokenFailure { get; set; }
+
         public int SendRequests { get; private set; }
         public int StatusRequests { get; private set; }
         public int TrackIdRequests { get; private set; }
@@ -554,7 +606,12 @@ public class ElectronicInvoiceServiceTests
             => Task.FromResult("<SemillaModel><valor>abc</valor><fecha>2019-03-13T14:33:32-04:00</fecha></SemillaModel>");
 
         public Task<DgiiToken> RequestTokenAsync(string signedSeedXml, CancellationToken cancellationToken = default)
-            => Task.FromResult(new DgiiToken("jwt", DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow));
+        {
+            if (TokenFailure is not null)
+                throw TokenFailure;
+
+            return Task.FromResult(new DgiiToken("jwt", DateTimeOffset.UtcNow.AddHours(1), DateTimeOffset.UtcNow));
+        }
 
         public Task<DgiiReceipt> SendElectronicInvoiceAsync(string signedEcfXml, string token, CancellationToken cancellationToken = default)
         {
@@ -562,7 +619,7 @@ public class ElectronicInvoiceServiceTests
             SentXml = signedEcfXml;
 
             return Task.FromResult(Refusal is null
-                ? new DgiiReceipt("track-1", null, null)
+                ? new DgiiReceipt("track-1", null, null) { RawBody = AcknowledgementBody }
                 : new DgiiReceipt(null, Refusal, null));
         }
 

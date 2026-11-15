@@ -154,6 +154,12 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 - `fiscalState` es la clasificación del estado fiscal: `PendingEmission` (firmado y esperando en la cola, todavía no salió hacia la DGII), `InProcess` (la DGII lo tiene y todavía no lo validó), `Rejected` (la DGII lo rechazó) o `RequiresReview` (no se pudo firmar, así que no llegó a la DGII). Un comprobante ya cerrado no tiene estado fiscal.
 - `?limit` (default 50) acota el listado; el conteo siempre cubre todos los comprobantes abiertos.
 - `rawResponse` es el cuerpo crudo de la última respuesta de la DGII (ahí quedan los códigos de sus mensajes), `sequenceConsumed` es lo que la DGII dice del número (si el rechazo lo volvió inservible), `receivedAt` es cuándo lo recibió y `lastError` el motivo del último fallo al hablar con la DGII.
+- El cuerpo de la respuesta tiene un **tope de 4000 caracteres**: lo que sobra termina en `... [truncated]`. Una respuesta patológica (o el HTML de un gateway) no puede hacer crecer la fila ni el payload, y el corte no rompe nada: el e-CF sigue su curso.
+- El cuerpo de la **conversación del token** nunca se guarda: puede llevar el token de la DGII, que es una credencial. Lo que sale por aquí es el cuerpo del **envío** y del **veredicto** (lo que el operador necesita ver) y sin credenciales: los valores con forma de token van redactados como `[redacted]`.
+
+### El `Down` de la migración de las respuestas de la DGII
+
+La migración `20261114221020_AddDgiiResponses` (T47) agregó las cuatro columnas con lo que respondió la DGII: `RawResponse`, `SequenceConsumed`, `ReceivedAt` y `LastError`. Su `Down` **borra las respuestas registradas**: revertir la migración deja los comprobantes sin la respuesta que les dio la DGII (y sin la fecha de recepción, sin lo que la DGII dijo del número y sin el motivo del último fallo). Es un rollback destructivo sobre datos fiscales: copie la base antes de revertirla.
 
 La credencial del certificado se guarda cifrada y nunca vuelve por la respuesta. Para firmar e-CF, el ERP la interpreta como el sobre `{"pfx": "<base64 del .p12>", "password": "<password del .p12>"}`: es el único secreto del emisor, porque la DGII autentica los web services con la firma del certificado.
 

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using EitherWay;
 using Volterp.Application.DTOs.ElectronicInvoiceDtos;
 using Volterp.Application.Exceptions.AppErrors;
@@ -209,7 +210,7 @@ public class ElectronicInvoiceService(
     private async Task SendPendingAsync(ElectronicInvoice invoice, DateTime now, CancellationToken ct)
     {
         var certificate = await certificateProvider.GetSigningCertificateAsync(invoice.IssuerTaxId, ct);
-        var token = await authenticator.AuthenticateAsync(invoice.IssuerTaxId, certificate, ct);
+        var token = await AuthenticateAsync(invoice.IssuerTaxId, certificate, ct);
 
         // After the first attempt the answer may have been lost. The DGII is
         // asked by e-NCF before the document is sent again.
@@ -247,6 +248,25 @@ public class ElectronicInvoiceService(
             throw new InvalidOperationException("The DGII answered the e-CF without a track id.");
 
         invoice.MarkSent(receipt.TrackId, now);
+    }
+
+    // The conversation of the token is a credential: its body can carry the
+    // token of the DGII, so a failure of it travels without its body and the
+    // body never goes on record. The reason of the failure is still there.
+    private async Task<DgiiToken> AuthenticateAsync(
+        string issuerTaxId, X509Certificate2 certificate, CancellationToken ct)
+    {
+        try
+        {
+            return await authenticator.AuthenticateAsync(issuerTaxId, certificate, ct);
+        }
+        catch (DgiiException exception)
+        {
+            throw new DgiiException(
+                exception.Message,
+                innerException: exception,
+                statusCode: exception.StatusCode);
+        }
     }
 
     private void ScheduleTheNextAttempt(ElectronicInvoice invoice, Exception exception, DateTime now)
@@ -350,7 +370,7 @@ public class ElectronicInvoiceService(
     private async Task<bool> AskTheVerdictAsync(ElectronicInvoice invoice, string issuerTaxId, CancellationToken ct)
     {
         var certificate = await certificateProvider.GetSigningCertificateAsync(issuerTaxId, ct);
-        var token = await authenticator.AuthenticateAsync(issuerTaxId, certificate, ct);
+        var token = await AuthenticateAsync(issuerTaxId, certificate, ct);
 
         // Without a track id the answer of the send was lost. The DGII is asked
         // whether it has the document instead of sending it again.

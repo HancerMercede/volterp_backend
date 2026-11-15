@@ -28,7 +28,10 @@ public record ElectronicInvoiceStateDto : IMapFrom<ElectronicInvoice>
     public int StatusCheckCount { get; set; }
 
     // What the DGII answered: the body of the conversation, the sequence it
-    // consumed and the day it received the document.
+    // consumed and the day it received the document. The body is the answer
+    // the operator has to read, so it goes out whole (up to the cap the row
+    // keeps) but without credentials: it is raw text from outside and the
+    // token of the DGII travels in one of those conversations.
     public string? RawResponse { get; set; }
     public bool? SequenceConsumed { get; set; }
     public DateTime? ReceivedAt { get; set; }
@@ -44,12 +47,12 @@ public record ElectronicInvoiceStateDto : IMapFrom<ElectronicInvoice>
         DocumentType = source.DocumentType;
         Status = source.Status;
         FiscalState = EcfFiscalStateClassifier.Classify(source.Status, source.RequiresReview);
-        VerdictNote = source.VerdictNote;
+        VerdictNote = RawResponseSanitizer.Redact(source.VerdictNote);
         RequiresReview = source.RequiresReview;
         SentAt = source.SentAt;
         NextCheckAt = source.NextCheckAt;
         StatusCheckCount = source.StatusCheckCount;
-        RawResponse = source.RawResponse;
+        RawResponse = RawResponseSanitizer.Redact(source.RawResponse);
         SequenceConsumed = source.SequenceConsumed;
         ReceivedAt = source.ReceivedAt;
         LastError = source.LastError;

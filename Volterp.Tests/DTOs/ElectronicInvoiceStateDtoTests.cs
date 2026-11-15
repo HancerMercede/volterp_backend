@@ -69,6 +69,58 @@ public class ElectronicInvoiceStateDtoTests
         new ElectronicInvoiceStateDto().FiscalState.Should().BeNull();
     }
 
+    [Fact]
+    public void TheMapperKeepsTheBodyOfTheDgiiWhenItFits()
+    {
+        const string body = """{"codigo":1,"estado":"Aceptado","mensajes":[{"valor":"Aceptado","codigo":1}]}""";
+        var document = Document(EcfStatus.Accepted, requiresReview: false);
+        document.RawResponse = body;
+
+        var dto = new ElectronicInvoiceStateDto();
+
+        dto.MapFrom(document);
+
+        // The operator has to see what the DGII answered: the codes of its
+        // messages are in the body.
+        dto.RawResponse.Should().Be(body);
+    }
+
+    [Fact]
+    public void TheMapperCutsTheBodyOfTheDgiiWhenItIsPathological()
+    {
+        var document = Document(EcfStatus.Rejected, requiresReview: false);
+        document.RecordDgiiResponse(new string('x', 50_000));
+
+        var dto = new ElectronicInvoiceStateDto();
+
+        dto.MapFrom(document);
+
+        // The body of the DGII is a diagnostic, not a payload: the row cannot
+        // grow without limit.
+        dto.RawResponse!.Length.Should().BeLessThan(50_000);
+
+        // And the cut says so: the operator has to know that the answer he
+        // is reading is not the whole answer.
+        dto.RawResponse.Should().EndWith("[truncated]");
+    }
+
+    [Fact]
+    public void TheTokenOfTheDgiiDoesNotComeOut()
+    {
+        var document = Document(EcfStatus.InProcess, requiresReview: false);
+        document.RawResponse =
+            """{"token":"eyJhbGciOiJIUzI1NiJ9.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk","expira":"2026-11-14T11:00:00"}""";
+
+        var dto = new ElectronicInvoiceStateDto();
+
+        dto.MapFrom(document);
+
+        // The token of the DGII is a credential: the state of the tenant is
+        // not the place where it travels.
+        dto.RawResponse.Should().NotContain("eyJhbGciOiJIUzI1NiJ9");
+        dto.RawResponse.Should().Contain("[redacted]");
+    }
+
     private static ElectronicInvoice Document(EcfStatus status, bool requiresReview) => new()
     {
         Id = Guid.CreateVersion7(),

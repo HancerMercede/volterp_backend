@@ -36,6 +36,17 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
     // it said.
     public string? RawResponse { get; set; }
 
+    // The body of the DGII is a diagnostic, not a payload: a pathological
+    // answer (or the HTML of a gateway) cannot grow the row without limit.
+    // The verdict note is cut at a thousand characters; the raw body gets
+    // more room because it carries the literal answer of the DGII with the
+    // codes of its messages.
+    public const int MaxRawResponseLength = 4000;
+
+    // The cut says so: the operator has to know that the answer he reads is
+    // not the whole answer.
+    private const string TruncatedMarker = "... [truncated]";
+
     // The sequence the DGII says it consumed: a rejection that makes the
     // number unusable.
     public bool? SequenceConsumed { get; set; }
@@ -201,7 +212,7 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
     public void RecordDgiiResponse(string? rawBody = null, bool? sequenceConsumed = null, DateTime? receivedAt = null)
     {
         if (!string.IsNullOrWhiteSpace(rawBody))
-            RawResponse = rawBody;
+            RawResponse = Cut(rawBody);
 
         if (sequenceConsumed.HasValue)
             SequenceConsumed = sequenceConsumed;
@@ -209,6 +220,13 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
         if (receivedAt.HasValue)
             ReceivedAt = receivedAt;
     }
+
+    // The body of the DGII is cut to what fits on the row, and the cut does
+    // not stop the emission: the document goes on its way.
+    private static string Cut(string body)
+        => body.Length > MaxRawResponseLength
+            ? body[..MaxRawResponseLength] + TruncatedMarker
+            : body;
 
     private void RequirePendingVerdict(EcfStatus target)
     {
