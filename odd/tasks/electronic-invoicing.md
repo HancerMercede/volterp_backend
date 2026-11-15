@@ -844,6 +844,12 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Verificado contra Postgres 17.9 real** ✓ (verificador independiente ✓): el `Down` viejo reproduce el `23505` ✓ (atómico ✓ → esquema y datos byte-idénticos ✓) · el candidato hace rollback **exit 0** ✓ sin columnas colgando ✓ (diff de `information_schema` = 0 ✓) · el **re-apply con un rango** **exit 0** ✓ · la cadena completa **18/18 exit 0** ✓ · el script idempotente 2× **exit 0** ✓ · `has-pending-model-changes` → sin cambios ✓.
   - **La salvedad, dicha con todas sus letras** ✓: **con varios rangos por emisor, la cadena no puede volver atrás de T25** ✓ → es consecuencia de que T25 **cambió la semántica** de la tabla ✓ (de una secuencia por empresa y tipo ✓ a una por rango ✓) → solo se arregla **perdiendo datos** ✓ → queda anotada ✓ y con el mensaje del `Down` ✓.
 
+- **L69** (2026-11-14) — **El ritmo cambia** ✓ (decisión del owner ✓: *"relajar la verificación y paralelizar"* ✓).
+  - **Qué se relaja** ✓: el verificador independiente queda **solo donde el riesgo lo pide** ✓ (las unidades que tocan datos ✓, el contrato fiscal ✓ y el multi-RNC ✓) → en el resto bastan **mi verificación** ✓ + la suite completa ✓ + las **mutaciones** ✓ (que son las que muestran que los tests muerden ✓).
+  - **Cómo se paraleliza** ✓: en este repo dos builds **no** pueden solaparse en la misma configuración ✓ (el histórico MSB3021/MSB3027 ✓) → pero sí si uno compila en **Debug** y el otro en **Release** ✓ (carpetas `obj/Debug` vs `obj/Release` ✓ y `bin/Debug` vs `bin/Release` ✓) → dos unidades a la vez ✓.
+  - **Las dos lanes** ✓: **A (Debug)** ✓ → T50 ✓ → T54 ✓ → T32 ✓ → T33 ✓ → T34 ✓ → T38 ✓ → T42 ✓ → T44 ✓ · **B (Release)** ✓ → T52 ✓ → T26 ✓ → T27 ✓ → T29b ✓ → T39 ✓ → y **T18** (multi-RNC ✓, la más grande ✓) sola al final ✓.
+  - **Lo que no se relaja** ✓: mi verificación ✓ · la suite completa ✓ · el guard de CJK ✓ · el plan al día ✓ → y el verificador independiente en las unidades de riesgo ✓.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
