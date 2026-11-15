@@ -850,6 +850,11 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Las dos lanes** ✓: **A (Debug)** ✓ → T50 ✓ → T54 ✓ → T32 ✓ → T33 ✓ → T34 ✓ → T38 ✓ → T42 ✓ → T44 ✓ · **B (Release)** ✓ → T52 ✓ → T26 ✓ → T27 ✓ → T29b ✓ → T39 ✓ → y **T18** (multi-RNC ✓, la más grande ✓) sola al final ✓.
   - **Lo que no se relaja** ✓: mi verificación ✓ · la suite completa ✓ · el guard de CJK ✓ · el plan al día ✓ → y el verificador independiente en las unidades de riesgo ✓.
 
+- **L70** (2026-11-14) — **T51 verificada contra Postgres 17.9 real: 0 bloqueantes** ✓.
+  - **Los seis puntos** ✓: el rollback con un rango deja el esquema **exacto** ✓ (diff de `information_schema` = 0 ✓ y de `pg_indexes` = 0 ✓) y el índice vuelve **único** ✓ · con dos rangos el rollback **falla con el mensaje** ✓ (`P0001` ✓, no un `23505` opaco ✓) · el fallo es **atómico** ✓ (los md5 del esquema ✓, de los índices ✓ y de los datos + el historial ✓ son idénticos antes y después ✓) y **hacia adelante sigue funcionando** ✓ · el ciclo **rollback → re-apply** pasa ✓ con un rango ✓ (y con ninguno ✓) y se detiene con el mensaje con dos ✓ · el estado pre-T25 **vuelve a funcionar** ✓ (la sentencia histórica con `ON CONFLICT ("CompanyId","DocumentType")` ✓ corre ✓ y devuelve 903 ✓; con el índice dropeado muere con *there is no unique or exclusion constraint matching the ON CONFLICT specification* ✓ → la sonda muerde ✓) · el resto de la cadena intacta ✓ (18/18 ✓, idempotente 2× ✓, sin cambios pendientes ✓, el `Up` **sin cambios** ✓ → mismo sha256 desde el principio ✓).
+  - **El advisory, preexistente** ✓: el `Up` de T25 sube `CurrentSequence` a `GREATEST(current, MAX(ENCF))` ✓ (0 → 902/903 ✓) y el `Down` **no lo restaura** ✓ → la ida y vuelta no deja los **datos** byte-idénticos ✓ (el esquema sí ✓) → es el comportamiento de T25 ✓, no del arreglo ✓.
+  - **Los probes** ✓ que dejó (3 ✓) → entran en **T52** ✓ (que ya está construyendo la infraestructura de Postgres para la suite ✓).
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
