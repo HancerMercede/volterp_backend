@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Volterp.ElectronicInvoicing.Xml;
 
 /// <summary>
@@ -12,6 +14,31 @@ public enum EcfTypeIncome
     Leases = 4,
     DepreciableAssetSale = 5,
     Other = 6
+}
+
+/// <summary>
+/// The codes the DGII gives to the kinds of income, as the schema of an e-CF
+/// enumerates them.
+/// </summary>
+public static class EcfTypeIncomes
+{
+    /// <summary>
+    /// The kind of income a code of the schema names, or null when the code is
+    /// not one of them.
+    /// </summary>
+    public static EcfTypeIncome? FromCode(string code)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+
+        if (!int.TryParse(code, NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+            return null;
+
+        return Enum.IsDefined((EcfTypeIncome)value) ? (EcfTypeIncome)value : null;
+    }
+
+    /// <summary>The code the schema uses for a kind of income.</summary>
+    public static string Code(EcfTypeIncome income) =>
+        ((int)income).ToString("D2", CultureInfo.InvariantCulture);
 }
 
 /// <summary>

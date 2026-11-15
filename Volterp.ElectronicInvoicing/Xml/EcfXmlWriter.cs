@@ -22,6 +22,8 @@ public sealed class EcfXmlWriter
     /// <summary>The version of the format the DGII publishes.</summary>
     public const string FormatVersion = "1.0";
 
+    private const string TypeIncomePath = "Encabezado/IdDoc/TipoIngresos";
+
     private readonly Func<EcfDocumentType, EcfSchema> _schemaFor;
     private readonly bool _validateOutput;
 
@@ -120,7 +122,7 @@ public sealed class EcfXmlWriter
         WriteElement(writer, schema, "Encabezado/IdDoc/eNCF", identity.ENCF);
         WriteElement(writer, schema, "Encabezado/IdDoc/IndicadorNotaCredito", Flag(identity.CreditNoteBeyondThirtyDays));
         WriteElement(writer, schema, "Encabezado/IdDoc/FechaVencimientoSecuencia", FormatDate(identity.SequenceExpiresAt));
-        WriteElement(writer, schema, "Encabezado/IdDoc/TipoIngresos", identity.TypeIncome is null ? null : ((int)identity.TypeIncome.Value).ToString("D2", CultureInfo.InvariantCulture));
+        WriteElement(writer, schema, "Encabezado/IdDoc/TipoIngresos", TypeIncomeCode(document, schema));
         WriteElement(writer, schema, "Encabezado/IdDoc/TipoPago", identity.PaymentType is null ? null : Code((int)identity.PaymentType.Value));
         WriteElement(writer, schema, "Encabezado/IdDoc/FechaLimitePago", FormatDate(identity.PaymentDueDate));
         WriteElement(writer, schema, "Encabezado/IdDoc/TerminoPago", identity.PaymentTerm);
@@ -356,6 +358,29 @@ public sealed class EcfXmlWriter
         WriteElement(writer, schema, "InformacionReferencia/CodigoModificacion", reference.ModificationCode is null ? null : Code((int)reference.ModificationCode.Value));
         WriteElement(writer, schema, "InformacionReferencia/RazonModificacion", reference.ModificationReason);
         writer.WriteEndElement();
+    }
+
+    // The income of a document has to be one the schema of its type accepts:
+    // a type whose schema declares no income accepts none, and a type that
+    // declares it accepts only the codes it enumerates.
+    private static string? TypeIncomeCode(EcfDocument document, EcfSchema schema)
+    {
+        if (document.Identity.TypeIncome is null)
+            return null;
+
+        var code = EcfTypeIncomes.Code(document.Identity.TypeIncome.Value);
+
+        if (!schema.Allows(TypeIncomePath))
+            throw new EcfXmlException(
+                $"<TipoIngresos> is not a field the schema of the e-CF {(int)schema.DocumentType} accepts.");
+
+        var allowed = schema.AllowedValues(TypeIncomePath);
+
+        if (allowed.Count > 0 && !allowed.Contains(code))
+            throw new EcfXmlException(
+                $"<TipoIngresos> {code} is not an income code the schema of the e-CF {(int)schema.DocumentType} accepts.");
+
+        return code;
     }
 
     private static void WriteElement(XmlWriter writer, EcfSchema schema, string path, string? value)

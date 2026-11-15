@@ -26,6 +26,11 @@ public class EcfXmlWriterTests
     [InlineData(EcfDocumentType.DebitNote)]
     [InlineData(EcfDocumentType.CreditNote)]
     [InlineData(EcfDocumentType.Purchase)]
+    [InlineData(EcfDocumentType.MinorExpenses)]
+    [InlineData(EcfDocumentType.SpecialRegimes)]
+    [InlineData(EcfDocumentType.Governmental)]
+    [InlineData(EcfDocumentType.Exportation)]
+    [InlineData(EcfDocumentType.ExternalPayments)]
     public void Write_ProducesADocumentThatMatchesTheOfficialSchemaOfEveryType(EcfDocumentType documentType)
     {
         var xml = _writer.Write(BuildDocument(documentType));
@@ -177,7 +182,7 @@ public class EcfXmlWriterTests
     {
         var document = BuildDocument(EcfDocumentType.CreditNote) with
         {
-            Identity = BuildIdentity() with { CreditNoteBeyondThirtyDays = true }
+            Identity = BuildIdentity(EcfDocumentType.CreditNote) with { CreditNoteBeyondThirtyDays = true }
         };
 
         var xml = _writer.Write(document);
@@ -190,7 +195,7 @@ public class EcfXmlWriterTests
     {
         var document = BuildDocument(EcfDocumentType.FiscalCredit) with
         {
-            Identity = BuildIdentity() with
+            Identity = BuildIdentity(EcfDocumentType.FiscalCredit) with
             {
                 PaymentType = EcfPaymentType.Credit,
                 PaymentDueDate = new DateTime(2026, 12, 4),
@@ -236,6 +241,45 @@ public class EcfXmlWriterTests
     }
 
     [Fact]
+    public void Write_ThrowsWhenTheDocumentCarriesAnIncomeTheTypeDoesNotAccept()
+    {
+        var document = BuildDocument(EcfDocumentType.MinorExpenses) with
+        {
+            Identity = BuildIdentity(EcfDocumentType.MinorExpenses) with { TypeIncome = EcfTypeIncome.Operations }
+        };
+
+        var act = () => _writer.Write(document);
+
+        act.Should().Throw<EcfXmlException>().WithMessage("*TipoIngresos*");
+    }
+
+    [Fact]
+    public void Write_ThrowsWhenTheIncomeIsNotOneTheSchemaOfTheTypeAccepts()
+    {
+        var document = BuildDocument(EcfDocumentType.FiscalCredit) with
+        {
+            Identity = BuildIdentity(EcfDocumentType.FiscalCredit) with { TypeIncome = (EcfTypeIncome)7 }
+        };
+
+        var act = () => _writer.Write(document);
+
+        act.Should().Throw<EcfXmlException>().WithMessage("*not an income code*");
+    }
+
+    [Fact]
+    public void Write_ThrowsWhenTheTypeRequiresAnIncomeAndTheDocumentHasNone()
+    {
+        var document = BuildDocument(EcfDocumentType.FiscalCredit) with
+        {
+            Identity = BuildIdentity(EcfDocumentType.FiscalCredit) with { TypeIncome = null }
+        };
+
+        var act = () => _writer.Write(document);
+
+        act.Should().Throw<EcfXmlException>().WithMessage("*TipoIngresos*");
+    }
+
+    [Fact]
     public void Write_ThrowsWhenTheDocumentDoesNotMatchTheOfficialSchema()
     {
         var document = BuildDocument(EcfDocumentType.FiscalCredit) with
@@ -261,7 +305,7 @@ public class EcfXmlWriterTests
     private static EcfDocument BuildDocument(EcfDocumentType documentType) => new()
     {
         DocumentType = documentType,
-        Identity = BuildIdentity(),
+        Identity = BuildIdentity(documentType),
         Issuer = BuildIssuer(),
         Buyer = documentType is EcfDocumentType.CreditNote or EcfDocumentType.DebitNote
             ? null
@@ -281,9 +325,10 @@ public class EcfXmlWriterTests
         },
         Items = [BuildItem() with
         {
-            // The purchases type demands the retention block on every line.
-            Retention = documentType is EcfDocumentType.Purchase
-                ? new EcfRetention { IsWithholdingAgent = true }
+            // The purchases and the payments to the exterior demand the
+            // retention block on every line.
+            Retention = documentType is EcfDocumentType.Purchase or EcfDocumentType.ExternalPayments
+                ? new EcfRetention { IsWithholdingAgent = true, IncomeTaxWithheld = 100m }
                 : null
         }],
         Reference = documentType is EcfDocumentType.CreditNote or EcfDocumentType.DebitNote
@@ -297,11 +342,16 @@ public class EcfXmlWriterTests
         SignedAt = new DateTime(2026, 11, 4, 10, 30, 0)
     };
 
-    private static EcfIdentity BuildIdentity() => new()
+    private static EcfIdentity BuildIdentity(EcfDocumentType documentType) => new()
     {
         ENCF = "B310000000000",
         SequenceExpiresAt = new DateTime(2026, 12, 31),
-        TypeIncome = EcfTypeIncome.Operations,
+        // The types whose schema declares no income carry none.
+        TypeIncome = documentType is EcfDocumentType.Purchase
+            or EcfDocumentType.MinorExpenses
+            or EcfDocumentType.ExternalPayments
+            ? null
+            : EcfTypeIncome.Operations,
         PaymentType = EcfPaymentType.Cash,
         CreditNoteBeyondThirtyDays = false
     };

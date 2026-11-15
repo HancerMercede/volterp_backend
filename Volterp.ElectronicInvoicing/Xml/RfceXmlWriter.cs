@@ -61,7 +61,7 @@ public sealed class RfceXmlWriter
         writer.WriteStartElement("IdDoc");
         writer.WriteElementString("TipoeCF", ConsumerDocumentType.ToString(CultureInfo.InvariantCulture));
         writer.WriteElementString("eNCF", identity.ENCF);
-        WriteElement(writer, "TipoIngresos", identity.TypeIncome is null ? null : ((int)identity.TypeIncome.Value).ToString("D2", CultureInfo.InvariantCulture));
+        WriteElement(writer, "TipoIngresos", identity.TypeIncome is null ? null : EcfTypeIncomes.Code(identity.TypeIncome.Value));
         WriteElement(writer, "TipoPago", identity.PaymentType is null ? null : ((int)identity.PaymentType.Value).ToString(CultureInfo.InvariantCulture));
 
         if (identity.Payments.Count > 0)

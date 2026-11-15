@@ -44,6 +44,13 @@ public sealed class EcfSchema
     public bool IsRequired(string path) => Find(path)?.Required is true;
 
     /// <summary>
+    /// The values the field at the given path accepts, as the schema of this
+    /// type enumerates them. It is empty when the field is not part of this
+    /// type or when its values are not enumerated.
+    /// </summary>
+    public IReadOnlyList<string> AllowedValues(string path) => Find(path)?.AllowedValues ?? [];
+
+    /// <summary>
     /// The highest number of times the given path may appear on a document of
     /// this type.
     /// </summary>
@@ -166,7 +173,26 @@ public sealed class EcfSchema
         }
 
         var maxOccurs = element.MaxOccurs == decimal.MaxValue ? -1 : (int)element.MaxOccurs;
-        return new SchemaNode(element.Name!, element.MinOccurs >= 1, maxOccurs, children);
+        return new SchemaNode(element.Name!, element.MinOccurs >= 1, maxOccurs, children, EnumerationsOf(element, schemas));
+    }
+
+    private static IReadOnlyList<string> EnumerationsOf(XmlSchemaElement element, XmlSchemaSet schemas)
+    {
+        var simpleType = element.SchemaType as XmlSchemaSimpleType;
+
+        if (simpleType is null && element.SchemaTypeName is not null
+            && schemas.GlobalTypes.Contains(element.SchemaTypeName))
+        {
+            simpleType = schemas.GlobalTypes[element.SchemaTypeName] as XmlSchemaSimpleType;
+        }
+
+        if (simpleType?.Content is not XmlSchemaSimpleTypeRestriction restriction)
+            return [];
+
+        return restriction.Facets
+            .OfType<XmlSchemaEnumerationFacet>()
+            .Select(facet => facet.Value ?? string.Empty)
+            .ToList();
     }
 
     private static void Collect(
@@ -185,7 +211,8 @@ public sealed class EcfSchema
         string name,
         bool required,
         int maxOccurs,
-        Dictionary<string, SchemaNode> children)
+        Dictionary<string, SchemaNode> children,
+        IReadOnlyList<string> allowedValues)
     {
         public string Name { get; } = name;
 
@@ -194,6 +221,8 @@ public sealed class EcfSchema
         public int MaxOccurs { get; } = maxOccurs;
 
         public Dictionary<string, SchemaNode> Children { get; } = children;
+
+        public IReadOnlyList<string> AllowedValues { get; } = allowedValues;
     }
 }
 
