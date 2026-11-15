@@ -865,6 +865,13 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Lo que habilita** ✓: **T39** (el camino en papel ✓) y **T42** (la contingencia ✓) dejan de ser suposiciones ✓ → y el front puede ofrecer el toggle ✓ y mostrar en el banner que ese cliente factura en papel ✓.
   - **El orden** ✓: **T55** ✓ antes que T39 ✓ y T42 ✓ → y **T56** (el seeder de los cuatro estados ✓) sirve para que el front pruebe el banner sin la DGII ✓.
 
+- **L72** (2026-11-14) — **T52: la suite aplica la cadena real de migraciones** ✓ (y los 3 probes de T51 entran con ella ✓).
+  - **El commit** ✓: `76c24d6` ✓ · la verificación del padre ✓: los 5 tests de la cadena y de los probes **verdes** ✓ y la library **129 + 2 skipped** ✓ (los 2 skips son los de la DGII real ✓, sin certificado ✓) → la suite ERP completa **734/734** ✓ (la del worker ✓, con la lane de T50 ya en el árbol ✓).
+  - **Lo que hace** ✓: la suite levanta un **Postgres disposable** ✓ (prefijo `volterp_test_` ✓ → la base de desarrollo `volterp` **nunca** se toca ✓ → el nombre se valida antes de crear y dropear ✓) → aplica **todas** las migraciones que EF descubre ✓ (sin fijar un conteo frágil ✓ → hoy son 19 ✓ y cuando entren las que faltan las cubre solo ✓) → compara el **esquema** y los **índices** de forma **semántica** ✓ (el `ordinal_position` físico de Postgres cambia al dropear y recrear una columna ✓ → daba falsos diferencias ✓ → ahora se compara por posición semántica ✓) → y prueba el **rollback** y el **re-apply** ✓.
+  - **Los 3 probes de T51** ✓ entran con ella ✓: el `Down` de T25 **rechaza** con `P0001` ✓ y con el mensaje ✓ cuando hay dos rangos ✓, el índice único viejo vuelve ✓ y el `ON CONFLICT` histórico **sigue funcionando** ✓ → y el re-apply deja el único nuevo ✓.
+  - **Los conteos** ✓: los 12 tests de migración **verdes** ✓ · la suite ERP **734/734** ✓ · la library **129 + 2 skipped** ✓.
+  - **Los advisories** ✓: sin Postgres (o sin `rolcreatedb` ✓) el test **se salta** ✓ → el CI necesita un Postgres configurado ✓ para correr la cadena de verdad ✓ · T52 cubre S24 en la **capa de persistencia** ✓ (el orquestador de emisión y veredicto ✓ sigue con sus pruebas propias ✓).
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
