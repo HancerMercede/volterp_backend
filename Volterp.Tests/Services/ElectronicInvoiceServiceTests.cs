@@ -400,10 +400,11 @@ public class ElectronicInvoiceServiceTests
     }
 
     [Fact]
-    public async Task IssueAsync_WithAConsumptionInvoiceAboveTheLimit_RecordsNoVerificationUrl()
+    public async Task IssueAsync_WithAConsumptionInvoiceAboveTheLimit_RecordsTheTimbreOfTheTaxpayerHost()
     {
         // Above RD$250,000 the invoice itself is the one that travels to the
-        // DGII: there is no summary and no timbre of one.
+        // DGII: there is no summary, so the QR points at the timbre of the
+        // host of the taxpayer.
         var sale = Sale();
         sale.AddItem(Guid.CreateVersion7(), "Café molido", 2, 200000m, TaxCode.ItbisTasa1);
         Given(sale, Company());
@@ -412,7 +413,11 @@ public class ElectronicInvoiceServiceTests
 
         result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
         _persisted!.Total.Should().Be(472236.00m);
-        _persisted.QrUrl.Should().BeNull();
+        _persisted.QrUrl.Should().Contain("https://ecf.dgii.gov.do/testecf/consultatimbre");
+        _persisted.QrUrl.Should().Contain($"rncemisor={IssuerRnc}");
+        _persisted.QrUrl.Should().Contain("encf=E320000000001");
+        _persisted.QrUrl.Should().Contain("montototal=472236.00");
+        _persisted.QrUrl.Should().Contain("codigoseguridad=BoXjC8");
     }
 
     [Fact]

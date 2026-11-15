@@ -12,6 +12,10 @@ public static class EcfVerificationUrl
     // p. 19 and p. 42).
     public const string ConsumptionHost = "https://fc.dgii.gov.do";
 
+    // The host of the taxpayer ("Descripción Técnica Servicios DGII", p. 40):
+    // the timbre of a document that is not a summary is answered there.
+    public const string TaxpayerHost = "https://ecf.dgii.gov.do";
+
     // p. 20: GET {host}/{ambiente}/consultarfce/api/Consultas/Consulta
     //      ?RNC_Emisor=&ENCF=&Cod_Seguridad_eCF=
     // The consultation of a summary asks the DGII for its verdict, so it
@@ -53,6 +57,36 @@ public static class EcfVerificationUrl
                + $"?rncemisor={Uri.EscapeDataString(issuerTaxId)}"
                + $"&encf={Uri.EscapeDataString(encf)}"
                + $"&montototal={total.ToString("0.00", CultureInfo.InvariantCulture)}"
+               + $"&codigoseguridad={Uri.EscapeDataString(securityCode)}";
+    }
+
+    // p. 40-41: {host}/{ambiente}/consultatimbre
+    //      ?rncemisor=&rnccomprador=&encf=&fechaemision=&montototal=&fechafirma=&codigoseguridad=
+    // The timbre of a document that is not a summary is the URL the QR of
+    // its printed representation carries: the DGII answers it on the host
+    // of the taxpayer, and anyone can open it without a token.
+    public static string ForTimbre(
+        DgiiEnvironment environment,
+        string issuerTaxId,
+        string? buyerTaxId,
+        string encf,
+        decimal total,
+        DateTime issuedAt,
+        DateTime signedAt,
+        string securityCode,
+        string host = TaxpayerHost)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(issuerTaxId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(encf);
+        ArgumentException.ThrowIfNullOrWhiteSpace(securityCode);
+
+        return $"{Base(host, environment)}/consultatimbre"
+               + $"?rncemisor={Uri.EscapeDataString(issuerTaxId)}"
+               + $"&rnccomprador={Uri.EscapeDataString(buyerTaxId ?? string.Empty)}"
+               + $"&encf={Uri.EscapeDataString(encf)}"
+               + $"&fechaemision={issuedAt.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)}"
+               + $"&montototal={total.ToString("0.00", CultureInfo.InvariantCulture)}"
+               + $"&fechafirma={signedAt.ToString("dd-MM-yyyy HH:mm:ss", CultureInfo.InvariantCulture).Replace(" ", "%20")}"
                + $"&codigoseguridad={Uri.EscapeDataString(securityCode)}";
     }
 

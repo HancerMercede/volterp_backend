@@ -501,7 +501,7 @@ public class ElectronicInvoiceService(
             // The URL the receiver opens to check the document. It travels
             // with the document, so it is only known once the amounts and the
             // security code are.
-            var qrUrl = VerificationUrlOf(documentType, document.Totals.Total, issuer.TaxId, encf, securityCode);
+            var qrUrl = VerificationUrlOf(document, encf, securityCode);
 
             invoice.Sign(signedXml, signedAt);
             invoice.SecurityCode = securityCode;
@@ -530,12 +530,27 @@ public class ElectronicInvoiceService(
 
     // A consumption invoice below RD$250,000 travels to the DGII as a summary
     // and its printed representation carries the timbre of that summary. The
-    // rest of the documents have no timbre of a summary to point at.
-    private string? VerificationUrlOf(
-        EcfDocumentType documentType, decimal total, string issuerTaxId, string encf, string securityCode)
-        => documentType == EcfDocumentType.Consumer && total < RfceDocument.MaximumAmount
-            ? EcfVerificationUrl.ForRfceTimbre(_dgiiOptions.Environment, issuerTaxId, encf, total, securityCode)
-            : null;
+    // rest of the documents carry the timbre of the host of the taxpayer,
+    // which is the URL the QR of their printed representation points at.
+    private string? VerificationUrlOf(EcfDocument document, string encf, string securityCode)
+    {
+        var issuerTaxId = document.Issuer.TaxId;
+        var total = document.Totals.Total;
+
+        if (document.DocumentType == EcfDocumentType.Consumer && total < RfceDocument.MaximumAmount)
+            return EcfVerificationUrl.ForRfceTimbre(
+                _dgiiOptions.Environment, issuerTaxId, encf, total, securityCode);
+
+        return EcfVerificationUrl.ForTimbre(
+            _dgiiOptions.Environment,
+            issuerTaxId,
+            document.Buyer?.TaxId,
+            encf,
+            total,
+            document.Issuer.IssuedAt,
+            document.SignedAt,
+            securityCode);
+    }
 
     private void ApplyVerdict(ElectronicInvoice invoice, DgiiStatus status)
     {
