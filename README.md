@@ -163,6 +163,18 @@ La migración `20261114221020_AddDgiiResponses` (T47) agregó las cuatro columna
 
 La credencial del certificado se guarda cifrada y nunca vuelve por la respuesta. Para firmar e-CF, el ERP la interpreta como el sobre `{"pfx": "<base64 del .p12>", "password": "<password del .p12>"}`: es el único secreto del emisor, porque la DGII autentica los web services con la firma del certificado.
 
+### DGII certificate authentication
+
+The reception endpoints (`POST /fe/recepcion/api/ecf` and `POST /fe/aprobacioncomercial/api/ecf`) use the `DgiiCertificate` authentication scheme. TLS must present a client certificate; the handler rejects a missing certificate, an expired/not-yet-valid certificate, a certificate without the client-authentication EKU, and a certificate whose chain cannot be built to a configured trust anchor.
+
+Configure the anchors as absolute certificate-file paths (PEM or DER):
+
+```bash
+DgiiCertificate__TrustedRootCertificatePaths__0=/secure/path/dgii-root.pem
+```
+
+The default trust mode is `CustomRootTrust`. With no configured anchor every certificate request is rejected. `System` mode proves only that the operating-system trust store accepts the chain; it does **not** prove that the certificate belongs to the DGII. The official DGII trust anchor and the registration of the exact certificate used in each taxpayer's certification remain an external operational dependency (L78).
+
 ## Related
 
 - [Frontend (erp-mvp)](https://github.com/HancerMercede/erp-mvp) — React SPA

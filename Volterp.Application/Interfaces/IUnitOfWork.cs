@@ -15,6 +15,7 @@ public interface IUnitOfWork
     IElectronicInvoiceSequenceRepository ElectronicInvoiceSequences { get; }
     ICompanyCertificateRepository CompanyCertificates { get; }
     IElectronicInvoiceRepository ElectronicInvoices { get; }
+    IReceivedElectronicInvoiceRepository ReceivedElectronicInvoices { get; }
     ICodeGenerator Codes { get; }
     IDashboardRepository Dashboard { get; }
     Task<int> CommitAsync(CancellationToken ct = default);

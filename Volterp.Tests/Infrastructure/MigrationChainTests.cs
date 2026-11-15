@@ -29,7 +29,8 @@ public class MigrationChainTests
         "20261113120000_AddEcfRangesAndNoteReferences",
         "20261113160000_UniqueDocumentPerSale",
         "20261114011904_AddDurableElectronicInvoiceQueue",
-        "20261114221020_AddDgiiResponses"
+        "20261114221020_AddDgiiResponses",
+        "20261115173226_AddReceivedElectronicInvoices"
     };
 
     [Fact]
@@ -75,6 +76,23 @@ public class MigrationChainTests
 
         DownOperationsOf(migration).Should().NotBeEmpty(
             "a rollback that does nothing leaves the schema of the client in the state of the migration");
+    }
+
+    [Fact]
+    public void TheReceivedDocumentUsesTheGlobalNaturalKey()
+    {
+        using var context = Context();
+
+        var entity = context.Model.FindEntityType(typeof(ReceivedElectronicInvoice));
+        entity.Should().NotBeNull();
+
+        var naturalKey = entity!.GetIndexes()
+            .Single(index => index.Properties.Count == 2
+                && index.Properties[0].Name == nameof(ReceivedElectronicInvoice.IssuerTaxId)
+                && index.Properties[1].Name == nameof(ReceivedElectronicInvoice.ENCF));
+
+        naturalKey.IsUnique.Should().BeTrue(
+            "the same issuer and e-NCF cannot be received twice, even for a different tenant");
     }
 
     [Fact]

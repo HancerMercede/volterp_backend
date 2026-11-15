@@ -1,13 +1,22 @@
 using Serilog;
-using Volterp.Api.Configuration;
-using Volterp.Application.Diagnostics;
-using Volterp.Infrastructure.Data;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.EntityFrameworkCore;
+using Volterp.Api.Authentication;
+using Volterp.Api.Configuration;
+using Volterp.Api.Controllers;
 using Volterp.Api.Extensions;
+using Volterp.Application.Diagnostics;
+using Volterp.Application.Services;
+using Volterp.Infrastructure.Data;
 
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(options =>
+    options.ConfigureHttpsDefaults(https =>
+        https.ClientCertificateMode = ClientCertificateMode.AllowCertificate));
 
 var jwtSettings = new JwtSettings
 {
@@ -33,6 +42,18 @@ ServiceExtensions.ConfigureServiceManager(builder.Services);
 ServiceExtensions.ConfigureJwt(builder.Services, jwtSettings);
 ServiceExtensions.ConfigureEncryption(builder.Services, encryptionSettings);
 ServiceExtensions.ConfigureElectronicInvoicing(builder.Services, builder.Configuration);
+builder.Services.AddScoped<ElectronicInvoiceReceptionService>();
+builder.Services.AddAuthentication()
+    .AddScheme<DgiiCertificateAuthenticationOptions, DgiiCertificateAuthenticationHandler>(
+        ElectronicInvoiceReceptionController.DgiiAuthenticationScheme,
+        "DGII client certificate",
+        options =>
+        {
+            builder.Configuration
+                .GetSection(DgiiCertificateAuthenticationOptions.SectionName)
+                .Bind(options);
+            options.LoadTrustedRootCertificates();
+        });
 ServiceExtensions.ConfigureControllers(builder.Services);
 ServiceExtensions.ConfigureCors(builder.Services);
 ServiceExtensions.ConfigureExceptionLogStore(builder.Services);
