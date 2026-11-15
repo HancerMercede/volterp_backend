@@ -116,6 +116,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Companies** | CRUD `/api/companies` |
 | **Company Certificates** | `GET /api/CompanyCertificates`, `POST /api/CompanyCertificates` (admin) |
 | **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png` |
+| **Electronic Invoice Print** | `GET /api/ElectronicInvoicePrint/{id}` (printable HTML representation; accepted e-CF only) |
 | **Accounting** | CRUD `/api/accounting-transactions` |
 
 `GET /api/ElectronicInvoices/state` contesta el estado fiscal del tenant (la empresa sale del token, nunca de la petición):
