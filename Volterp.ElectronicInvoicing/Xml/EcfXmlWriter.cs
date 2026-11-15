@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Xml;
 using Volterp.ElectronicInvoicing.Schemas;
+using Volterp.ElectronicInvoicing.Validation;
 namespace Volterp.ElectronicInvoicing.Xml;
 
 /// <summary>
@@ -51,12 +52,26 @@ public sealed class EcfXmlWriter
     /// Writes the document as the XML the DGII expects.
     /// </summary>
     /// <exception cref="EcfXmlException">
-    /// The document misses something its type requires, or it does not match
-    /// the official schema.
+    /// The document misses something its type requires, its totals do not add
+    /// up to its lines, or it does not match the official schema.
     /// </exception>
     public string Write(EcfDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
+
+        // The rules of the type and the arithmetic of the document are checked
+        // before anything is written: a document that does not add up is not
+        // written, and therefore never signed.
+        var breaches = EcfDocumentValidator.Validate(document);
+
+        if (breaches.Count > 0)
+        {
+            var details = string.Join(" | ", breaches.Take(3).Select(breach => breach.Message));
+            var more = breaches.Count > 3 ? $" (and {breaches.Count - 3} more)" : string.Empty;
+
+            throw new EcfXmlException(
+                $"The e-CF {(int)document.DocumentType} is not valid: {details}{more}");
+        }
 
         var schema = _schemaFor(document.DocumentType);
         var settings = new XmlWriterSettings

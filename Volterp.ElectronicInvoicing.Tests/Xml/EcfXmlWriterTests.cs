@@ -116,7 +116,17 @@ public class EcfXmlWriterTests
     {
         var document = BuildDocument(EcfDocumentType.FiscalCredit) with
         {
-            Items = [BuildItem() with { UnitPrice = 99.999m, Amount = 99.999m }]
+            Items = [BuildItem() with { UnitPrice = 99.999m, Amount = 99.999m }],
+            // The totals follow the line: the amount of the line is what the
+            // document adds up to.
+            Totals = BuildDocument(EcfDocumentType.FiscalCredit).Totals with
+            {
+                TaxableTotal = 100m,
+                TaxableAtRate1 = 100m,
+                ItbisTotal = 18m,
+                ItbisAtRate1 = 18m,
+                Total = 118m
+            }
         };
 
         var xml = _writer.Write(document);
@@ -277,6 +287,19 @@ public class EcfXmlWriterTests
         var act = () => _writer.Write(document);
 
         act.Should().Throw<EcfXmlException>().WithMessage("*TipoIngresos*");
+    }
+
+    [Fact]
+    public void Write_ThrowsWhenTheTotalsOfTheDocumentDoNotAddUpToItsLines()
+    {
+        var document = BuildDocument(EcfDocumentType.FiscalCredit) with
+        {
+            Totals = BuildDocument(EcfDocumentType.FiscalCredit).Totals with { Total = 1200m }
+        };
+
+        var act = () => _writer.Write(document);
+
+        act.Should().Throw<EcfXmlException>().WithMessage("*MontoTotal*");
     }
 
     [Fact]

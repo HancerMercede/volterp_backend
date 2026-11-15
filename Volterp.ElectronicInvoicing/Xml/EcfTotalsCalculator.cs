@@ -11,16 +11,28 @@ public static class EcfTotalsCalculator
     /// Calculates the totals of a document from its lines.
     /// </summary>
     /// <param name="items">The lines of the document.</param>
-    public static EcfTotals Calculate(IEnumerable<EcfItem> items)
+    public static EcfTotals Calculate(IEnumerable<EcfItem> items) => Calculate(items, []);
+
+    /// <summary>
+    /// Calculates the totals of a document from its lines and the discounts and
+    /// surcharges of the whole document: they change the base the ITBIS is
+    /// charged on, so they are applied to the line they name before the totals
+    /// are added up.
+    /// </summary>
+    /// <param name="items">The lines of the document.</param>
+    /// <param name="adjustments">The discounts and surcharges of the document.</param>
+    public static EcfTotals Calculate(IEnumerable<EcfItem> items, IEnumerable<EcfAdjustment> adjustments)
     {
         ArgumentNullException.ThrowIfNull(items);
+        ArgumentNullException.ThrowIfNull(adjustments);
 
+        var netByLine = NetByLine(adjustments);
         var buckets = new Dictionary<EcfTaxBucket, (decimal Amount, decimal Itbis)>();
 
         foreach (var line in items)
         {
             var rate = EcfTaxRates.For(line.TaxTreatment);
-            var amount = decimal.Round(line.Amount, 2);
+            var amount = decimal.Round(line.Amount + netByLine.GetValueOrDefault(line.LineNumber), 2);
             var tax = decimal.Round(amount * rate.Fraction, 2);
 
             var current = buckets.GetValueOrDefault(rate.Bucket);
@@ -48,6 +60,25 @@ public static class EcfTotalsCalculator
             ItbisTotal = itbisTotal,
             Total = taxableTotal + (exemptTotal ?? 0m) + itbisTotal
         };
+    }
+
+    // The discount takes the amount away and the surcharge adds it, and both
+    // land on the line they name.
+    private static Dictionary<int, decimal> NetByLine(IEnumerable<EcfAdjustment> adjustments)
+    {
+        var net = new Dictionary<int, decimal>();
+
+        foreach (var adjustment in adjustments)
+        {
+            var amount = adjustment.Amount ?? 0m;
+
+            if (adjustment.Kind == EcfAdjustmentKind.Discount)
+                amount = -amount;
+
+            net[adjustment.LineNumber] = net.GetValueOrDefault(adjustment.LineNumber) + amount;
+        }
+
+        return net;
     }
 
     private static decimal? Amount(Dictionary<EcfTaxBucket, (decimal Amount, decimal Itbis)> buckets, EcfTaxBucket bucket)
