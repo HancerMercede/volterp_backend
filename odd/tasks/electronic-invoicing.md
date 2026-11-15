@@ -977,6 +977,13 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **La evidencia** ✓: library Printing **40/40** ✓ → ERP `ElectronicInvoicePrint` **10/10** ✓ → probes independientes de library **5/5** ✓ → probes de ERP, auth, tenant y QR **13/13** ✓ → seis mutaciones cayeron en RED en la regla esperada ✓ → los cinco builds tocados dieron **0 errores** ✓ → la assessment nativa dio **medium / review_due=false** (`under_budget`) ✓ → no se abrió una revisión nativa adicional ✓.
   - **El único advisory separado** ✓: `Volterp.Api/Helpers/QrCodeRenderer.cs` confunde ECC Q con la versión QR 8 exigida por la spec ✓ → es código preexistente compartido por la RI y el endpoint QR de T29 ✓ → no lo cambió esta unidad ✓ → queda como deuda basal explícita y no como defecto introducido por T34 ✓.
 
+- **L86** (2026-11-15) — **Cierre verificado de la primera ola reanudada: T32, T34, T40 y T56** ✓.
+  - **Las cuatro unidades** ✓: T32 `49a0452` ✓ · T34 `8b913b5` ✓ · T40 `f721f3c` ✓ · T56 `e01c2f3` ✓ → cada una tiene su commit de comportamiento ✓, su Log documental ✓, su revisión independiente cuando correspondió ✓ y su assessment nativa ✓.
+  - **La verificación agregada con la máquina libre** ✓: build `Release` de la solución completa = **0 errores / 45 warnings preexistentes** ✓ → `has-pending-model-changes` = **sin cambios desde la última migración** ✓ → suite completa de `Volterp.ElectronicInvoicing.Tests` = **240 passed / 2 skipped / 242 total** ✓ → suite completa de `Volterp.Tests` = **803 passed / 6 skipped / 809 total** ✓.
+  - **Los skips** ✓: los dos E2E contra la DGII real requieren el circuito externo ✓ → los otros cuatro son los probes de PostgreSQL o de comportamiento condicionado al entorno que ya estaban identificados ✓ → no se ocultó ninguno ni se convirtió un skip en PASS sin evidencia ✓.
+  - **Un incidente de tooling, no de producto** ✓: el primer `dotnet-ef` no encontró `dotnet` en el `PATH` del proceso hijo ✓ → el build ya había terminado con 0 errores ✓ → se corrigió `DOTNET_ROOT` y `PATH` ✓ → el model check dio limpio ✓ → las dos suites corrieron completas ✓. No se relajó ningún control ✓.
+  - **La deuda que sigue visible** ✓: la versión QR 8 del helper compartido queda como advisory basal separado ✓ → T39, T42, T33, T38, T44 y T18 siguen abiertos ✓ → el front requiere autorización para otro repo ✓ → T48 se ejecuta al final con las credenciales ya localizadas ✓.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
