@@ -30,8 +30,17 @@ public class UserRepository(VolterpDbContext context)
         return await ExistsAsync(u => u.CompanyId == companyId && u.Code == code, ct);
     }
 
+    // The email of a user is compared without case: the lookup finds the user
+    // whatever the case of the address it is given. The comparison is the one
+    // both providers translate into SQL.
+    //
+    // The unique index of the column is case-sensitive in Postgres, so the
+    // database would take two users whose addresses differ only in the case.
+    // That is why the check of the duplicate address goes apart: the command
+    // refuses an address that only differs in the case of one that is already
+    // in use.
     public async Task<User?> GetByUserByEmailAsync(string email, CancellationToken ct = default)
-        =>  await GetByCondictionsAsync(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase), ct);
+        =>  await GetByCondictionsAsync(u => u.Email.ToLower() == email.ToLowerInvariant(), ct);
 
     public async Task<User?> GetUserByIdAsync(Guid id, CancellationToken ct = default)
         => await GetByIdAsync(id, ct);

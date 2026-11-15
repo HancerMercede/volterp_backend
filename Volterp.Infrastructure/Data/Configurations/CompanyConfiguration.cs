@@ -17,14 +17,5 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         entity.Property(e=>e.Email).IsRequired().HasMaxLength(50);
         entity.Property(e => e.Phone).IsRequired().HasMaxLength(30);
         entity.Property(e => e.IsActive).HasDefaultValue(true);
-
-        entity.HasData(new Company
-        {
-            Id = new Guid("00000001-0000-0000-0000-000000000001"),
-            Name = "HM Software Solutions",
-            TaxId = "HM123456789",
-            IsActive = true,
-            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-        });
     }
 }

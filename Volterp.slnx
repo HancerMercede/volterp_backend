@@ -6,4 +6,5 @@
   <Project Path="Volterp.ElectronicInvoicing.Tests/Volterp.ElectronicInvoicing.Tests.csproj" />
   <Project Path="Volterp.Infrastructure/Volterp.Infrastructure.csproj" />
   <Project Path="Volterp.Tests/Volterp.Tests.csproj" />
+  <Project Path="Volterp.Tools/Volterp.Tools.csproj" />
 </Solution>

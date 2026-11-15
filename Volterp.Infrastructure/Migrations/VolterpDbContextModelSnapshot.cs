@@ -321,20 +321,6 @@ namespace Volterp.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Companies");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("00000001-0000-0000-0000-000000000001"),
-                            Address = "",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "",
-                            IsActive = true,
-                            LegalName = "",
-                            Name = "HM Software Solutions",
-                            Phone = "",
-                            TaxId = "HM123456789"
-                        });
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.CompanyCertificate", b =>
@@ -1173,21 +1159,6 @@ namespace Volterp.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("00000002-0000-0000-0000-000000000001"),
-                            Code = "Usu-001",
-                            CompanyId = new Guid("00000001-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Email = "admin@hm.com",
-                            FullName = "Administrador",
-                            IsActive = true,
-                            PasswordHash = "$2a$12$XLgan9fXGIGfO.UcBuUweegkVWrYJqDgOZY48h4/udZJyNASNol3O",
-                            Role = 1,
-                            Username = "admin"
-                        });
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.AccountingTransaction", b =>
