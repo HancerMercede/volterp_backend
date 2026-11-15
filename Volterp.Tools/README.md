@@ -32,6 +32,45 @@ stored anywhere but in the hash of the database.
 The command is idempotent: run it again with the same RNC and it says that the
 company is already there, without creating anything.
 
+## The demo invoices of the fiscal banner
+
+`seed-demo-invoices` leaves one electronic invoice in each open fiscal state
+for the tenant with the given RNC:
+
+```
+dotnet run --project Volterp.Tools -- seed-demo-invoices --rnc 101500018
+```
+
+The states are pending emission, in process, rejected and requires review. The
+endpoint `GET /api/ElectronicInvoices/state` counts and lists those four
+invoices for the tenant of the token.
+
+What the command writes is four consumption e-CFs (`E320000009001` to
+`E320000009004`) and the sale each one points to. The sales are completed
+sales of 100 plus 18 of ITBIS, without lines: the demo needs a sale to point
+at, not a sale to invoice. They carry the code `DEMO-EC-PENDING`,
+`DEMO-EC-IN-PROCESS`, `DEMO-EC-REJECTED` and `DEMO-EC-REVIEW`.
+
+The tenant is the one with the given RNC. Once the company is resolved by
+that RNC, every read and every write carries its company id, so the tenant of
+whoever runs the command is irrelevant and the command cannot read or touch
+the invoices of another company.
+
+The command is idempotent: a second run finds the same four invoices and
+creates nothing, not even a second sale. It announces the database before it
+writes, and it prints how many invoices it created, how many were already
+there and how many of the four are in each state. Those numbers are the ones
+of the demo set, not the totals of the tenant.
+
+The demo invoices are not signed. The seeder never loads a certificate, never
+signs and never talks to the DGII. Their printed representation is therefore
+unavailable, while the fiscal state shown by the banner is available. The
+pending and in-process fixtures are kept out of the queues that talk to the
+DGII. The e-NCFs are demo numbers: they belong to no range the DGII
+authorized, and they never travel to the DGII.
+
+The command does not migrate: the schema has to be there before it runs.
+
 ## The connection string
 
 The command reads `ConnectionStrings:DefaultConnection`, the same key the API
@@ -43,5 +82,7 @@ when it starts.
 
 ## The exit code
 
-`0` when the tenant was created or was already there, `1` when it was refused,
-`2` when the arguments or the connection string are missing.
+`0` when the tenant was created or was already there, and when the demo
+invoices were written or were already there. `1` when the command was refused:
+an invalid RNC, a company that does not exist, or a write that failed. `2`
+when the arguments or the connection string are missing.
