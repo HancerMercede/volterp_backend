@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Infrastructure.Data.Configurations;
 
@@ -17,5 +18,13 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         entity.Property(e=>e.Email).IsRequired().HasMaxLength(50);
         entity.Property(e => e.Phone).IsRequired().HasMaxLength(30);
         entity.Property(e => e.IsActive).HasDefaultValue(true);
+        entity.Property(e => e.EmissionMode)
+            .HasConversion<int>()
+            .IsRequired()
+            .HasDefaultValue(CompanyEmissionMode.Electronic);
+        entity.Property(e => e.ContingencyStatus)
+            .HasConversion<int>()
+            .IsRequired()
+            .HasDefaultValue(CompanyContingencyStatus.None);
     }
 }

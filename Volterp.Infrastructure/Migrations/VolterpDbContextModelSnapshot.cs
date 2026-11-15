@@ -270,6 +270,17 @@ namespace Volterp.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<DateTime?>("ContingencyEndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ContingencyStartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ContingencyStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -280,6 +291,11 @@ namespace Volterp.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<int>("EmissionMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()

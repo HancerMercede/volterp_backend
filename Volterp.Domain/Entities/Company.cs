@@ -1,3 +1,4 @@
+using Volterp.Domain.Enums;
 using Volterp.Domain.ValueObjects;
 
 namespace Volterp.Domain.Entities;
@@ -13,6 +14,10 @@ public class Company : AuditEntity
     public string LegalName { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public CompanyEmissionMode EmissionMode { get; set; } = CompanyEmissionMode.Electronic;
+    public CompanyContingencyStatus ContingencyStatus { get; set; } = CompanyContingencyStatus.None;
+    public DateTime? ContingencyStartsAt { get; set; }
+    public DateTime? ContingencyEndsAt { get; set; }
 
     public ICollection<User> Users { get; set; } = new List<User>();
     public ICollection<Product> Products { get; set; } = new List<Product>();

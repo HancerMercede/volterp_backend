@@ -1,0 +1,38 @@
+using Volterp.Application.DTOs.CompanyDtos.EmissionMode;
+using Volterp.Application.Services;
+
+namespace Volterp.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class CompanyEmissionModeController(IUnitOfWork unitOfWork) : BaseController
+{
+    private CompanyEmissionModeService Service => new(unitOfWork);
+
+    [HttpGet]
+    public async Task<ActionResult<CompanyEmissionModeDto>> GetEmissionMode(CancellationToken ct = default)
+    {
+        var companyId = GetCurrentUserCompanyId();
+        var result = await Service.GetAsync(companyId, ct);
+
+        return result.Match<ActionResult<CompanyEmissionModeDto>>(
+            error => NotFound(new ErrorResponse(error.Message)),
+            emissionMode => Ok(emissionMode));
+    }
+
+    [HttpPut]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<CompanyEmissionModeDto>> UpdateEmissionMode(
+        [FromBody] UpdateCompanyEmissionModeDto request,
+        CancellationToken ct = default)
+    {
+        var companyId = GetCurrentUserCompanyId();
+        var userId = GetCurrentUserId();
+        var result = await Service.UpdateAsync(request, companyId, userId, ct);
+
+        return result.Match<ActionResult<CompanyEmissionModeDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            emissionMode => Ok(emissionMode));
+    }
+}
