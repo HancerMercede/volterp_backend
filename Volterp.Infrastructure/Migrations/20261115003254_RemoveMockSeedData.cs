@@ -13,13 +13,37 @@ namespace Volterp.Infrastructure.Migrations
         {
             // The mock of the model leaves: the company "HM Software Solutions",
             // whose RNC was fake, and its administrator, whose password was
-            // published in the repository. Both rows are deleted by their
-            // identifier and nothing else is touched: the tenants of the demo
-            // data and everything that belongs to them stay where they are.
+            // published in the repository. Nothing else is touched: the
+            // tenants of the demo data and everything that belongs to them
+            // stay where they are.
             migrationBuilder.DeleteData(
                 table: "Users",
                 keyColumn: "Id",
                 keyValue: new Guid("00000002-0000-0000-0000-000000000001"));
+
+            // Everything the mock seeded goes with it. The rows the model
+            // seeded for the fake tenant (its clients, its products, its
+            // sales, its purchases, its employees, its suppliers, its
+            // categories, its accounting transactions, its invoice ranges and
+            // its certificates) still point at the company with a restrictive
+            // foreign key, so the company cannot be deleted while they are
+            // there. Children first, then parents.
+            migrationBuilder.Sql(
+                """
+                DELETE FROM "SaleItems" WHERE "SaleId" IN (SELECT "Id" FROM "Sales" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001');
+                DELETE FROM "PurchaseItems" WHERE "PurchaseId" IN (SELECT "Id" FROM "Purchases" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001');
+                DELETE FROM "ElectronicInvoices" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "AccountingTransactions" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "Sales" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "Purchases" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "Products" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "Clients" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "Suppliers" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "Employees" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "Categories" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "ElectronicInvoiceSequences" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                DELETE FROM "CompanyCertificates" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                """);
 
             // The backfill of AddEntityCodes opened a sequence of codes for
             // the mock company, because the mock administrator was its only
@@ -40,6 +64,12 @@ namespace Volterp.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            // The mock tenant comes back with its administrator and its code
+            // sequence. The rows it seeded (its clients, its products, its
+            // sales...) do NOT come back: they were the data of a company
+            // whose RNC never existed, and the model does not seed them
+            // anymore. This asymmetry is deliberate and is the only way to
+            // keep the rollback honest.
             migrationBuilder.InsertData(
                 table: "Companies",
                 columns: new[] { "Id", "Address", "CreatedAt", "CreatedBy", "Email", "IsActive", "LegalName", "LogoUrl", "Name", "Phone", "TaxId", "UpdatedAt", "UpdatedBy" },
