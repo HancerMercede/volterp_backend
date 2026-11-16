@@ -91,7 +91,6 @@ public static class ServiceExtensions
         // The emission runs without an HTTP context: the company travels by
         // hand on every call.
         services.AddScoped<IElectronicInvoiceService, ElectronicInvoiceService>();
-        services.AddScoped<ElectronicInvoicePrintService>();
         services.AddHostedService<ElectronicInvoiceQueueWorker>();
     }
 

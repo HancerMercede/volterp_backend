@@ -1,9 +1,8 @@
 using System.Text;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
-using Volterp.Application.DTOs.Printing;
+using Volterp.Application.DTOs.ElectronicInvoicePrintDtos;
 using Volterp.Application.Interfaces;
-using Volterp.Application.Services;
 using Volterp.ElectronicInvoicing.Printing;
 
 namespace Volterp.Api.Controllers;
@@ -11,11 +10,11 @@ namespace Volterp.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ElectronicInvoicePrintController(ElectronicInvoicePrintService printService) : BaseController
+public class ElectronicInvoicePrintController(IServiceManager serviceManager) : BaseController
 {
     // The printed representation of an e-CF: the HTML the browser prints.
     // The PDF is the one the browser writes when it prints the page.
-    private readonly ElectronicInvoicePrintService _print = printService;
+    private readonly IElectronicInvoicePrintService _print = serviceManager.ElectronicInvoicePrints;
 
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct = default)

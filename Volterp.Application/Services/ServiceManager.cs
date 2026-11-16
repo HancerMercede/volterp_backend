@@ -47,4 +47,7 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
 
     private INormalFiscalDocumentService? _normalFiscalDocuments;
     public INormalFiscalDocumentService NormalFiscalDocuments => _normalFiscalDocuments ??= new NormalFiscalDocumentService(unitOfWork);
+
+    private IElectronicInvoicePrintService? _electronicInvoicePrints;
+    public IElectronicInvoicePrintService ElectronicInvoicePrints => _electronicInvoicePrints ??= new ElectronicInvoicePrintService(unitOfWork);
 }

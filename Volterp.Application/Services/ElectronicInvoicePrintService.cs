@@ -1,10 +1,11 @@
 using EitherWay;
-using Volterp.Application.DTOs.Printing;
+using Volterp.Application.DTOs.ElectronicInvoicePrintDtos;
 using Volterp.Application.Exceptions.AppErrors;
+using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
+using Volterp.Domain.Entities;
 using Volterp.ElectronicInvoicing;
 using Volterp.ElectronicInvoicing.Printing;
-using Volterp.ElectronicInvoicing.Signing;
 
 namespace Volterp.Application.Services;
 
@@ -14,7 +15,7 @@ namespace Volterp.Application.Services;
 // It is built from the document that was signed: the amounts, the names and
 // the address are the ones the DGII received, not the ones the ERP holds
 // today.
-public class ElectronicInvoicePrintService(IUnitOfWork unitOfWork)
+public class ElectronicInvoicePrintService(IUnitOfWork unitOfWork) : IElectronicInvoicePrintService
 {
     public async Task<Either<Error, ElectronicInvoicePrintDto>> PrintAsync(
         Guid invoiceId,
@@ -26,10 +27,11 @@ public class ElectronicInvoicePrintService(IUnitOfWork unitOfWork)
             .Ensure(id => id != Guid.Empty, new Error("The id of the e-CF cannot be empty."))
             .Ensure(_ => companyId != Guid.Empty, new Error("The company cannot be empty."))
             .FlatMap(async id => await PrintTheDocumentAsync(id, companyId, ct), ex => new Error(ex.Message))
+            .Map(invoice => invoice.MapTo<ElectronicInvoice, ElectronicInvoicePrintDto>())
             .Run();
     }
 
-    private async Task<ElectronicInvoicePrintDto> PrintTheDocumentAsync(
+    private async Task<ElectronicInvoice> PrintTheDocumentAsync(
         Guid invoiceId,
         Guid companyId,
         CancellationToken ct)
@@ -67,20 +69,11 @@ public class ElectronicInvoicePrintService(IUnitOfWork unitOfWork)
         if (string.IsNullOrWhiteSpace(invoice.QrUrl))
             throw new InvalidOperationException("The e-CF has no verification URL.");
 
-        var signed = EcfSignedDocumentReader.Read(invoice.SignedXml);
-        var securityCode = EcfSecurityCode.From(invoice.SignedXml);
+        // The document is read here, so a document that cannot be read fails
+        // closed with its reason instead of a crash. The mapping reads the
+        // same signed document to build the representation.
+        EcfSignedDocumentReader.Read(invoice.SignedXml);
 
-        return new ElectronicInvoicePrintDto
-        {
-            ElectronicInvoiceId = invoice.Id,
-            ENCF = invoice.ENCF,
-            DocumentType = invoice.DocumentType,
-            SecurityCode = securityCode,
-            QrUrl = invoice.QrUrl,
-            Document = signed.Document,
-            AdditionalTaxes = signed.AdditionalTaxes,
-            Pagination = signed.Pagination,
-            ItemAmountsIncludeItbis = signed.ItemAmountsIncludeItbis
-        };
+        return invoice;
     }
 }
