@@ -95,11 +95,15 @@ public class SalesController(IServiceManager serviceManager) : BaseController
     }
 
     [HttpPut("{id}/complete")]
-    public async Task<ActionResult<SaleDto>> CompleteSale(Guid id, CancellationToken ct = default)
+    public async Task<ActionResult<SaleDto>> CompleteSale(
+        Guid id,
+        [FromBody] CompleteSaleRequest? request,
+        CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
-        var result = await serviceManager.Sales.CompleteSaleAsync(id, companyId, userId, ct);
+        var result = await serviceManager.Sales.CompleteSaleAsync(
+            id, companyId, userId, request?.AsCommercialInvoice ?? false, ct);
         return result.Match<ActionResult<SaleDto>>(
             error => error.Kind == ErrorKind.NotFound
                 ? NotFound(new ErrorResponse(error.Message))

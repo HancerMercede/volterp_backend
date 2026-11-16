@@ -175,7 +175,7 @@ public class SaleService(
             .Run();
     }
 
-    public async Task<Either<Error, SaleDto>> CompleteSaleAsync(Guid id, Guid companyId, Guid? userId, CancellationToken ct = default)
+    public async Task<Either<Error, SaleDto>> CompleteSaleAsync(Guid id, Guid companyId, Guid? userId, bool asCommercialInvoice = false, CancellationToken ct = default)
     {
         return await EitherAsync<Error, Guid>
             .FromRight(id)
@@ -214,6 +214,15 @@ public class SaleService(
 
                 if (!CompanyEmissionPolicy.UsesElectronicEmission(sale.Company, now))
                 {
+                    // The commercial invoice: the sale leaves without a fiscal
+                    // document, so it consumes no number and reaches no one.
+                    if (asCommercialInvoice)
+                    {
+                        await unitOfWork.CommitAsync(ct);
+
+                        return sale;
+                    }
+
                     // The paper document takes its number from the range the
                     // DGII authorized for the normal documents, and the
                     // number, the document and the completion of the sale land
@@ -227,6 +236,12 @@ public class SaleService(
 
                     return sale;
                 }
+
+                // A taxpayer who declared electronic invoicing cannot get a
+                // sale without a document: the hole would be his.
+                if (asCommercialInvoice)
+                    throw new InvalidOperationException(
+                        "The commercial invoice is only for the taxpayer who invoices in the normal mode.");
 
                 await unitOfWork.CommitAsync(ct);
 

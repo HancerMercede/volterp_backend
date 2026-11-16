@@ -191,6 +191,7 @@ La empresa declara **cómo factura** (`GET`/`PUT /api/CompanyEmissionMode`): **e
 - El tipo normal es el equivalente del electrónico (31→B01, 32→B02, 33→B03, 34→B04); los tipos de compra no tienen equivalente normal y fallan cerrados.
 - El número, el documento y la finalización de la venta caen en **una sola transacción**: un número nunca se quema sin su documento, y repetir la finalización de una venta no consume otro número.
 - **Sin rango autorizado, la venta no completa** (falla cerrado). El rango se carga y se consulta con `/api/NormalFiscalSequences` (el alta y la modificación son de administrador).
+- **La factura comercial**: en el camino normal, el que completa la venta puede pedir que esa venta salga como **factura comercial** (`PUT /api/sales/{id}/complete` con el cuerpo opcional `{"asCommercialInvoice": true}`): sin NCF, sin documento fiscal, sin tocar ningún rango y sin nada hacia la DGII. Sin ese cuerpo, la venta sale con el comprobante fiscal normal. En el camino electrónico no aplica y falla cerrado.
 
 ### El QR de la representación impresa
 
