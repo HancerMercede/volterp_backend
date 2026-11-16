@@ -663,6 +663,9 @@ public class ElectronicInvoiceQrCodeTests
     private const string VerificationUrl =
         "https://fc.dgii.gov.do/ecf/consultatimbrefc?rncemisor=131880738&encf=E320000000064&montototal=6225.09&codigoseguridad=BoXjC8";
 
+    private const string ShortUrl =
+        "https://fc.dgii.gov.do/ecf/consultatimbrefc?encf=E320000000064";
+
     [Fact]
     public void Svg_DrawsTheVerificationUrlAsAnImage()
     {
@@ -680,6 +683,47 @@ public class ElectronicInvoiceQrCodeTests
 
         png.Take(8).Should().Equal(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A);
     }
+
+    [Fact]
+    public void Svg_UsesTheVersionTheDgiiAsksFor()
+    {
+        // The version 8 of the symbol is seventeen modules plus four per
+        // version step: forty-nine. The quiet zone adds four more on each
+        // side, so the drawing measures fifty-seven.
+        var svg = XDocument.Parse(QrCodeRenderer.Svg(ShortUrl));
+
+        svg.Root!.Attribute("viewBox")!.Value.Should().Be("0 0 57 57");
+    }
+
+    [Fact]
+    public void Png_UsesTheVersionTheDgiiAsksFor()
+    {
+        // Fifty-seven modules at twenty pixels each.
+        var png = QrCodeRenderer.Png(ShortUrl);
+
+        Width(png).Should().Be(1140);
+    }
+
+    [Fact]
+    public void Svg_EncodesTheVerificationUrlEvenWhenItDoesNotFitTheVersion()
+    {
+        // The URL of the timbre is longer than what the version 8 holds at
+        // the level that suits a URL: the symbol grows instead of failing.
+        var svg = XDocument.Parse(QrCodeRenderer.Svg(VerificationUrl));
+
+        svg.Root!.Attribute("viewBox")!.Value.Should().NotBe("0 0 57 57");
+    }
+
+    [Fact]
+    public void Png_EncodesTheVerificationUrlEvenWhenItDoesNotFitTheVersion()
+    {
+        var png = QrCodeRenderer.Png(VerificationUrl);
+
+        Width(png).Should().BeGreaterThan(1140);
+    }
+
+    private static int Width(byte[] png)
+        => (png[16] << 24) | (png[17] << 16) | (png[18] << 8) | png[19];
 }
 
 // The QR of a document travels with the API: the frontend shows it on the
