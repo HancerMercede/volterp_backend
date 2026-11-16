@@ -1,14 +1,14 @@
 using Volterp.Application.DTOs.CompanyDtos.EmissionMode;
-using Volterp.Application.Services;
+using Volterp.Application.Interfaces;
 
 namespace Volterp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class CompanyEmissionModeController(IUnitOfWork unitOfWork) : BaseController
+public class CompanyEmissionModeController(IServiceManager serviceManager) : BaseController
 {
-    private CompanyEmissionModeService Service => new(unitOfWork);
+    private ICompanyEmissionModeService Service => serviceManager.CompanyEmissionModes;
 
     [HttpGet]
     public async Task<ActionResult<CompanyEmissionModeDto>> GetEmissionMode(CancellationToken ct = default)

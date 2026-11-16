@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Volterp.Tests.Services;
 
-// The company chooses the fiscal path of its sales. Paper mode and an active
+// The company chooses the fiscal path of its sales. The normal mode and an active
 // contingency keep the electronic document out; they never rewrite a document
 // that was already issued.
 public class CompanyEmissionModeTests
@@ -93,9 +93,9 @@ public class CompanyEmissionModeTests
     }
 
     [Fact]
-    public async Task PaperMode_DoesNotIssueAnElectronicDocument()
+    public async Task NormalMode_DoesNotIssueAnElectronicDocument()
     {
-        GivenCompany(CompanyEmissionMode.Paper);
+        GivenCompany(CompanyEmissionMode.Normal);
 
         await CompleteSaleAsync();
 
@@ -106,9 +106,9 @@ public class CompanyEmissionModeTests
     }
 
     [Fact]
-    public async Task PaperMode_RecordsTheNormalDocumentOfTheSale()
+    public async Task NormalMode_RecordsTheNormalDocumentOfTheSale()
     {
-        GivenCompany(CompanyEmissionMode.Paper);
+        GivenCompany(CompanyEmissionMode.Normal);
 
         await CompleteSaleAsync();
 
@@ -159,7 +159,7 @@ public class CompanyEmissionModeTests
     }
 
     [Fact]
-    public async Task ElectronicMode_WhenTheCertificateIsMissing_DoesNotFallBackToPaper()
+    public async Task ElectronicMode_WhenTheCertificateIsMissing_DoesNotFallBackToTheNormalPath()
     {
         GivenCompany(CompanyEmissionMode.Electronic);
         _issues.Setup(i => i.IssueAsync(SaleId, CompanyId, It.IsAny<CancellationToken>()))
@@ -208,10 +208,10 @@ public class CompanyEmissionModeTests
 
         var service = new CompanyEmissionModeService(_unitOfWork.Object);
         var result = await service.UpdateAsync(
-            new UpdateCompanyEmissionModeDto(CompanyEmissionMode.Paper), CompanyId, Guid.CreateVersion7());
+            new UpdateCompanyEmissionModeDto(CompanyEmissionMode.Normal), CompanyId, Guid.CreateVersion7());
 
         result.Should().BeOfType<Either<Error, CompanyEmissionModeDto>.Right>();
-        _company.EmissionMode.Should().Be(CompanyEmissionMode.Paper);
+        _company.EmissionMode.Should().Be(CompanyEmissionMode.Normal);
         issued.Status.Should().Be(EcfStatus.Accepted);
         issued.ENCF.Should().Be("E320000000001");
         _invoices.Verify(i => i.UpdateAsync(

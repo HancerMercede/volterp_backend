@@ -1653,7 +1653,7 @@ public class  SaleServiceTests
     }
 
     [Fact]
-    public async Task CompleteSaleAsync_InPaperMode_RecordsTheNormalDocumentAndIssuesNoElectronicInvoice()
+    public async Task CompleteSaleAsync_InNormalMode_RecordsTheNormalDocumentAndIssuesNoElectronicInvoice()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -1665,7 +1665,7 @@ public class  SaleServiceTests
         {
             Id = Guid7TestValues.CompanyA,
             TaxId = "10100000101",
-            EmissionMode = CompanyEmissionMode.Paper
+            EmissionMode = CompanyEmissionMode.Normal
         };
 
         var sale = new Sale
@@ -1719,7 +1719,7 @@ public class  SaleServiceTests
     }
 
     [Fact]
-    public async Task CompleteSaleAsync_InPaperMode_WhenTheDocumentFails_DoesNotCompleteTheSale()
+    public async Task CompleteSaleAsync_InNormalMode_WhenTheDocumentFails_DoesNotCompleteTheSale()
     {
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
@@ -1731,7 +1731,7 @@ public class  SaleServiceTests
         {
             Id = Guid7TestValues.CompanyA,
             TaxId = "10100000101",
-            EmissionMode = CompanyEmissionMode.Paper
+            EmissionMode = CompanyEmissionMode.Normal
         };
 
         var sale = new Sale

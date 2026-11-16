@@ -5,6 +5,7 @@ using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
+using Volterp.Domain.Policies;
 using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Application.Services;
@@ -211,7 +212,7 @@ public class SaleService(
 
                 var now = _timeProvider.GetUtcNow().UtcDateTime;
 
-                if (!CompanyEmissionModeService.UsesElectronicEmission(sale.Company, now))
+                if (!CompanyEmissionPolicy.UsesElectronicEmission(sale.Company, now))
                 {
                     // The paper document takes its number from the range the
                     // DGII authorized for the normal documents, and the

@@ -434,7 +434,7 @@ public class NormalFiscalDocumentRepositoryTests
             Address = "Calle Principal 1, Santo Domingo",
             Phone = "809-555-1234",
             Email = "facturacion@distribuidora.do",
-            EmissionMode = CompanyEmissionMode.Paper
+            EmissionMode = CompanyEmissionMode.Normal
         };
 
         private static Sale SaleOf(Guid id, Guid companyId, NormalFiscalDocumentType documentType)

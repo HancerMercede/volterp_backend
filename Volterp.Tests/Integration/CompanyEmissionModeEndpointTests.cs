@@ -62,16 +62,16 @@ public class CompanyEmissionModeEndpointTests : IClassFixture<ApiFactory>
 
         var response = await _client.PutAsJsonAsync(
             "/api/CompanyEmissionMode",
-            new { emissionMode = "Paper", companyId = Guid7TestValues.CompanyB });
+            new { emissionMode = "Normal", companyId = Guid7TestValues.CompanyB });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        body.RootElement.GetProperty("emissionMode").GetString().Should().Be("Paper");
+        body.RootElement.GetProperty("emissionMode").GetString().Should().Be("Normal");
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
         (await db.Companies.SingleAsync(c => c.Id == Guid7TestValues.CompanyA))
-            .EmissionMode.Should().Be(CompanyEmissionMode.Paper);
+            .EmissionMode.Should().Be(CompanyEmissionMode.Normal);
         (await db.Companies.SingleAsync(c => c.Id == Guid7TestValues.CompanyB))
             .EmissionMode.Should().Be(CompanyEmissionMode.Electronic,
                 "the company in the body cannot move the setting of another tenant");
@@ -85,7 +85,7 @@ public class CompanyEmissionModeEndpointTests : IClassFixture<ApiFactory>
 
         var response = await _client.PutAsJsonAsync(
             "/api/CompanyEmissionMode",
-            new { emissionMode = "Paper" });
+            new { emissionMode = "Normal" });
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
@@ -98,7 +98,7 @@ public class CompanyEmissionModeEndpointTests : IClassFixture<ApiFactory>
 
         var response = await _client.PutAsJsonAsync(
             "/api/CompanyEmissionMode",
-            new { emissionMode = "Paper" });
+            new { emissionMode = "Normal" });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         using var scope = _factory.Services.CreateScope();
