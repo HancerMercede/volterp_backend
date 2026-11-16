@@ -51,6 +51,9 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
     private IElectronicInvoicePrintService? _electronicInvoicePrints;
     public IElectronicInvoicePrintService ElectronicInvoicePrints => _electronicInvoicePrints ??= new ElectronicInvoicePrintService(unitOfWork);
 
+    private IElectronicInvoiceReceptionService? _electronicInvoiceReceptions;
+    public IElectronicInvoiceReceptionService ElectronicInvoiceReceptions => _electronicInvoiceReceptions ??= new ElectronicInvoiceReceptionService(unitOfWork);
+
     private ICompanyEmissionModeService? _companyEmissionModes;
     public ICompanyEmissionModeService CompanyEmissionModes => _companyEmissionModes ??= new CompanyEmissionModeService(unitOfWork);
 }

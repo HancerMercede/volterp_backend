@@ -5,8 +5,9 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using EitherWay;
-using Volterp.Application.DTOs.Reception;
+using Volterp.Application.DTOs.ReceivedElectronicInvoiceDtos;
 using Volterp.Application.Exceptions.AppErrors;
+using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Domain.ValueObjects;
@@ -14,10 +15,8 @@ using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Application.Services;
 
-public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
+public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork) : IElectronicInvoiceReceptionService
 {
-    private const string MissingInvoiceMessage = "The received e-CF does not exist.";
-
     public async Task<Either<Error, ReceivedElectronicInvoiceDto>> ReceiveAsync(
         string xml,
         string fileName,
@@ -29,6 +28,7 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
             .FlatMap(
                 async _ => await ReceiveTheDocumentAsync(xml, fileName, ct),
                 exception => new Error(exception.Message))
+            .Map(received => ToDto(received))
             .Run();
     }
 
@@ -43,10 +43,11 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
             .FlatMap(
                 async _ => await ReceiveTheCommercialApprovalAsync(xml, fileName, ct),
                 exception => new Error(exception.Message))
+            .Map(received => ToDto(received))
             .Run();
     }
 
-    public async Task<Either<Error, ReceivedElectronicInvoiceDto>> DecideCommercialApprovalAsync(
+    public async Task<Either<Error, ReceivedElectronicInvoiceDto?>> DecideCommercialApprovalAsync(
         Guid id,
         Guid companyId,
         Guid userId,
@@ -69,10 +70,11 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
                     reason,
                     ct),
                 exception => new Error(exception.Message))
+            .Map(received => received is null ? null : ToDto(received))
             .Run();
     }
 
-    private async Task<ReceivedElectronicInvoiceDto> ReceiveTheDocumentAsync(
+    private async Task<ReceivedDocument> ReceiveTheDocumentAsync(
         string xml,
         string fileName,
         CancellationToken ct)
@@ -91,7 +93,7 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
             if (existing.CompanyId != company.Id)
                 throw new InvalidOperationException("The e-CF was already received.");
 
-            return ToDto(existing, alreadyReceived: true);
+            return new ReceivedDocument(existing, AlreadyReceived: true);
         }
 
         var invoice = new ReceivedElectronicInvoice
@@ -111,10 +113,10 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
         await unitOfWork.ReceivedElectronicInvoices.AddAsync(invoice, ct);
         await unitOfWork.CommitAsync(ct);
 
-        return ToDto(invoice, alreadyReceived: false);
+        return new ReceivedDocument(invoice, AlreadyReceived: false);
     }
 
-    private async Task<ReceivedElectronicInvoiceDto> ReceiveTheCommercialApprovalAsync(
+    private async Task<ReceivedDocument> ReceiveTheCommercialApprovalAsync(
         string xml,
         string fileName,
         CancellationToken ct)
@@ -150,10 +152,10 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
             await unitOfWork.CommitAsync(ct);
         }
 
-        return ToDto(invoice, alreadyReceived: !changed);
+        return new ReceivedDocument(invoice, AlreadyReceived: !changed);
     }
 
-    private async Task<ReceivedElectronicInvoiceDto> DecideTheCommercialApprovalAsync(
+    private async Task<ReceivedDocument?> DecideTheCommercialApprovalAsync(
         Guid id,
         Guid companyId,
         Guid userId,
@@ -166,8 +168,10 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
             id,
             ct);
 
+        // The document that does not exist is the absence of the answer, not a
+        // failure: the caller tells it apart without reading a message.
         if (invoice is null)
-            throw new InvalidOperationException(MissingInvoiceMessage);
+            return null;
 
         var changed = ApplyDecision(
             invoice,
@@ -184,7 +188,7 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
             await unitOfWork.CommitAsync(ct);
         }
 
-        return ToDto(invoice, alreadyReceived: !changed);
+        return new ReceivedDocument(invoice, AlreadyReceived: !changed);
     }
 
     private async Task<Company> ResolveCompanyAsync(string receiverTaxId, CancellationToken ct)
@@ -443,25 +447,15 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork)
         return string.IsNullOrEmpty(value) ? null : value;
     }
 
-    private static ReceivedElectronicInvoiceDto ToDto(
-        ReceivedElectronicInvoice invoice,
-        bool alreadyReceived)
-        => new()
-        {
-            Id = invoice.Id,
-            CompanyId = invoice.CompanyId,
-            IssuerTaxId = invoice.IssuerTaxId,
-            ReceiverTaxId = invoice.ReceiverTaxId,
-            ENCF = invoice.ENCF,
-            DocumentType = invoice.DocumentType,
-            SignedAt = invoice.SignedAt,
-            ReceivedAt = invoice.ReceivedAt,
-            ApprovalStatus = invoice.ApprovalStatus,
-            ApprovalDecidedBy = invoice.ApprovalDecidedBy,
-            ApprovalDecidedAt = invoice.ApprovalDecidedAt,
-            ApprovalReason = invoice.ApprovalReason,
-            AlreadyReceived = alreadyReceived
-        };
+    // The entity is mapped into the DTO and the flag of the operation is set
+    // on top of it: the flag does not come from the entity.
+    private static ReceivedElectronicInvoiceDto ToDto(ReceivedDocument received)
+        => received.Invoice.MapTo<ReceivedElectronicInvoice, ReceivedElectronicInvoiceDto>()
+            with { AlreadyReceived = received.AlreadyReceived };
+
+    private sealed record ReceivedDocument(
+        ReceivedElectronicInvoice Invoice,
+        bool AlreadyReceived);
 
     private sealed record ReceivedEcf(
         string IssuerTaxId,

@@ -1,13 +1,16 @@
 using System.Text;
 using Volterp.Application.DTOs.Reception;
-using Volterp.Application.Services;
+using Volterp.Application.DTOs.ReceivedElectronicInvoiceDtos;
+using Volterp.Application.Interfaces;
 
 namespace Volterp.Api.Controllers;
 
 [ApiController]
-public class ElectronicInvoiceReceptionController(ElectronicInvoiceReceptionService service) : BaseController
+public class ElectronicInvoiceReceptionController(IServiceManager serviceManager) : BaseController
 {
     public const string DgiiAuthenticationScheme = "DgiiCertificate";
+
+    private readonly IElectronicInvoiceReceptionService _service = serviceManager.ElectronicInvoiceReceptions;
 
     [HttpPost("fe/recepcion/api/ecf")]
     [Consumes("multipart/form-data")]
@@ -27,7 +30,7 @@ public class ElectronicInvoiceReceptionController(ElectronicInvoiceReceptionServ
             leaveOpen: false);
         var xml = await reader.ReadToEndAsync(ct);
 
-        var result = await service.ReceiveAsync(xml, file.FileName, ct);
+        var result = await _service.ReceiveAsync(xml, file.FileName, ct);
 
         return result.Match<ActionResult<ReceivedElectronicInvoiceDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
@@ -52,7 +55,7 @@ public class ElectronicInvoiceReceptionController(ElectronicInvoiceReceptionServ
             leaveOpen: false);
         var xml = await reader.ReadToEndAsync(ct);
 
-        var result = await service.ReceiveCommercialApprovalAsync(xml, file.FileName, ct);
+        var result = await _service.ReceiveCommercialApprovalAsync(xml, file.FileName, ct);
 
         return result.Match<ActionResult<ReceivedElectronicInvoiceDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
@@ -61,7 +64,7 @@ public class ElectronicInvoiceReceptionController(ElectronicInvoiceReceptionServ
 
     [HttpPost("api/ElectronicInvoiceReception/{id}/commercial-approval")]
     [Authorize]
-    public async Task<ActionResult<ReceivedElectronicInvoiceDto>> DecideCommercialApproval(
+    public async Task<ActionResult<ReceivedElectronicInvoiceDto?>> DecideCommercialApproval(
         Guid id,
         [FromBody] CommercialApprovalDecisionRequest request,
         CancellationToken ct = default)
@@ -71,7 +74,7 @@ public class ElectronicInvoiceReceptionController(ElectronicInvoiceReceptionServ
         if (userId is null)
             return Unauthorized(new ErrorResponse("The user id is required."));
 
-        var result = await service.DecideCommercialApprovalAsync(
+        var result = await _service.DecideCommercialApprovalAsync(
             id,
             companyId,
             userId.Value,
@@ -79,10 +82,12 @@ public class ElectronicInvoiceReceptionController(ElectronicInvoiceReceptionServ
             request.Reason,
             ct);
 
-        return result.Match<ActionResult<ReceivedElectronicInvoiceDto>>(
-            error => error.Message == "The received e-CF does not exist."
-                ? NotFound(new ErrorResponse(error.Message))
-                : BadRequest(new ErrorResponse(error.Message)),
-            invoice => Ok(invoice));
+        // The document that does not exist is the absence of the answer: the
+        // endpoint does not read the message of a failure to tell it apart.
+        return result.Match<ActionResult<ReceivedElectronicInvoiceDto?>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            invoice => invoice is null
+                ? NotFound(new ErrorResponse("The received e-CF does not exist."))
+                : Ok(invoice));
     }
 }

@@ -6,7 +6,7 @@ using FluentAssertions;
 using MapFlow;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using Volterp.Application.DTOs.Reception;
+using Volterp.Application.DTOs.ReceivedElectronicInvoiceDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
@@ -232,13 +232,41 @@ public class ElectronicInvoiceReceptionServiceTests
             approved: false,
             RejectionReason);
 
-        result.Should().BeOfType<Either<Error, ReceivedElectronicInvoiceDto>.Right>();
-        var dto = ((Either<Error, ReceivedElectronicInvoiceDto>.Right)result).Value;
-        dto.ApprovalStatus.Should().Be(ReceivedElectronicInvoiceApprovalStatus.Rejected);
+        result.Should().BeOfType<Either<Error, ReceivedElectronicInvoiceDto?>.Right>();
+        var dto = ((Either<Error, ReceivedElectronicInvoiceDto?>.Right)result).Value;
+        dto!.ApprovalStatus.Should().Be(ReceivedElectronicInvoiceApprovalStatus.Rejected);
         dto.ApprovalDecidedBy.Should().Be(Guid7TestValues.UserA.ToString());
         dto.ApprovalDecidedAt.Should().NotBeNull();
         dto.ApprovalReason.Should().Be(RejectionReason);
         _unitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DecideCommercialApprovalAsync_WhenTheDocumentDoesNotExist_ReturnsTheAbsenceOfTheAnswer()
+    {
+        var invoiceId = Guid.CreateVersion7();
+
+        _received
+            .Setup(r => r.GetByCompanyAndIdAsync(
+                Guid7TestValues.CompanyA,
+                invoiceId,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ReceivedElectronicInvoice?)null);
+
+        var service = Service();
+
+        var result = await service.DecideCommercialApprovalAsync(
+            invoiceId,
+            Guid7TestValues.CompanyA,
+            Guid7TestValues.UserA,
+            approved: true,
+            "Approved by the buyer");
+
+        // The document that does not exist is the absence of the answer, not a
+        // failure: the caller tells it apart without reading a message.
+        result.Should().BeOfType<Either<Error, ReceivedElectronicInvoiceDto?>.Right>();
+        ((Either<Error, ReceivedElectronicInvoiceDto?>.Right)result).Value.Should().BeNull();
+        _unitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

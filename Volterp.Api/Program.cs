@@ -42,7 +42,6 @@ ServiceExtensions.ConfigureServiceManager(builder.Services);
 ServiceExtensions.ConfigureJwt(builder.Services, jwtSettings);
 ServiceExtensions.ConfigureEncryption(builder.Services, encryptionSettings);
 ServiceExtensions.ConfigureElectronicInvoicing(builder.Services, builder.Configuration);
-builder.Services.AddScoped<ElectronicInvoiceReceptionService>();
 builder.Services.AddAuthentication()
     .AddScheme<DgiiCertificateAuthenticationOptions, DgiiCertificateAuthenticationHandler>(
         ElectronicInvoiceReceptionController.DgiiAuthenticationScheme,
