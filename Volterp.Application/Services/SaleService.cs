@@ -12,12 +12,12 @@ namespace Volterp.Application.Services;
 public class SaleService(
     IUnitOfWork unitOfWork,
     IElectronicInvoiceService electronicInvoices,
-    TimeProvider? timeProvider = null,
-    INormalFiscalDocumentService? normalDocuments = null) : ISaleService
+    INormalFiscalDocumentService normalDocuments,
+    TimeProvider? timeProvider = null) : ISaleService
 {
     private const string CodeAlreadyInUseMessage = "The code is already in use.";
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
-    private readonly INormalFiscalDocumentService? _normalDocuments = normalDocuments;
+    private readonly INormalFiscalDocumentService _normalDocuments = normalDocuments;
 
     public async Task<PagedResult<SaleDto>> GetAllSalesAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
@@ -213,10 +213,6 @@ public class SaleService(
 
                 if (!CompanyEmissionModeService.UsesElectronicEmission(sale.Company, now))
                 {
-                    if (_normalDocuments is null)
-                        throw new InvalidOperationException(
-                            "The service of the normal fiscal documents is not registered.");
-
                     // The paper document takes its number from the range the
                     // DGII authorized for the normal documents, and the
                     // number, the document and the completion of the sale land

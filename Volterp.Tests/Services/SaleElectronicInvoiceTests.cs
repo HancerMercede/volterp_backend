@@ -3,6 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 using EitherWay;
 using FluentAssertions;
 using Moq;
+using Volterp.Application.DTOs.NormalFiscalDocumentDtos;
 using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
@@ -37,6 +38,7 @@ public class SaleElectronicInvoiceTests
     private readonly Mock<IElectronicInvoiceSequenceRepository> _sequences = new();
     private readonly Mock<IEcfSigner> _signer = new();
     private readonly Mock<ISigningCertificateProvider> _certificates = new();
+    private readonly Mock<INormalFiscalDocumentService> _normalDocuments = new();
     private readonly DgiiStub _dgii = new();
 
     private Sale _sale = null!;
@@ -59,6 +61,18 @@ public class SaleElectronicInvoiceTests
 
         _certificates.Setup(c => c.GetSigningCertificateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateCertificate());
+
+        // The document service is a required collaborator: the stub answers
+        // with a document and never with a null, so a test that does not care
+        // about the paper path does not trip over it.
+        _normalDocuments.Setup(d => d.IssueAsync(
+                It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Either<Error, NormalFiscalDocumentDto>.ToRight(new NormalFiscalDocumentDto
+            {
+                Id = Guid.CreateVersion7(),
+                Number = "B0200000001",
+                DocumentType = NormalFiscalDocumentType.Consumer
+            }));
     }
 
     [Fact]
@@ -191,7 +205,7 @@ public class SaleElectronicInvoiceTests
             _dgii,
             dgiiOptions: new DgiiOptions { Environment = DgiiEnvironment.PreCertification });
 
-        return new SaleService(_unitOfWork.Object, invoices);
+        return new SaleService(_unitOfWork.Object, invoices, _normalDocuments.Object);
     }
 
     private static Company Company() => new()

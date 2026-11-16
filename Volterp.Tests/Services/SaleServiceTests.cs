@@ -18,6 +18,22 @@ namespace Volterp.Tests.Services;
 public class  SaleServiceTests
 {
     private readonly Mock<IElectronicInvoiceService> _emissions = new();
+    private readonly Mock<INormalFiscalDocumentService> _normalDocuments = new();
+
+    public SaleServiceTests()
+    {
+        // The document service is a required collaborator: the stub answers
+        // with a document and never with a null, so a test that does not care
+        // about the paper path does not trip over it.
+        _normalDocuments.Setup(d => d.IssueAsync(
+                It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Either<Error, NormalFiscalDocumentDto>.ToRight(new NormalFiscalDocumentDto
+            {
+                Id = Guid.CreateVersion7(),
+                Number = "B0200000001",
+                DocumentType = NormalFiscalDocumentType.Consumer
+            }));
+    }
 
     [Fact]
     public async Task CreateSaleAsync_WithValidInput_DecrementsProductStock()
@@ -38,7 +54,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test Client",
@@ -74,7 +90,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
@@ -114,7 +130,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test Client",
@@ -168,7 +184,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Clients).Returns(mockClientsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: Guid7TestValues.ClientA, ClienteName: "Test Client",
@@ -219,7 +235,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
@@ -259,7 +275,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 800, Notes: null,
@@ -301,7 +317,7 @@ public class  SaleServiceTests
             .ReturnsAsync(sales);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.GetAllSalesAsync(1, 10);
@@ -334,7 +350,7 @@ public class  SaleServiceTests
             .ReturnsAsync(sales);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.GetSalesByStatusAsync(SaleStatus.Pending, 1, 10);
@@ -365,7 +381,7 @@ public class  SaleServiceTests
             .ReturnsAsync(sale);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.GetSaleByIdAsync(Guid7TestValues.SaleA);
@@ -389,7 +405,7 @@ public class  SaleServiceTests
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.GetSaleByIdAsync(Guid.NewGuid());
@@ -417,7 +433,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
@@ -447,7 +463,7 @@ public class  SaleServiceTests
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 800, Notes: null,
@@ -477,7 +493,7 @@ public class  SaleServiceTests
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.CompleteSaleAsync(Guid.NewGuid(), Guid7TestValues.CompanyA, Guid7TestValues.UserA);
@@ -499,7 +515,7 @@ public class  SaleServiceTests
             .ReturnsAsync((Sale?)null);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.DeleteSaleAsync(Guid.NewGuid(), Guid7TestValues.CompanyA);
@@ -534,7 +550,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         await service.DeleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
@@ -558,7 +574,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
@@ -602,7 +618,7 @@ public class  SaleServiceTests
             .ReturnsAsync(sales);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.GetAllSalesAsync(0, 10);
@@ -631,7 +647,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Database connection failed"));
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
@@ -678,7 +694,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Bulk Client",
@@ -728,7 +744,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Commit failed"));
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 800, Notes: null,
@@ -778,7 +794,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 1000, Notes: null,
@@ -828,7 +844,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 300, Notes: null,
@@ -875,7 +891,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 800, Notes: null,
@@ -912,7 +928,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
@@ -946,7 +962,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test",
@@ -987,7 +1003,7 @@ public class  SaleServiceTests
             .ReturnsAsync(emptyResult);
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.GetSalesByStatusAsync(SaleStatus.Completed, 1, 10);
@@ -1026,7 +1042,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
@@ -1066,7 +1082,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         await service.DeleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
@@ -1102,7 +1118,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
@@ -1142,7 +1158,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
@@ -1183,7 +1199,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT - should not throw, just skip gracefully
         var act = () => service.DeleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
@@ -1223,7 +1239,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Database connection failed"));
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
 
         // ACT
         var result = await service.DeleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA);
@@ -1257,7 +1273,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test Client",
@@ -1315,7 +1331,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 100, Notes: null,
@@ -1359,7 +1375,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test Client",
@@ -1397,7 +1413,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test Client",
@@ -1441,7 +1457,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         SetupCodes(mockUnitOfWork);
         var request = new CreateSaleRequest(
             ClienteId: null, ClienteName: "Test Client",
@@ -1494,7 +1510,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 800, Notes: null,
@@ -1547,7 +1563,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 800, Notes: null,
@@ -1604,7 +1620,7 @@ public class  SaleServiceTests
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object);
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
         var updateRequest = new UpdateSaleRequest(
             ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
             Total: 800, Notes: null,

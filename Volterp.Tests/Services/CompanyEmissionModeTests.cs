@@ -264,8 +264,8 @@ public class CompanyEmissionModeTests
         var service = new SaleService(
             _unitOfWork.Object,
             _issues.Object,
-            new FixedTimeProvider(Now),
-            _normalDocuments.Object);
+            _normalDocuments.Object,
+            new FixedTimeProvider(Now));
 
         var result = await service.CompleteSaleAsync(SaleId, CompanyId, Guid.CreateVersion7());
 
