@@ -22,7 +22,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     [HttpGet]
     public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(CancellationToken ct, [FromQuery]PaginationParameters pagination)
     {
-        if (!IsAdmin()) return Forbid();
+        if (!IsAdmin()) return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         EnsureTenant();
         var users = await serviceManager.Users
@@ -34,10 +34,10 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     [HttpPost]
     public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto request, CancellationToken ct)
     {
-        if (!IsAdmin()) return Forbid();
+        if (!IsAdmin()) return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         if ((request.Role == UserRole.Admin || request.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
@@ -45,7 +45,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         var userResult = await serviceManager.Users.CreateAsync(request, companyId, userId, ct);
 
         return userResult.Match<ActionResult<UserDto>>(
-            error => BadRequest(error.Message),
+            error => BadRequest(new ErrorResponse(error.Message)),
             value => Ok(value));
 
     }
@@ -53,7 +53,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
     [HttpPut("{id}/role")]
     public async Task<ActionResult<UserDto>> UpdateUserRole(Guid id, [FromBody] UpdateUserRoleDto request, CancellationToken ct)
     {
-        if (!IsAdmin()) return Forbid();
+        if (!IsAdmin()) return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var userId = GetCurrentUserId();
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
@@ -61,7 +61,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         var user = ((Either<Error, UserDto>.Right)userResult!).Value;
 
         if (!CanManageUser(user.Role, request.Role))
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var userForUpdate = new UserWithPasswordHashDto
         {
@@ -75,14 +75,14 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, userId, ct);
 
         return updateResult.Match<ActionResult<UserDto>>(
-            error => BadRequest(error.Message),
+            error => BadRequest(new ErrorResponse(error.Message)),
             value => Ok(value));
     }
 
     [HttpPut("{id}/status")]
     public async Task<ActionResult<UserDto>> UpdateUserStatus(Guid id, [FromBody] UpdateUserStatusDto request, CancellationToken ct)
     {
-        if (!IsAdmin()) return Forbid();
+        if (!IsAdmin()) return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var userId = GetCurrentUserId();
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
@@ -90,7 +90,7 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         var user = ((Either<Error, UserDto>.Right)userResult!).Value;
 
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var userForUpdate = new UserWithPasswordHashDto
         {
@@ -105,26 +105,26 @@ public class UsersController(IServiceManager serviceManager, IPasswordHasher pas
         var updateResult = await serviceManager.Users.UpdateAsync(id, userForUpdate, userId, ct);
 
         return updateResult.Match<ActionResult<UserDto>>(
-            error => BadRequest(error.Message),
+            error => BadRequest(new ErrorResponse(error.Message)),
             value => Ok(value));
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteUser(Guid id, CancellationToken ct)
     {
-        if (!IsAdmin()) return Forbid();
+        if (!IsAdmin()) return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var userResult = await serviceManager.Users.GetByIdAsync(id, ct);
 
         var user = ((Either<Error, UserDto>.Right)userResult!).Value;
 
         if ((user.Role == UserRole.Admin || user.Role == UserRole.SuperAdmin) && !IsSuperAdminOnly())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var deleteResult = await serviceManager.Users.DeleteAsync(id, ct);
 
         return deleteResult.Match<IActionResult>(
-                error => BadRequest(error.Message),
+                error => BadRequest(new ErrorResponse(error.Message)),
                 _ => NoContent());
 
     }

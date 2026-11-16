@@ -27,7 +27,7 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
         var result = await serviceManager.Employees.GetEmployeeByIdAsync(id, ct);
         return result.Match<ActionResult<EmployeeDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
-            employee => employee is null ? NotFound(new { message = "Empleado no encontrado" }) : Ok(employee)
+            employee => employee is null ? NotFound(new ErrorResponse("Empleado no encontrado")) : Ok(employee)
         );
     }
 
@@ -52,7 +52,7 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
         var userId = GetCurrentUserId() ?? Guid.Empty;
         var result = await serviceManager.Employees.UpdateEmployeeAsync(id, companyId, request, userId, ct);
         return result.Match<ActionResult<EmployeeDto>>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             employee => Ok(employee)
         );
     }
@@ -64,7 +64,7 @@ public class EmployeesController(IServiceManager serviceManager) : BaseControlle
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Employees.DeleteEmployeeAsync(id, companyId, ct);
         return result.Match<ActionResult>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             _ => NoContent()
         );
     }

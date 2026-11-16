@@ -29,7 +29,7 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
             .GetSupplierByIdAsync(id, ct);
 
         return result.Match<ActionResult<SupplierDto>>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             value => Ok(value));
     }
 
@@ -46,7 +46,7 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
             .CreateSupplierAsync(request, companyId, userId, ct);
 
         return result.Match<ActionResult<SupplierDto>>(
-            error => BadRequest(new { message = error.Message }),
+            error => BadRequest(new ErrorResponse(error.Message)),
             value => CreatedAtAction(nameof(GetSupplier), new { id = value.Id }, value));
     }
 
@@ -64,7 +64,7 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
             .UpdateSupplierAsync(id, companyId, request, userId, ct);
 
         return result.Match<ActionResult<SupplierDto>>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             value => Ok(value));
     }
 
@@ -78,7 +78,7 @@ public class SuppliersController(IServiceManager serviceManager) : BaseControlle
             .DeleteSupplierAsync(id, companyId, ct);
 
         return result.Match<IActionResult>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             _ => NoContent());
     }
 }

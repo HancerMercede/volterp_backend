@@ -29,7 +29,7 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
             .GetClientByIdAsync(id, ct);
 
         return client.Match<ActionResult<ClientDto>>(
-            error => NotFound(error.Message),
+            error => NotFound(new ErrorResponse(error.Message)),
             result => Ok(result));
     }
 
@@ -44,7 +44,7 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
             .CreateClientAsync(request, companyId, userId, ct);
 
         return client.Match<ActionResult<ClientDto>>(
-            error => BadRequest(error.Message),
+            error => BadRequest(new ErrorResponse(error.Message)),
             result => CreatedAtAction(nameof(GetClient), new { id = result.Id }, result));
     }
 
@@ -57,7 +57,7 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
         var client = await serviceManager.Clients.UpdateClientAsync(id, companyId, request, userId, ct);
 
         return client.Match<ActionResult<ClientDto>>(
-            error => BadRequest(error.Message),
+            error => BadRequest(new ErrorResponse(error.Message)),
             result => Ok(result));
     }
 
@@ -66,13 +66,13 @@ public class ClientsController(IServiceManager serviceManager) : BaseController
     public async Task<ActionResult> DeleteClient(Guid id, CancellationToken ct = default)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Clients.DeleteClientAsync(id, companyId, ct);
 
         return result.Match<ActionResult>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             _ => NoContent());
     }
 }

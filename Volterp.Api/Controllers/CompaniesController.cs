@@ -13,7 +13,7 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
         CancellationToken ct = default)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var companies = await serviceManager.Companies.GetAllCompaniesAsync(
             parameters.PageNumber,
@@ -27,12 +27,12 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
     public async Task<ActionResult<CompanyDto>> GetCompany(Guid id, CancellationToken ct = default)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var company = await serviceManager.Companies.GetCompanyByIdAsync(id, ct);
 
         return company.Match<ActionResult<CompanyDto>>(
-            error => BadRequest(error.Message),
+            error => BadRequest(new ErrorResponse(error.Message)),
             result=>Ok(result));
 
     }
@@ -42,13 +42,13 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
         CancellationToken ct = default)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var userId = GetCurrentUserId();
         var company = await serviceManager.Companies.AddCompanyAsync(createCompanyDto, userId, ct);
 
         return company.Match<ActionResult<CompanyDto>>(
-            error => BadRequest(error.Message),
+            error => BadRequest(new ErrorResponse(error.Message)),
             _ => Created("GetCompany", company));
     }
 
@@ -57,12 +57,12 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
         CancellationToken ct = default)
     {
         if(!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
         var userId = GetCurrentUserId();
         var company = await serviceManager.Companies.UpdateCompanyAsync(id, updateCompanyDto, userId, ct);
 
         return company.Match<ActionResult>(
-            error => BadRequest(error.Message),
+            error => BadRequest(new ErrorResponse(error.Message)),
             result => Ok(result));
     }
 
@@ -70,7 +70,7 @@ public class CompaniesController(IServiceManager serviceManager, ILogger<Compani
     public async Task<ActionResult> DeleteCompany(Guid id, CancellationToken ct = default)
     {
         if(!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
         await serviceManager.Companies.DeleteCompanyAsync(id, ct);
         return NoContent();
     }

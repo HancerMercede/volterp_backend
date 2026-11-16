@@ -25,7 +25,7 @@ public class PurchasesController(IServiceManager serviceManager) : BaseControlle
         var result = await serviceManager.Purchases.GetPurchaseByIdAsync(id, ct);
         return result.Match<ActionResult<PurchaseDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
-            purchase => purchase is null ? NotFound(new { message = "Not Found Purchase" }) : Ok(purchase)
+            purchase => purchase is null ? NotFound(new ErrorResponse("Not Found Purchase")) : Ok(purchase)
         );
     }
 
@@ -50,7 +50,7 @@ public class PurchasesController(IServiceManager serviceManager) : BaseControlle
         var userId = GetCurrentUserId();
         var result = await serviceManager.Purchases.UpdatePurchaseAsync(id, companyId, request, userId, ct);
         return result.Match<ActionResult<PurchaseDto>>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             purchase => Ok(purchase)
         );
     }
@@ -62,7 +62,7 @@ public class PurchasesController(IServiceManager serviceManager) : BaseControlle
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Purchases.DeletePurchaseAsync(id, companyId, ct);
         return result.Match<ActionResult>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             _ => NoContent()
         );
     }

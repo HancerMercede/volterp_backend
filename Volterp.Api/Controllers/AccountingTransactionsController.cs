@@ -27,7 +27,7 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
         return result.Match<ActionResult<AccountingTransactionDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             transaction => transaction is null
-                ? NotFound(new { message = "Transaccion contable no encontrada" })
+                ? NotFound(new ErrorResponse("Transaccion contable no encontrada"))
                    : Ok(transaction)
         );
     }
@@ -53,7 +53,7 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
         var userId = GetCurrentUserId() ?? Guid.Empty;
         var result = await serviceManager.AccountingTransactions.UpdateAsync(id, companyId, request, userId, ct);
         return result.Match<ActionResult<AccountingTransactionDto>>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             transaction => Ok(transaction)
         );
     }
@@ -65,7 +65,7 @@ public class AccountingTransactionsController(IServiceManager serviceManager) : 
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.AccountingTransactions.DeleteAsync(id, companyId, ct);
         return result.Match<ActionResult>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             _ => NoContent()
         );
     }

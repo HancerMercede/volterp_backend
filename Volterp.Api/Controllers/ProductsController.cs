@@ -33,7 +33,7 @@ public class ProductsController(IServiceManager services) : BaseController
         [FromBody] CreateProductDto request, CancellationToken ct)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
@@ -49,7 +49,7 @@ public class ProductsController(IServiceManager services) : BaseController
         Guid id, [FromBody] UpdateProductDto request, CancellationToken ct)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
@@ -64,7 +64,7 @@ public class ProductsController(IServiceManager services) : BaseController
     public async Task<IActionResult> DeleteProduct(Guid id, CancellationToken ct)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var companyId = GetCurrentUserCompanyId();
         var result = await services.Products.DeleteAsync(id, companyId, ct);

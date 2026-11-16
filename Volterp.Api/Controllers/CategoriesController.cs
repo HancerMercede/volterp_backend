@@ -34,7 +34,7 @@ public class CategoriesController(IServiceManager services) : BaseController
         [FromBody] CreateCategoryRequest request, CancellationToken ct)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
@@ -50,7 +50,7 @@ public class CategoriesController(IServiceManager services) : BaseController
         Guid id, [FromBody] UpdateCategoryRequest request, CancellationToken ct)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
@@ -65,7 +65,7 @@ public class CategoriesController(IServiceManager services) : BaseController
     public async Task<IActionResult> DeleteCategory(Guid id, CancellationToken ct)
     {
         if (!IsAdmin())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new ErrorResponse("You do not have permission to perform this action."));
 
         var companyId = GetCurrentUserCompanyId();
         var result = await services.Categories.DeleteAsync(id, companyId, ct);

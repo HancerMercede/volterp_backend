@@ -63,7 +63,7 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         return result.Match<ActionResult<SaleDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             sale => sale is null
-                ? NotFound(new { message = "Not Found any sale." })
+                ? NotFound(new ErrorResponse("Not Found any sale."))
                    : Ok(sale));
     }
 
@@ -86,7 +86,7 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         var userId = GetCurrentUserId();
         var result = await serviceManager.Sales.UpdateSaleAsync(id, companyId, request, userId, ct);
         return result.Match<ActionResult<SaleDto>>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             sale => Ok(sale)
         );
     }
@@ -98,7 +98,7 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         var userId = GetCurrentUserId();
         var result = await serviceManager.Sales.CompleteSaleAsync(id, companyId, userId, ct);
         return result.Match<ActionResult<SaleDto>>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             sale => Ok(sale)
         );
     }
@@ -109,7 +109,7 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Sales.DeleteSaleAsync(id, companyId, ct);
         return result.Match<ActionResult>(
-            error => NotFound(new { message = error.Message }),
+            error => NotFound(new ErrorResponse(error.Message)),
             _ => NoContent()
         );
     }
