@@ -31,3 +31,7 @@ Release/
 
 # La carpeta local del certificado y su password: nada de eso entra al repo
 certificado/
+
+# La carpeta Microsoft/ del SDK no es de este repo: se ignora para que no pese
+# en cada barrido del árbol sin trackear
+Microsoft/
