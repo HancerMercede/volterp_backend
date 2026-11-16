@@ -1097,6 +1097,12 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **El efecto en el cable** ✓: el enum viaja **por nombre** ✓ → el JSON del modo pasa de `"Paper"` a `"Normal"` ✓ → el valor guardado sigue siendo `2` ✓ → **el front tiene que enterarse** ✓ (el que mande `"Paper"` recibe 400 ✓).
   - **Los checks** ✓: los cuatro casos de la política ✓ · el modo inválido ✓ · el PUT solo de admin ✓ · la empresa del token ✓ · y el rename **no** toca la base ✓.
 
+- **L104** (2026-11-15) — **U4: la recepción con contrato y la ausencia sin leer el mensaje** ✓.
+  - **El contrato** ✓: `IElectronicInvoiceReceptionService` ✓ → el service lo implementa ✓ → el `IServiceManager` lo expone ✓ (`ElectronicInvoiceReceptions` ✓) → el controller llega **por la fachada** ✓ → fuera el `AddScoped<ElectronicInvoiceReceptionService>()` suelto ✓ (`Program.cs:45` ✓) → la fachada es la única puerta ✓.
+  - **El DTO** ✓: `DTOs/ReceivedElectronicInvoiceDtos/ReceivedElectronicInvoiceDto.cs` ✓ → `IMapFrom<ReceivedElectronicInvoice>` ✓ → el mapeo es de MapFlow ✓ → los miembros van **en el mismo orden** ✓ → el JSON es **byte-idéntico** ✓ (mismos nombres ✓ · mismo `[JsonIgnore]` ✓) → `AlreadyReceived` lo pone la operación ✓ (no sale de la entidad ✓) → en el paso `Map` ✓.
+  - **La ausencia, sin adivinar** ✓: el controller **comparaba el mensaje** del error para elegir el status ✓ (`error.Message == "The received e-CF does not exist."` ✓) → ahora el documento que no existe es la **ausencia del canal `Right`** ✓ (`Either<Error, ReceivedElectronicInvoiceDto?>` ✓, la forma de §2.2 ✓) → el endpoint mapea ausencia → `404` ✓ y cualquier otra falla → `400` ✓ → **el status y el cuerpo son los mismos** ✓ → y el mensaje ya no se lee para decidir ✓.
+  - **Los checks** ✓: el e-CF aceptado ✓ · el rechazado ✓ · el RNC receptor desconocido ✓ · el XML malformado ✓ · la natural key de otro tenant ✓ · el contrato del nombre de archivo ✓ · el documento ausente ✓ → más uno nuevo ✓ (la ausencia del canal `Right` ✓, sin commit ✓).
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
