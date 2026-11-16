@@ -117,6 +117,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Company Certificates** | `GET /api/CompanyCertificates`, `POST /api/CompanyCertificates` (admin) |
 | **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png` |
 | **Electronic Invoice Print** | `GET /api/ElectronicInvoicePrint/{id}` (printable HTML representation; accepted e-CF only) |
+| **Company Emission Mode** | `GET`/`PUT /api/CompanyEmissionMode` (how the company invoices: electronic or normal) |
 | **Accounting** | CRUD `/api/accounting-transactions` |
 
 `GET /api/ElectronicInvoices/state` contesta el estado fiscal del tenant (la empresa sale del token, nunca de la petición):
@@ -157,6 +158,20 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 - `rawResponse` es el cuerpo crudo de la última respuesta de la DGII (ahí quedan los códigos de sus mensajes), `sequenceConsumed` es lo que la DGII dice del número (si el rechazo lo volvió inservible), `receivedAt` es cuándo lo recibió y `lastError` el motivo del último fallo al hablar con la DGII.
 - El cuerpo de la respuesta tiene un **tope de 4000 caracteres**: lo que sobra termina en `... [truncated]`. Una respuesta patológica (o el HTML de un gateway) no puede hacer crecer la fila ni el payload, y el corte no rompe nada: el e-CF sigue su curso.
 - El cuerpo de la **conversación del token** nunca se guarda: puede llevar el token de la DGII, que es una credencial. Lo que sale por aquí es el cuerpo del **envío** y del **veredicto** (lo que el operador necesita ver) y sin credenciales: los valores con forma de token van redactados como `[redacted]`.
+
+### El comprobante fiscal normal (NCF en papel)
+
+La empresa declara **cómo factura** (`GET`/`PUT /api/CompanyEmissionMode`): **electrónica** o **normal**. El valor viaja por nombre: `"Electronic"` o `"Normal"`.
+
+- En modo **electrónico**, la venta completada toma el camino del e-CF: se carga el certificado del emisor y se habla con la DGII. Es el único camino que deja rastro ante la DGII.
+- En modo **normal**, la venta completada emite el **comprobante fiscal normal**: un NCF de **once posiciones** (`B` + dos dígitos de tipo + ocho de secuencia, por ejemplo `B0100000001`), tomado del **rango propio que la DGII autorizó para los comprobantes no electrónicos**. El rango del e-CF no se lee ni se mueve.
+- El tipo normal es el equivalente del electrónico (31→B01, 32→B02, 33→B03, 34→B04); los tipos de compra no tienen equivalente normal y fallan cerrados.
+- El número, el documento y la finalización de la venta caen en **una sola transacción**: un número nunca se quema sin su documento, y repetir la finalización de una venta no consume otro número.
+- **Sin rango autorizado, la venta no completa** (falla cerrado). La superficie que carga ese rango todavía no está (T39b).
+
+### El QR de la representación impresa
+
+La DGII pide la **versión 8** del símbolo para la representación impresa ("Descripción Técnica Servicios DGII", p. 41-42), y el nivel de corrección de errores (Q) es otra cosa: el código la pedía explícitamente. La URL del timbre es más larga de lo que la versión 8 admite con ese nivel (108 bytes), así que **el símbolo crece** hasta el que la codifica: un QR que no codifica la URL sirve menos que uno que no lleva la versión que nombra la DGII.
 
 ### El `Down` de la migración de las respuestas de la DGII
 
