@@ -21,6 +21,7 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         entity.Property(e => e.EmissionMode)
             .HasConversion<int>()
             .IsRequired()
+            .HasSentinel((CompanyEmissionMode)0)
             .HasDefaultValue(CompanyEmissionMode.Electronic);
         entity.Property(e => e.ContingencyStatus)
             .HasConversion<int>()
