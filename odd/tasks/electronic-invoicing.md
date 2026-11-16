@@ -1146,6 +1146,14 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Lo que NO se toca** ✓: los **status** ✓ (eso es U6b ✓) · el middleware ✓ (eso es U6c ✓ y sigue diferida ✓ porque `ExceptionMiddleWareHandler.cs` tiene cambios de otro owner ✓) → y los 401/403 que arma el framework (los de `[Authorize(Roles)]` ✓) siguen sin cuerpo ✓ → esos son territorio del middleware ✓.
   - **El writer de U6a** ✓: se trabó 30 minutos en un `bash` y el harness lo cerró por timeout ✓ → **no dejó ni un cambio** ✓ (el diff de los controllers estaba vacío ✓) → la unidad se hizo **inline** ✓.
 
+- **L111** (2026-11-16) — **EF 20601: el centinela del modo de emisión, y la causa de los timeouts** ✓.
+  - **El aviso** ✓: EF Core 20601 ✓ → `CompanyConfiguration.EmissionMode` tenía `HasDefaultValue(CompanyEmissionMode.Electronic)` ✓ **sin centinela** ✓ → EF no puede distinguir “no seteado” de “seteado con el valor inválido” (el `0` del enum ✓, que no es `Electronic` ni `Normal` ✓) → un `0` inválido se guardaría silenciosamente como `Electronic` ✓.
+  - **El fix** ✓: `.HasSentinel((CompanyEmissionMode)0)` ✓ → el centinela declara **explícitamente** que el `0` (el valor inválido ✓) significa “nunca seteado” ✓ → manda el default de la base ✓ (`Electronic` ✓) → el valor inválido **nunca llega a la base** ✓ → y el aviso desaparece ✓ (build del `Infrastructure` ✓: 0 errores ✓ · sin el 20601 ✓).
+  - **El modelo** ✓: `has-pending-model-changes` → **“No changes have been made to the model since the last migration”** ✓ → el centinela es una anotación del modelo ✓ y **no toca las migraciones** ✓.
+  - **Los tests** ✓: `CompanyEmissionModeSentinelTests` ✓ (3 ✓) → una empresa sin modo → `Electronic` ✓ · una empresa en `Normal` → `Normal` ✓ · una empresa con el `0` inválido → **nunca se persiste** ✓ (queda `Electronic` ✓).
+  - **El incidente de infraestructura (importante para lo que sigue)** ✓: **tres subagents consecutivos** cayeron por timeout (30 min trabados ✓) → el writer de U6a ✓ (en un `bash` ✓) · el explorer del mapa de U6b ✓ (en un `grep` ✓) · el writer de EF ✓ (en un `read` ✓) → **la causa comprobada de al menos uno de ellos** ✓: los **servidores de build de MSBuild/Roslyn quedan colgados** en esta máquina ✓ (un `dotnet test` mío se quedó **600 s** sin imprimir una línea ✓ → 2 procesos `dotnet` vivos ✓) → `dotnet build-server shutdown` los libera ✓ → de acá en adelante cada run lleva `--disable-build-servers` ✓ y el build se hace **por separado** del test ✓.
+  - **La consecuencia de routing** ✓: como la delegación está fallando, las unidades que quedan (U6b ✓ · T39c ✓) se hacen **inline** ✓ (con el alcance acotado ✓ y la evidencia en el Log ✓) → si un subagent vuelve a caer por timeout, no se reintenta en bucle ✓.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
