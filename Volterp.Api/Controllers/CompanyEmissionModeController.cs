@@ -21,6 +21,21 @@ public class CompanyEmissionModeController(IServiceManager serviceManager) : Bas
             emissionMode => Ok(emissionMode));
     }
 
+    [HttpPut("contingency")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<CompanyEmissionModeDto>> UpdateContingency(
+        [FromBody] UpdateCompanyContingencyDto request,
+        CancellationToken ct = default)
+    {
+        var companyId = GetCurrentUserCompanyId();
+        var userId = GetCurrentUserId();
+        var result = await Service.UpdateContingencyAsync(request, companyId, userId, ct);
+
+        return result.Match<ActionResult<CompanyEmissionModeDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            emissionMode => Ok(emissionMode));
+    }
+
     [HttpPut]
     [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<CompanyEmissionModeDto>> UpdateEmissionMode(

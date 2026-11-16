@@ -35,6 +35,18 @@ public class Company : AuditEntity
     public void Activate() => IsActive = true;
     public void Deactivate() => IsActive = false;
 
+    // The contingency is a window, not a mode: it suspends the electronic
+    // path for a while and the company goes back to it when the window is
+    // over. Without a contingency there are no bounds.
+    public void DeclareContingency(CompanyContingencyStatus status, DateTime? startsAt, DateTime? endsAt)
+    {
+        var none = status == CompanyContingencyStatus.None;
+
+        ContingencyStatus = status;
+        ContingencyStartsAt = none ? null : startsAt;
+        ContingencyEndsAt = none ? null : endsAt;
+    }
+
     public void UpdateTaxId(Rnc rnc) => TaxId = rnc.Value;
     public void UpdateEmail(Email email) => Email = email.Value;
     public void UpdatePhone(string? phone) => Phone = phone ?? string.Empty;

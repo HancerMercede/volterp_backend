@@ -118,6 +118,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png` |
 | **Electronic Invoice Print** | `GET /api/ElectronicInvoicePrint/{id}` (printable HTML representation; accepted e-CF only) |
 | **Company Emission Mode** | `GET`/`PUT /api/CompanyEmissionMode` (how the company invoices: electronic or normal) |
+| **Company Contingency** | `PUT /api/CompanyEmissionMode/contingency` (the temporary suspension of the electronic path) |
 | **Electronic Invoice Sequences** | `GET`/`POST`/`PUT /api/ElectronicInvoiceSequences` (the e-NCF ranges the DGII authorized) |
 | **Normal Fiscal Sequences** | `GET`/`POST`/`PUT /api/NormalFiscalSequences` (the normal-CNF ranges the DGII authorized) |
 | **Electronic Invoice Reception** | `POST /fe/recepcion/api/ecf`, `POST /fe/aprobacioncomercial/api/ecf` (the DGII calls these) |
@@ -192,6 +193,7 @@ La empresa declara **cómo factura** (`GET`/`PUT /api/CompanyEmissionMode`): **e
 - El número, el documento y la finalización de la venta caen en **una sola transacción**: un número nunca se quema sin su documento, y repetir la finalización de una venta no consume otro número.
 - **Sin rango autorizado, la venta no completa** (falla cerrado). El rango se carga y se consulta con `/api/NormalFiscalSequences` (el alta y la modificación son de administrador).
 - **La factura comercial**: en el camino normal, el que completa la venta puede pedir que esa venta salga como **factura comercial** (`PUT /api/sales/{id}/complete` con el cuerpo opcional `{"asCommercialInvoice": true}`): sin NCF, sin documento fiscal, sin tocar ningún rango y sin nada hacia la DGII. Sin ese cuerpo, la venta sale con el comprobante fiscal normal. En el camino electrónico no aplica y falla cerrado.
+- **La contingencia**: `PUT /api/CompanyEmissionMode/contingency` declara la **suspensión temporal** del camino electrónico (`Total` o `Partial`, con entrada y salida, y dentro de los **quince días** que permite la norma). Mientras la ventana está abierta, la venta sale en papel; fuera de ella, el camino electrónico vuelve. No es un modo: no reemplaza la declaración de cómo factura la empresa.
 
 ### El QR de la representación impresa
 

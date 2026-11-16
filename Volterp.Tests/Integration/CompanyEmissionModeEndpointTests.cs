@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
+using Volterp.Domain.Policies;
 using Volterp.ElectronicInvoicing;
 using Volterp.Infrastructure.Data;
 using Volterp.Tests.TestHelpers;
@@ -124,11 +125,192 @@ public class CompanyEmissionModeEndpointTests : IClassFixture<ApiFactory>
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task TheAdministratorDeclaresTheContingencyOfTheCompanyOfTheToken()
+    {
+        await ResetContingencyAsync();
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var startsAt = new DateTime(2026, 11, 16, 8, 0, 0, DateTimeKind.Utc);
+        var endsAt = startsAt.AddDays(3);
+
+        var response = await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = "Total", startsAt, endsAt });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        body.RootElement.GetProperty("contingencyStatus").GetString().Should().Be("Total");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+        var company = await db.Companies.SingleAsync(c => c.Id == Guid7TestValues.CompanyA);
+        company.ContingencyStatus.Should().Be(CompanyContingencyStatus.Total);
+        company.ContingencyStartsAt.Should().Be(startsAt);
+        company.ContingencyEndsAt.Should().Be(endsAt);
+    }
+
+    [Fact]
+    public async Task TheDeclaredContingency_SuspendsTheElectronicPathOnlyInsideItsWindow()
+    {
+        await ResetContingencyAsync();
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var startsAt = new DateTime(2026, 11, 16, 8, 0, 0, DateTimeKind.Utc);
+        var endsAt = startsAt.AddDays(3);
+
+        var response = await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = "Total", startsAt, endsAt });
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+        var company = await db.Companies.SingleAsync(c => c.Id == Guid7TestValues.CompanyA);
+
+        CompanyEmissionPolicy.UsesElectronicEmission(company, startsAt).Should().BeFalse();
+        CompanyEmissionPolicy.UsesElectronicEmission(company, endsAt).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AContingencyLongerThanFifteenDaysIsRejected()
+    {
+        await ResetContingencyAsync();
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var startsAt = new DateTime(2026, 11, 16, 8, 0, 0, DateTimeKind.Utc);
+
+        var response = await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = "Total", startsAt, endsAt = startsAt.AddDays(16) });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task AContingencyWithoutItsBoundsIsRejected()
+    {
+        await ResetContingencyAsync();
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var response = await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = "Total", startsAt = (DateTime?)null, endsAt = (DateTime?)null });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task AContingencyThatEndsBeforeItStartsIsRejected()
+    {
+        await ResetContingencyAsync();
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var startsAt = new DateTime(2026, 11, 16, 8, 0, 0, DateTimeKind.Utc);
+
+        var response = await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = "Partial", startsAt, endsAt = startsAt.AddHours(-1) });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task AnUnknownContingencyStatusIsRejected()
+    {
+        await ResetContingencyAsync();
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var startsAt = new DateTime(2026, 11, 16, 8, 0, 0, DateTimeKind.Utc);
+
+        var response = await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = 99, startsAt, endsAt = startsAt.AddDays(1) });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task TheContingencyIsClosedWithTheStatusNone()
+    {
+        await ResetContingencyAsync();
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var startsAt = new DateTime(2026, 11, 16, 8, 0, 0, DateTimeKind.Utc);
+
+        await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = "Total", startsAt, endsAt = startsAt.AddDays(3) });
+
+        var response = await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = "None" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+        var company = await db.Companies.SingleAsync(c => c.Id == Guid7TestValues.CompanyA);
+        company.ContingencyStatus.Should().Be(CompanyContingencyStatus.None);
+        company.ContingencyStartsAt.Should().BeNull();
+        company.ContingencyEndsAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ChangingTheModeDoesNotTouchTheContingency()
+    {
+        await ResetContingencyAsync();
+        SetAuth(Guid7TestValues.CompanyA);
+
+        var startsAt = new DateTime(2026, 11, 16, 8, 0, 0, DateTimeKind.Utc);
+
+        await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = "Total", startsAt, endsAt = startsAt.AddDays(3) });
+
+        await _client.PutAsJsonAsync("/api/CompanyEmissionMode", new { emissionMode = "Normal" });
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+        var company = await db.Companies.SingleAsync(c => c.Id == Guid7TestValues.CompanyA);
+        company.ContingencyStatus.Should().Be(CompanyContingencyStatus.Total);
+        company.ContingencyStartsAt.Should().Be(startsAt);
+    }
+
+    [Fact]
+    public async Task ANonAdminCannotDeclareTheContingency()
+    {
+        await ResetContingencyAsync();
+        SetAuth(Guid7TestValues.CompanyA, "Employee");
+
+        var startsAt = new DateTime(2026, 11, 16, 8, 0, 0, DateTimeKind.Utc);
+
+        var response = await _client.PutAsJsonAsync(
+            "/api/CompanyEmissionMode/contingency",
+            new { status = "Total", startsAt, endsAt = startsAt.AddDays(3) });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private async Task ResetModeAsync()
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
         var company = await db.Companies.SingleAsync(c => c.Id == Guid7TestValues.CompanyA);
+        company.EmissionMode = CompanyEmissionMode.Electronic;
+        await db.SaveChangesAsync();
+    }
+
+    private async Task ResetContingencyAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+        var company = await db.Companies.SingleAsync(c => c.Id == Guid7TestValues.CompanyA);
+        company.ContingencyStatus = CompanyContingencyStatus.None;
+        company.ContingencyStartsAt = null;
+        company.ContingencyEndsAt = null;
+        // The contingency only suspends the electronic path, so the company
+        // has to be electronic for the suspension to mean something.
         company.EmissionMode = CompanyEmissionMode.Electronic;
         await db.SaveChangesAsync();
     }

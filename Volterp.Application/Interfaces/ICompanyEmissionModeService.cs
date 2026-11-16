@@ -11,4 +11,7 @@ public interface ICompanyEmissionModeService
 
     Task<Either<Error, CompanyEmissionModeDto>> UpdateAsync(
         UpdateCompanyEmissionModeDto request, Guid companyId, Guid? userId = null, CancellationToken ct = default);
+
+    Task<Either<Error, CompanyEmissionModeDto>> UpdateContingencyAsync(
+        UpdateCompanyContingencyDto request, Guid companyId, Guid? userId = null, CancellationToken ct = default);
 }
