@@ -1,5 +1,6 @@
 using Serilog;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.EntityFrameworkCore;
 using Volterp.Api.Authentication;
@@ -112,7 +113,7 @@ app.MapGet("health", async (VolterpDbContext db) =>
 }).DisableRateLimiting();
 
 app.MapGet("/_diagnostics/exceptions", (IExceptionLogStore store) =>
-    Results.Ok(store.GetRecent(50)));
+    Results.Ok(store.GetRecent(50))).RequireAuthorization();
 
 app.UseStaticFiles();
 app.Run();

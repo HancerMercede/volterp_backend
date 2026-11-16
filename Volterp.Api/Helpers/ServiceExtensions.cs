@@ -269,13 +269,8 @@ public static class ServiceExtensions
                 .ToString(CultureInfo.InvariantCulture);
         }
 
-        var problem = new ProblemDetails
-        {
-            Type = "https://datatracker.ietf.org/doc/html/rfc6585#section-4",
-            Title = "Too Many Requests",
-            Status = StatusCodes.Status429TooManyRequests,
-            Detail = "The request was rate-limited. Retry later."
-        };
-        await response.WriteAsJsonAsync(problem, cancellationToken);
+        await response.WriteAsJsonAsync(
+            new ErrorResponse("The request was rate-limited. Retry later."),
+            cancellationToken);
     }
 }

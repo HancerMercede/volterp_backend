@@ -99,7 +99,7 @@ public class SaleService(
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, ct),
                 ex => new Error(ex.Message))
-            .Ensure(sale => sale is not null, new Error("Sale not found."))
+            .Ensure(sale => sale is not null, new Error("Sale not found.", ErrorKind.NotFound))
             .Ensure(_ => request.Status != SaleStatus.Completed,
                 new Error("A sale can only be completed through the completion operation."))
             .Ensure(sale => sale is not null && sale.Status != SaleStatus.Completed,
@@ -182,7 +182,7 @@ public class SaleService(
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, ct),
                 ex => new Error(ex.Message))
-            .Ensure(sale => sale is not null, new Error("Sale not found."))
+            .Ensure(sale => sale is not null, new Error("Sale not found.", ErrorKind.NotFound))
             .FlatMap(async sale =>
             {
                 sale.Complete();
@@ -250,7 +250,7 @@ public class SaleService(
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
             .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, ct),
                 ex => new Error(ex.Message))
-            .Ensure(sale => sale is not null, new Error("Sale not found."))
+            .Ensure(sale => sale is not null, new Error("Sale not found.", ErrorKind.NotFound))
             .FlatMap(async sale =>
             {
                 // Only restore stock if there are items with product IDs

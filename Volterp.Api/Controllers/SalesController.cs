@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs.SaleDtos;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Enums;
@@ -86,7 +87,9 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         var userId = GetCurrentUserId();
         var result = await serviceManager.Sales.UpdateSaleAsync(id, companyId, request, userId, ct);
         return result.Match<ActionResult<SaleDto>>(
-            error => NotFound(new ErrorResponse(error.Message)),
+            error => error.Kind == ErrorKind.NotFound
+                ? NotFound(new ErrorResponse(error.Message))
+                : BadRequest(new ErrorResponse(error.Message)),
             sale => Ok(sale)
         );
     }
@@ -98,7 +101,9 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         var userId = GetCurrentUserId();
         var result = await serviceManager.Sales.CompleteSaleAsync(id, companyId, userId, ct);
         return result.Match<ActionResult<SaleDto>>(
-            error => NotFound(new ErrorResponse(error.Message)),
+            error => error.Kind == ErrorKind.NotFound
+                ? NotFound(new ErrorResponse(error.Message))
+                : BadRequest(new ErrorResponse(error.Message)),
             sale => Ok(sale)
         );
     }
@@ -109,7 +114,9 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         var companyId = GetCurrentUserCompanyId();
         var result = await serviceManager.Sales.DeleteSaleAsync(id, companyId, ct);
         return result.Match<ActionResult>(
-            error => NotFound(new ErrorResponse(error.Message)),
+            error => error.Kind == ErrorKind.NotFound
+                ? NotFound(new ErrorResponse(error.Message))
+                : BadRequest(new ErrorResponse(error.Message)),
             _ => NoContent()
         );
     }
