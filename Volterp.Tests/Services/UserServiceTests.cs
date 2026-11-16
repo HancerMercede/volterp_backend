@@ -46,7 +46,7 @@ public class UserServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockUsersRepo = new Mock<IUserRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
         var mockPasswordHasher = new Mock<Volterp.Application.Interfaces.IPasswordHasher>();
 
         mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -79,7 +79,7 @@ public class UserServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockUsersRepo = new Mock<IUserRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
         var mockPasswordHasher = new Mock<IPasswordHasher>();
 
         mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -114,7 +114,7 @@ public class UserServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockUsersRepo = new Mock<IUserRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
         var mockPasswordHasher = new Mock<IPasswordHasher>();
 
         mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -154,7 +154,7 @@ public class UserServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockUsersRepo = new Mock<IUserRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
         var mockPasswordHasher = new Mock<IPasswordHasher>();
 
         mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -191,7 +191,7 @@ public class UserServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockUsersRepo = new Mock<IUserRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
         var mockPasswordHasher = new Mock<IPasswordHasher>();
 
         mockUsersRepo.Setup(r => r.ExistsByUsernameAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))

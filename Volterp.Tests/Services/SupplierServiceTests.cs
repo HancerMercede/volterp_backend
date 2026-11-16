@@ -282,9 +282,9 @@ public class SupplierServiceTests
             Times.Never);
     }
 
-    private static Mock<ICodeGenerator> BuildCodeGenerator(string nextCode)
+    private static Mock<ICodeGeneratorService> BuildCodeGenerator(string nextCode)
     {
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
         mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(nextCode);

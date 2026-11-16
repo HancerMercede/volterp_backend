@@ -24,7 +24,7 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     private readonly Lazy<IReceivedElectronicInvoiceRepository> _receivedElectronicInvoices = new(() => new ReceivedElectronicInvoiceRepository(context));
     private readonly Lazy<INormalFiscalDocumentRepository> _normalFiscalDocuments = new(() => new NormalFiscalDocumentRepository(context));
     private readonly Lazy<INormalFiscalSequenceRepository> _normalFiscalSequences = new(() => new NormalFiscalSequenceRepository(context));
-    private readonly Lazy<ICodeGenerator> _codes = new(() => new CodeGenerator(new CodeSequenceRepository(context)));
+    private readonly Lazy<ICodeGeneratorService> _codes = new(() => new CodeGeneratorService(new CodeSequenceRepository(context)));
 
     public IUserRepository Users => _users.Value;
     public ICompanyRepository Companies => _companies.Value;
@@ -43,7 +43,7 @@ public class UnitOfWork(VolterpDbContext context) : IUnitOfWork
     public IReceivedElectronicInvoiceRepository ReceivedElectronicInvoices => _receivedElectronicInvoices.Value;
     public INormalFiscalDocumentRepository NormalFiscalDocuments => _normalFiscalDocuments.Value;
     public INormalFiscalSequenceRepository NormalFiscalSequences => _normalFiscalSequences.Value;
-    public ICodeGenerator Codes => _codes.Value;
+    public ICodeGeneratorService Codes => _codes.Value;
 
     public async Task<int> CommitAsync(CancellationToken ct = default)
     {

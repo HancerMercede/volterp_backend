@@ -23,7 +23,7 @@ public class SupplierServiceTenantLeakTests
     {
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSuppliersRepo = new Mock<ISupplierRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
         mockCodes
             .Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Prov-001");

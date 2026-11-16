@@ -76,7 +76,7 @@ public class EmployeeServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockEmployees = new Mock<IEmployeeRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCodes.Setup(c => c.NextAsync(Guid7TestValues.CompanyA, CodeEntityType.Employee, It.IsAny<CancellationToken>()))
             .ReturnsAsync("Empl-001");
@@ -105,7 +105,7 @@ public class EmployeeServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockEmployees = new Mock<IEmployeeRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         Employee? persisted = null;
         mockEmployees.Setup(r => r.ExistsCodeAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
@@ -139,7 +139,7 @@ public class EmployeeServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockEmployees = new Mock<IEmployeeRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockEmployees.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "EMP-42", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -259,7 +259,7 @@ public class EmployeeServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockEmployees = new Mock<IEmployeeRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockUnitOfWork.Setup(u => u.Employees).Returns(mockEmployees.Object);
         mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);

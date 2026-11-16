@@ -947,7 +947,7 @@ public class PurchaseServiceTests
     // not bring one.
     private static void SetupCodes(Mock<IUnitOfWork> mockUnitOfWork, string code = "Comp-001")
     {
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
         mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(code);
         mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);

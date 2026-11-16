@@ -142,7 +142,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(Guid.NewGuid(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -172,7 +172,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -304,7 +304,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -421,7 +421,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -457,7 +457,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         Product? persisted = null;
         mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
@@ -497,7 +497,7 @@ public class ProductServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockProductsRepo = new Mock<IProductRepository>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCategoriesRepo.Setup(r => r.ExistsCategoryAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);

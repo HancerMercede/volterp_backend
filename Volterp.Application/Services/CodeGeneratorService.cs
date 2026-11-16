@@ -4,7 +4,7 @@ using Volterp.Domain.Enums;
 
 namespace Volterp.Application.Services;
 
-public class CodeGenerator(ICodeSequenceRepository sequences) : ICodeGenerator
+public class CodeGeneratorService(ICodeSequenceRepository sequences) : ICodeGeneratorService
 {
     public async Task<string> NextAsync(Guid companyId, CodeEntityType entityType, CancellationToken ct = default)
     {

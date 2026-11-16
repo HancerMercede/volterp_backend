@@ -2,7 +2,7 @@ using Volterp.Domain.Enums;
 
 namespace Volterp.Application.Interfaces;
 
-public interface ICodeGenerator
+public interface ICodeGeneratorService
 {
     Task<string> NextAsync(Guid companyId, CodeEntityType entityType, CancellationToken ct = default);
 }

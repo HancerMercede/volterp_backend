@@ -18,7 +18,7 @@ public interface IUnitOfWork
     IReceivedElectronicInvoiceRepository ReceivedElectronicInvoices { get; }
     INormalFiscalDocumentRepository NormalFiscalDocuments { get; }
     INormalFiscalSequenceRepository NormalFiscalSequences { get; }
-    ICodeGenerator Codes { get; }
+    ICodeGeneratorService Codes { get; }
     IDashboardRepository Dashboard { get; }
     Task<int> CommitAsync(CancellationToken ct = default);
 

@@ -52,7 +52,7 @@ public class AccountingTransactionServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockTransactions = new Mock<IAccountingTransactionRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCodes.Setup(c => c.NextAsync(Guid7TestValues.CompanyA, CodeEntityType.AccountingTransaction, It.IsAny<CancellationToken>()))
             .ReturnsAsync("Asi-001");
@@ -81,7 +81,7 @@ public class AccountingTransactionServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockTransactions = new Mock<IAccountingTransactionRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         AccountingTransaction? persisted = null;
         mockTransactions.Setup(r => r.ExistsCodeAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
@@ -115,7 +115,7 @@ public class AccountingTransactionServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockTransactions = new Mock<IAccountingTransactionRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockTransactions.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "ASI-42", null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
@@ -235,7 +235,7 @@ public class AccountingTransactionServiceTests
         // ARRANGE — the ReferenceNumber is the user's business reference, not the code (S4)
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockTransactions = new Mock<IAccountingTransactionRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCodes.Setup(c => c.NextAsync(It.IsAny<Guid>(), It.IsAny<CodeEntityType>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("Asi-001");
@@ -266,7 +266,7 @@ public class AccountingTransactionServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockTransactions = new Mock<IAccountingTransactionRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockUnitOfWork.Setup(u => u.AccountingTransactions).Returns(mockTransactions.Object);
         mockUnitOfWork.Setup(u => u.Codes).Returns(mockCodes.Object);

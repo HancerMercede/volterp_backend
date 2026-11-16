@@ -55,7 +55,7 @@ public class CategoryServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         Category? persisted = null;
         mockCategoriesRepo.Setup(r => r.AddCategoryAsync(It.IsAny<Category>(), It.IsAny<CancellationToken>()))
@@ -124,7 +124,7 @@ public class CategoryServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCategoriesRepo.Setup(r => r.AddCategoryAsync(It.IsAny<Category>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Category c, CancellationToken ct) => c);
@@ -153,7 +153,7 @@ public class CategoryServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         Category? persisted = null;
         mockCategoriesRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "CAT-77", It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
@@ -186,7 +186,7 @@ public class CategoryServiceTests
         // ARRANGE
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockCategoriesRepo = new Mock<ICategoryRepository>();
-        var mockCodes = new Mock<ICodeGenerator>();
+        var mockCodes = new Mock<ICodeGeneratorService>();
 
         mockCategoriesRepo.Setup(r => r.ExistsCodeAsync(Guid7TestValues.CompanyA, "CAT-77", It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
