@@ -1,6 +1,6 @@
 using Volterp.Application.Interfaces;
 
-namespace Volterp.Application.Exceptions;
+namespace Volterp.Application.Exceptions.ValidationException;
 
 /// <summary>
 /// 

@@ -1,15 +1,18 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 using Volterp.Application.Diagnostics;
-using Volterp.Application.Exceptions;
-using Volterp.Application.Interfaces;
+using Volterp.Application.DTOs;
+using Volterp.Application.Exceptions.ValidationException;
 
 namespace Volterp.Api.Extensions;
 
 public static class ExceptionMiddleWareHandler
 {
+    // The house writes JSON in camelCase (the controllers use the same shape),
+    // and the middleware writes the body by hand instead of through MVC.
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     public static void ConfigureExceptionMiddleWare(this WebApplication app, ILogger logger)
     {
         app.UseExceptionHandler(appError =>
@@ -28,7 +31,6 @@ public static class ExceptionMiddleWareHandler
                     : StatusCodes.Status500InternalServerError;
 
                 context.Response.StatusCode = statusCode;
-                context.Response.ContentType = "application/problem+json";
 
                 // -- Log Level depend on status code --
                 var (level, message) = statusCode switch
@@ -39,32 +41,41 @@ public static class ExceptionMiddleWareHandler
                 };
                 logger.Log(level, exception, message, context.Request.Method, path);
 
-                // -- Build RFC 7807 ProblemDetails --
-                var problem = new ProblemDetails
-                {
-                    Status = statusCode,
-                    Title = GetDefaultTitle(statusCode, exception),
-                    Detail = app.Environment.IsDevelopment()
-                        ? exception.ToString()
-                        : null,
-                    Instance = path,
-                    Type = $"https://httpstatuses.io/{statusCode}"
-                };
-                problem.Extensions["traceId"] = traceId;
-                problem.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+                // The stack trace only travels in development.
+                var detail = app.Environment.IsDevelopment()
+                    ? exception.ToString()
+                    : null;
+                var details = DetailsOf(exception);
 
-                // ── Expose ValidationException._values as data ──
-                if (exception is ValidationExecption valEx && valEx._values is not null)
+                // -- Bitácora en memoria --
+                var logStore = context.RequestServices.GetService<IExceptionLogStore>();
+                logStore?.Record(exception, statusCode, traceId, path, detail);
+
+                // -- 5xx travels in RFC 7807 ProblemDetails --
+                if (statusCode >= 500)
                 {
-                    problem.Extensions["data"] = SerializeDetails(valEx._values);
+                    context.Response.ContentType = "application/problem+json";
+
+                    var problem = new ProblemDetails
+                    {
+                        Status = statusCode,
+                        Title = GetDefaultTitle(statusCode, exception),
+                        Detail = detail,
+                        Instance = path,
+                        Type = $"https://httpstatuses.io/{statusCode}"
+                    };
+                    problem.Extensions["traceId"] = traceId;
+                    problem.Extensions["timestamp"] = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+
+                    await context.Response.WriteAsync(JsonSerializer.Serialize(problem, JsonOptions));
+                    return;
                 }
 
-                // ── Bitácora en memoria ──
-                var logStore = context.RequestServices.GetService<IExceptionLogStore>();
-                logStore?.Record(exception, statusCode, traceId, path, problem.Detail);
+                // -- 4xx travels in the same envelope every other error of the API uses --
+                context.Response.ContentType = "application/json";
 
-                var json = JsonSerializer.Serialize(problem);
-                await context.Response.WriteAsync(json);
+                var error = new ErrorResponse(GetDefaultTitle(statusCode, exception), details);
+                await context.Response.WriteAsync(JsonSerializer.Serialize(error, JsonOptions));
             });
 
 
@@ -79,18 +90,15 @@ public static class ExceptionMiddleWareHandler
         return "Unexpected error.";
     }
 
-    private static object? SerializeDetails(object values)
+    // The validation data travels in the `details` of the envelope, serialized
+    // so the client reads the same shape whatever the exception carried.
+    private static string? DetailsOf(Exception exception)
     {
-        if (values is string s) return s;
-        try
-        {
-            // Try to round-trip through JsonElement so it serializes cleanly
-            var el = JsonSerializer.SerializeToElement(values);
-            return el;
-        }
-        catch
-        {
-            return values.ToString();
-        }
+        if (exception is not ValidationExecption valEx || valEx._values is null)
+            return null;
+
+        return valEx._values is string text
+            ? text
+            : JsonSerializer.Serialize(valEx._values);
     }
 }

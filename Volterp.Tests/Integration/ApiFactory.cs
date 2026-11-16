@@ -42,6 +42,11 @@ public sealed class ApiFactory : WebApplicationFactory<ApiAssemblyMarker>
                 options.UseSqlite(_connection)
                        .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
+            // The suite brings its own controller: it is the only way to reach
+            // the branch of the middleware where an unhandled exception leaves
+            // the API (the 5xx of the error envelope).
+            services.AddControllers().AddApplicationPart(typeof(ApiFactory).Assembly);
+
             _configureServices?.Invoke(services);
         });
     }

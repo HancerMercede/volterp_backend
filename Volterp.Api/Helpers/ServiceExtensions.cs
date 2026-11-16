@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -15,6 +16,7 @@ using Volterp.Api.Http;
 using Volterp.Api.Workers;
 using Volterp.Application.Abstractions;
 using Volterp.Application.Diagnostics;
+using Volterp.Application.DTOs;
 using Volterp.Application.Services;
 using Volterp.ElectronicInvoicing.Abstractions;
 using Volterp.ElectronicInvoicing.Dgii;
@@ -40,6 +42,10 @@ public static class ServiceExtensions
     
     public static void ConfigureJwt(IServiceCollection services, JwtSettings jwtSettings)
     {
+        // The house writes JSON in camelCase, and these two answers are written
+        // by hand instead of through MVC.
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 
@@ -55,6 +61,31 @@ public static class ServiceExtensions
                     ValidIssuer = jwtSettings.Issuer,
                     ValidAudience = jwtSettings.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key))
+                };
+
+                // The 401 and the 403 that the framework raises travel in the same
+                // envelope every other error of the API uses.
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = async context =>
+                    {
+                        context.HandleResponse();
+
+                        if (!context.Response.Headers.ContainsKey("WWW-Authenticate"))
+                            context.Response.Headers.Append("WWW-Authenticate", "Bearer");
+
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(
+                            JsonSerializer.Serialize(new ErrorResponse("Unauthorized."), jsonOptions));
+                    },
+                    OnForbidden = async context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(
+                            JsonSerializer.Serialize(new ErrorResponse("Forbidden."), jsonOptions));
+                    }
                 };
             });
 
