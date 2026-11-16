@@ -1,11 +1,16 @@
 using FluentAssertions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using EitherWay;
+using Volterp.Application.DTOs.NormalFiscalSequenceDtos;
+using Volterp.Application.Exceptions.AppErrors;
+using Volterp.Application.Services;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.ElectronicInvoicing;
 using Volterp.Infrastructure.Data;
 using Volterp.Infrastructure.Repositories;
+using Volterp.Infrastructure.UnitOfWork;
 using Xunit;
 
 namespace Volterp.Tests.Integration;
@@ -43,6 +48,32 @@ public class NormalFiscalSequenceRepositoryTests
             numbers.Add(await fixture.NextAsync(NormalFiscalDocumentType.Consumer));
 
         numbers.Should().Equal(100, 101, 102);
+    }
+
+    [Fact]
+    public async Task TheRangeLoadedThroughTheServiceIsTheOneTheNumberComesFrom()
+    {
+        await using var fixture = new SequenceFixture();
+        await fixture.InitializeAsync();
+
+        // The taxpayer loads the range the DGII authorized.
+        var service = new NormalFiscalSequenceService(fixture.UnitOfWork);
+        var loaded = await service.CreateAsync(
+            new SaveNormalFiscalSequenceDto(
+                fixture.IssuerTaxId,
+                NormalFiscalDocumentType.Consumer,
+                1,
+                100,
+                null,
+                1),
+            fixture.CompanyId);
+
+        loaded.Should().BeOfType<Either<Error, NormalFiscalSequenceDto>.Right>();
+
+        // The number of the paper document comes from that range.
+        var number = await fixture.NextAsync(NormalFiscalDocumentType.Consumer);
+
+        number.Should().Be(2, "the number comes from the range the taxpayer loaded");
     }
 
     [Fact]
@@ -319,6 +350,7 @@ public class NormalFiscalSequenceRepositoryTests
         public Guid CompanyId { get; private set; }
         public string IssuerTaxId { get; private set; } = string.Empty;
         public VolterpDbContext Context => _context;
+        public UnitOfWork UnitOfWork { get; private set; } = null!;
         public NormalFiscalSequenceRepository Repository { get; private set; } = null!;
 
         public async Task InitializeAsync()
@@ -341,6 +373,7 @@ public class NormalFiscalSequenceRepositoryTests
 
             await _context.SaveChangesAsync();
 
+            UnitOfWork = new UnitOfWork(_context);
             Repository = new NormalFiscalSequenceRepository(_context);
         }
 

@@ -54,6 +54,9 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
     private IElectronicInvoiceReceptionService? _electronicInvoiceReceptions;
     public IElectronicInvoiceReceptionService ElectronicInvoiceReceptions => _electronicInvoiceReceptions ??= new ElectronicInvoiceReceptionService(unitOfWork);
 
+    private INormalFiscalSequenceService? _normalFiscalSequences;
+    public INormalFiscalSequenceService NormalFiscalSequences => _normalFiscalSequences ??= new NormalFiscalSequenceService(unitOfWork);
+
     private ICompanyEmissionModeService? _companyEmissionModes;
     public ICompanyEmissionModeService CompanyEmissionModes => _companyEmissionModes ??= new CompanyEmissionModeService(unitOfWork);
 }

@@ -17,6 +17,7 @@ public interface IServiceManager
     IElectronicInvoiceService ElectronicInvoices { get; }
     IElectronicInvoicePrintService ElectronicInvoicePrints { get; }
     IElectronicInvoiceReceptionService ElectronicInvoiceReceptions { get; }
+    INormalFiscalSequenceService NormalFiscalSequences { get; }
     ICompanyEmissionModeService CompanyEmissionModes { get; }
     INormalFiscalDocumentService NormalFiscalDocuments { get; }
     IDashboardService Dashboard { get; }
