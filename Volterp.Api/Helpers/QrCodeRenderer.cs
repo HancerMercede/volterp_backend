@@ -30,7 +30,7 @@ public static class QrCodeRenderer
                 pixelsPerModule,
                 DarkColor,
                 LightColor,
-                QRCodeGenerator.ECCLevel.Q,
+                QRCodeGenerator.ECCLevel.M,
                 false,
                 false,
                 QRCodeGenerator.EciMode.Default,
@@ -48,7 +48,7 @@ public static class QrCodeRenderer
                 pixelsPerModule,
                 DarkColor,
                 LightColor,
-                QRCodeGenerator.ECCLevel.Q);
+                QRCodeGenerator.ECCLevel.M);
         }
     }
 
@@ -61,7 +61,7 @@ public static class QrCodeRenderer
                 pixelsPerModule,
                 DarkColorRgba,
                 LightColorRgba,
-                QRCodeGenerator.ECCLevel.Q,
+                QRCodeGenerator.ECCLevel.M,
                 false,
                 false,
                 QRCodeGenerator.EciMode.Default,
@@ -74,7 +74,7 @@ public static class QrCodeRenderer
                 pixelsPerModule,
                 DarkColorRgba,
                 LightColorRgba,
-                QRCodeGenerator.ECCLevel.Q);
+                QRCodeGenerator.ECCLevel.M);
         }
     }
 }

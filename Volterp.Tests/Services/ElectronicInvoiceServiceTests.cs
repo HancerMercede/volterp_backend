@@ -666,6 +666,11 @@ public class ElectronicInvoiceQrCodeTests
     private const string ShortUrl =
         "https://fc.dgii.gov.do/ecf/consultatimbrefc?encf=E320000000064";
 
+    // The URL of the timbre of a document that is not a summary, with every
+    // parameter the DGII lists (the example of the specification, p. 41).
+    private const string LongTimbreUrl =
+        "https://ecf.dgii.gov.do/testecf/consultatimbre?rncemisor=130000001&rnccomprador=130000002&encf=e310000000001&fechaemision=10-10-2020&montototal=02.11&fechafirma=10-10-2020%2009:00:00&codigoseguridad=dcp79q";
+
     [Fact]
     public void Svg_DrawsTheVerificationUrlAsAnImage()
     {
@@ -705,21 +710,41 @@ public class ElectronicInvoiceQrCodeTests
     }
 
     [Fact]
-    public void Svg_EncodesTheVerificationUrlEvenWhenItDoesNotFitTheVersion()
+    public void Svg_EncodesTheTimbreUrlEvenWhenItDoesNotFitTheVersion()
     {
-        // The URL of the timbre is longer than what the version 8 holds at
-        // the level that suits a URL: the symbol grows instead of failing.
-        var svg = XDocument.Parse(QrCodeRenderer.Svg(VerificationUrl));
+        // The URL of the timbre of a document that is not a summary is longer
+        // than what the version 8 holds at the level that suits a URL: the
+        // symbol grows instead of failing.
+        var svg = XDocument.Parse(QrCodeRenderer.Svg(LongTimbreUrl));
 
         svg.Root!.Attribute("viewBox")!.Value.Should().NotBe("0 0 57 57");
     }
 
     [Fact]
-    public void Png_EncodesTheVerificationUrlEvenWhenItDoesNotFitTheVersion()
+    public void Png_EncodesTheTimbreUrlEvenWhenItDoesNotFitTheVersion()
+    {
+        var png = QrCodeRenderer.Png(LongTimbreUrl);
+
+        Width(png).Should().BeGreaterThan(1140);
+    }
+
+    [Fact]
+    public void Svg_UsesTheVersionTheDgiiAsksForInTheTimbreOfTheSummary()
+    {
+        // The timbre of the summary fits the version 8 at the level that
+        // corrects a URL (152 bytes), so the printed symbol is the version
+        // the DGII names.
+        var svg = XDocument.Parse(QrCodeRenderer.Svg(VerificationUrl));
+
+        svg.Root!.Attribute("viewBox")!.Value.Should().Be("0 0 57 57");
+    }
+
+    [Fact]
+    public void Png_UsesTheVersionTheDgiiAsksForInTheTimbreOfTheSummary()
     {
         var png = QrCodeRenderer.Png(VerificationUrl);
 
-        Width(png).Should().BeGreaterThan(1140);
+        Width(png).Should().Be(1140);
     }
 
     private static int Width(byte[] png)
