@@ -56,7 +56,8 @@ public class NormalFiscalSequenceRepositoryTests
         await using var fixture = new SequenceFixture();
         await fixture.InitializeAsync();
 
-        // The taxpayer loads the range the DGII authorized.
+        // The taxpayer loads the range the DGII authorized, declaring that it
+        // has not used any number of it yet.
         var service = new NormalFiscalSequenceService(fixture.UnitOfWork);
         var loaded = await service.CreateAsync(
             new SaveNormalFiscalSequenceDto(
@@ -65,7 +66,7 @@ public class NormalFiscalSequenceRepositoryTests
                 1,
                 100,
                 null,
-                1),
+                0),
             fixture.CompanyId);
 
         loaded.Should().BeOfType<Either<Error, NormalFiscalSequenceDto>.Right>();
@@ -73,7 +74,7 @@ public class NormalFiscalSequenceRepositoryTests
         // The number of the paper document comes from that range.
         var number = await fixture.NextAsync(NormalFiscalDocumentType.Consumer);
 
-        number.Should().Be(2, "the number comes from the range the taxpayer loaded");
+        number.Should().Be(1, "the first authorized number is not burned: the taxpayer had used none yet");
     }
 
     [Fact]

@@ -60,6 +60,19 @@ public class ElectronicInvoiceSequenceServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenNothingHasBeenUsedYet_AcceptsThePositionBeforeTheRange()
+    {
+        var (service, _) = BuildService();
+
+        // The taxpayer declares the number it is at. One before the start of
+        // the range means that nothing was used yet, so the first number of
+        // the range is still to be taken.
+        var result = await service.CreateAsync(Request() with { From = 10, Position = 9 }, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceSequenceDto>.Right>();
+    }
+
+    [Fact]
     public async Task CreateAsync_WhenTheTypeCarriesAnExpiryAndThereIsNone_ReturnsLeft()
     {
         var (service, _) = BuildService();

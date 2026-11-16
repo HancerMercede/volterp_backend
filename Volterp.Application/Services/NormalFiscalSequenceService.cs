@@ -47,8 +47,8 @@ public class NormalFiscalSequenceService(IUnitOfWork unitOfWork) : INormalFiscal
             .Ensure(r => r.To <= NormalFiscalSequence.MaxSequence,
                 new Error($"The range cannot go beyond {NormalFiscalSequence.MaxSequence}: the number of a normal document carries eight digits."))
             .Ensure(r => r.From <= r.To, new Error("The range cannot end before it starts."))
-            .Ensure(r => r.Position >= r.From && r.Position <= r.To,
-                new Error("The position of the taxpayer has to be inside the range."))
+            .Ensure(r => r.Position >= r.From - 1 && r.Position <= r.To,
+                new Error("The position has to be inside the range, or one before its start when no number was used yet."))
             .Ensure(r => !r.RequiresExpiry || r.ExpiresAt is not null,
                 new Error("This type of comprobante needs the expiry date of its authorized sequence."))
             .Ensure(r => r.RequiresExpiry || r.ExpiresAt is null,
@@ -90,8 +90,8 @@ public class NormalFiscalSequenceService(IUnitOfWork unitOfWork) : INormalFiscal
             .Ensure(r => r.To <= NormalFiscalSequence.MaxSequence,
                 new Error($"The range cannot go beyond {NormalFiscalSequence.MaxSequence}: the number of a normal document carries eight digits."))
             .Ensure(r => r.From <= r.To, new Error("The range cannot end before it starts."))
-            .Ensure(r => r.Position >= r.From && r.Position <= r.To,
-                new Error("The position of the taxpayer has to be inside the range."))
+            .Ensure(r => r.Position >= r.From - 1 && r.Position <= r.To,
+                new Error("The position has to be inside the range, or one before its start when no number was used yet."))
             .Ensure(r => !r.RequiresExpiry || r.ExpiresAt is not null,
                 new Error("This type of comprobante needs the expiry date of its authorized sequence."))
             .Ensure(r => r.RequiresExpiry || r.ExpiresAt is null,

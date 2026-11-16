@@ -44,8 +44,8 @@ public class ElectronicInvoiceSequenceService(IUnitOfWork unitOfWork) : IElectro
             .FromRight(request)
             .Ensure(r => existing is null, new Error("This range is already configured."))
             .Ensure(r => r.From <= r.To, new Error("The range cannot end before it starts."))
-            .Ensure(r => r.Position >= r.From && r.Position <= r.To,
-                new Error("The position of the taxpayer has to be inside the range."))
+            .Ensure(r => r.Position >= r.From - 1 && r.Position <= r.To,
+                new Error("The position has to be inside the range, or one before its start when no number was used yet."))
             .Ensure(r => !r.RequiresExpiry || r.ExpiresAt is not null,
                 new Error("This type of comprobante needs the expiry date of its authorized sequence."))
             .Ensure(r => r.RequiresExpiry || r.ExpiresAt is null,
@@ -84,8 +84,8 @@ public class ElectronicInvoiceSequenceService(IUnitOfWork unitOfWork) : IElectro
             .Ensure(r => existing!.CurrentSequence <= r.Position,
                 new Error("The position cannot go back: the numbers already used would be handed out again."))
             .Ensure(r => r.From <= r.To, new Error("The range cannot end before it starts."))
-            .Ensure(r => r.Position >= r.From && r.Position <= r.To,
-                new Error("The position of the taxpayer has to be inside the range."))
+            .Ensure(r => r.Position >= r.From - 1 && r.Position <= r.To,
+                new Error("The position has to be inside the range, or one before its start when no number was used yet."))
             .Ensure(r => !r.RequiresExpiry || r.ExpiresAt is not null,
                 new Error("This type of comprobante needs the expiry date of its authorized sequence."))
             .Ensure(r => r.RequiresExpiry || r.ExpiresAt is null,
