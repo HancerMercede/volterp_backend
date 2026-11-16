@@ -118,7 +118,30 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png` |
 | **Electronic Invoice Print** | `GET /api/ElectronicInvoicePrint/{id}` (printable HTML representation; accepted e-CF only) |
 | **Company Emission Mode** | `GET`/`PUT /api/CompanyEmissionMode` (how the company invoices: electronic or normal) |
+| **Electronic Invoice Sequences** | `GET`/`POST`/`PUT /api/ElectronicInvoiceSequences` (the e-NCF ranges the DGII authorized) |
+| **Normal Fiscal Sequences** | `GET`/`POST`/`PUT /api/NormalFiscalSequences` (the normal-CNF ranges the DGII authorized) |
+| **Electronic Invoice Reception** | `POST /fe/recepcion/api/ecf`, `POST /fe/aprobacioncomercial/api/ecf` (the DGII calls these) |
 | **Accounting** | CRUD `/api/accounting-transactions` |
+
+### Errors
+
+Every error of the API travels in the same envelope: the status says what happened and the body says why.
+
+- **4xx** → `application/json`, `{"error": "...", "details": "..."}`. `details` is optional and carries the extra context when there is any.
+- **5xx** → `application/problem+json` (RFC 7807): `type`, `title`, `status`, `detail`, `traceId` and `timestamp`. Only an unhandled exception arrives here; a business rule never does.
+- **429** → the same 4xx envelope as the rest of the API, with the `Retry-After` header.
+
+The status separates the two failures that used to look alike:
+
+| Situation | Status |
+|---|---|
+| The target does not exist (the sale, the client, the range) | `404 Not Found` |
+| The target exists but the request breaks a rule (a completed sale cannot be updated, the sale has no items, the taxpayer has no authorized normal range) | `400 Bad Request` |
+| The caller is not authenticated | `401 Unauthorized` |
+| The caller is authenticated but not allowed | `403 Forbidden` |
+| The rate limit rejected the request | `429 Too Many Requests` |
+
+So `PUT /api/sales/{id}/complete` answers `404` when the sale does not exist and `400` when the sale exists and the completion breaks a rule.
 
 `GET /api/ElectronicInvoices/state` contesta el estado fiscal del tenant (la empresa sale del token, nunca de la petición):
 
@@ -167,7 +190,7 @@ La empresa declara **cómo factura** (`GET`/`PUT /api/CompanyEmissionMode`): **e
 - En modo **normal**, la venta completada emite el **comprobante fiscal normal**: un NCF de **once posiciones** (`B` + dos dígitos de tipo + ocho de secuencia, por ejemplo `B0100000001`), tomado del **rango propio que la DGII autorizó para los comprobantes no electrónicos**. El rango del e-CF no se lee ni se mueve.
 - El tipo normal es el equivalente del electrónico (31→B01, 32→B02, 33→B03, 34→B04); los tipos de compra no tienen equivalente normal y fallan cerrados.
 - El número, el documento y la finalización de la venta caen en **una sola transacción**: un número nunca se quema sin su documento, y repetir la finalización de una venta no consume otro número.
-- **Sin rango autorizado, la venta no completa** (falla cerrado). La superficie que carga ese rango todavía no está (T39b).
+- **Sin rango autorizado, la venta no completa** (falla cerrado). El rango se carga y se consulta con `/api/NormalFiscalSequences` (el alta y la modificación son de administrador).
 
 ### El QR de la representación impresa
 
