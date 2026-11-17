@@ -115,7 +115,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Purchases** | CRUD `/api/purchases` |
 | **Companies** | CRUD `/api/companies` |
 | **Company Certificates** | `GET /api/CompanyCertificates`, `POST /api/CompanyCertificates` (admin) |
-| **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png` |
+| **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png`, `POST /api/ElectronicInvoices/{id}/retry` (reintenta la firma de un comprobante que quedó para revisión) |
 | **Electronic Invoice Print** | `GET /api/ElectronicInvoicePrint/{id}` (printable HTML representation; accepted e-CF only) |
 | **Company Emission Mode** | `GET`/`PUT /api/CompanyEmissionMode` (how the company invoices: electronic or normal) |
 | **Company Contingency** | `PUT /api/CompanyEmissionMode/contingency` (the temporary suspension of the electronic path) |
@@ -182,6 +182,18 @@ So `PUT /api/sales/{id}/complete` answers `404` when the sale does not exist and
 - `rawResponse` es el cuerpo crudo de la última respuesta de la DGII (ahí quedan los códigos de sus mensajes), `sequenceConsumed` es lo que la DGII dice del número (si el rechazo lo volvió inservible), `receivedAt` es cuándo lo recibió y `lastError` el motivo del último fallo al hablar con la DGII.
 - El cuerpo de la respuesta tiene un **tope de 4000 caracteres**: lo que sobra termina en `... [truncated]`. Una respuesta patológica (o el HTML de un gateway) no puede hacer crecer la fila ni el payload, y el corte no rompe nada: el e-CF sigue su curso.
 - El cuerpo de la **conversación del token** nunca se guarda: puede llevar el token de la DGII, que es una credencial. Lo que sale por aquí es el cuerpo del **envío** y del **veredicto** (lo que el operador necesita ver) y sin credenciales: los valores con forma de token van redactados como `[redacted]`.
+
+### El reintento de un comprobante que quedó para revisión
+
+Un e-CF que no se pudo firmar queda **para revisión**: el número ya está atado al documento (la venta no se deshace), pero el comprobante no llegó a la DGII y no había forma de sacarlo de ahí.
+
+`POST /api/ElectronicInvoices/{id}/retry` lo vuelve a firmar:
+
+- La empresa sale del **token** (nunca del cuerpo) → un comprobante de otra empresa da `404`.
+- **El número no se vuelve a tomar**: el comprobante conserva su e-NCF y la secuencia del emisor no se mueve → no hay hueco fiscal.
+- Solo se reintenta un comprobante **en borrador y para revisión**; cualquier otro estado da `400` y no se toca.
+- Si la firma vuelve a fallar, el comprobante **se queda para revisión** con el motivo nuevo, y el `400` lo dice.
+- La cola es la que lo manda a la DGII después: el reintento solo lo deja firmado y esperando.
 
 ### El comprobante fiscal normal (NCF en papel)
 
