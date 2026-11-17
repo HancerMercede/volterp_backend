@@ -12,7 +12,8 @@ public class SaleRepository(VolterpDbContext context) : RepositoryBase<Sale>(con
         => await GetByCondictionsAsync(s => s.Id == id,ct,
             s => s
                 .Include(i => i.Items)
-                .Include(i => i.Company));
+                .Include(i => i.Company)
+                .Include(i => i.ElectronicInvoices));
 
 
     public async Task<PagedResult<Sale>> GetAllSalesAsync(int pageNumber, int pageSize,

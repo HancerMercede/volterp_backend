@@ -1,4 +1,5 @@
 using EitherWay;
+using Volterp.Application.DTOs.ElectronicInvoiceDtos;
 using Volterp.Application.DTOs.NormalFiscalDocumentDtos;
 using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.Exceptions.AppErrors;
@@ -177,6 +178,12 @@ public class SaleService(
 
     public async Task<Either<Error, SaleDto>> CompleteSaleAsync(Guid id, Guid companyId, Guid? userId, bool asCommercialInvoice = false, CancellationToken ct = default)
     {
+        // The emission can fail and the sale cannot be undone: the caller has
+        // to learn that its fiscal document is not in good shape.
+        var fiscalIssue = string.Empty;
+        Guid? fiscalInvoiceId = null;
+        EcfFiscalState? fiscalState = null;
+
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
@@ -238,7 +245,7 @@ public class SaleService(
                     // replacement of the paper document: it is created next to
                     // it and it waits for the contingency to be lifted.
                     if (CompanyEmissionPolicy.IsInContingency(sale.Company, now))
-                        await electronicInvoices.IssueAsync(sale.Id, companyId, ct);
+                        (fiscalIssue, fiscalInvoiceId, fiscalState) = await IssueTheFiscalDocumentAsync(sale, companyId, ct);
 
                     return sale;
                 }
@@ -256,12 +263,40 @@ public class SaleService(
                 // the fiscal document of the client cannot undo it, and the
                 // document that could not be signed stays on record for a
                 // human.
-                await electronicInvoices.IssueAsync(sale.Id, companyId, ct);
+                (fiscalIssue, fiscalInvoiceId, fiscalState) = await IssueTheFiscalDocumentAsync(sale, companyId, ct);
 
                 return sale;
             }, ex => new Error(ex.Message))
-            .Map(sale => sale.MapTo<Sale, SaleDto>())
+            .Map(sale =>
+            {
+                var dto = sale.MapTo<Sale, SaleDto>();
+
+                dto.ElectronicInvoiceId = fiscalInvoiceId ?? dto.ElectronicInvoiceId;
+                dto.FiscalState = fiscalState ?? dto.FiscalState;
+
+                if (!string.IsNullOrWhiteSpace(fiscalIssue))
+                    dto.FiscalNote = fiscalIssue;
+
+                return dto;
+            })
             .Run();
+    }
+
+    // What the emission left behind: the document that was signed, or the
+    // reason it is not in good shape.
+    private async Task<(string Issue, Guid? InvoiceId, EcfFiscalState? State)> IssueTheFiscalDocumentAsync(
+        Sale sale,
+        Guid companyId,
+        CancellationToken ct)
+    {
+        var issued = await electronicInvoices.IssueAsync(sale.Id, companyId, ct);
+
+        if (issued is Either<Error, ElectronicInvoiceDto>.Left failure)
+            return (failure.Value.Message, null, null);
+
+        var invoice = ((Either<Error, ElectronicInvoiceDto>.Right)issued).Value;
+
+        return (string.Empty, invoice.Id, EcfFiscalStateClassifier.Classify(invoice.Status, invoice.RequiresReview));
     }
 
     public async Task<Either<Error, Unit>> DeleteSaleAsync(Guid id, Guid companyId, CancellationToken ct = default)

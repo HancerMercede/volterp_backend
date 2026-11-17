@@ -22,6 +22,12 @@ public record SaleDto:IMapFrom<Sale>
     public DateTime? UpdatedAt { get; set; }
     public List<SaleItemDto>? Items { get; set; }
 
+    // The caller needs the document to show its state and to ask for it to
+    // be signed again.
+    public Guid? ElectronicInvoiceId { get; set; }
+    public EcfFiscalState? FiscalState { get; set; }
+    public string? FiscalNote { get; set; }
+
     public void MapFrom(Sale source)
     {
         Id = source.Id;
@@ -39,6 +45,12 @@ public record SaleDto:IMapFrom<Sale>
         CreatedAt = source.CreatedAt;
         UpdatedAt = source.UpdatedAt;
         Items = MapToSaleItemDto(source.Items.ToList());
+
+        var invoice = source.ElectronicInvoices.FirstOrDefault();
+
+        ElectronicInvoiceId = invoice?.Id;
+        FiscalState = invoice is null ? null : EcfFiscalStateClassifier.Classify(invoice.Status, invoice.RequiresReview);
+        FiscalNote = invoice?.VerdictNote;
     }
 
     private static List<SaleItemDto> MapToSaleItemDto(List<SaleItem> sources)
