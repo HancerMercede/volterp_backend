@@ -1193,6 +1193,22 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Lo que faltaba en el plan** ✓: "Cada e-CF de reemplazo deberá **identificar el comprobante no electrónico correspondiente en la sección Información de Referencia**" ✓ (línea 1571 ✓) → `NCFModificado` ✓ + `FechaNCFModificado` ✓ + `CodigoModificacion` = **4** ✓ ("reemplazo de un NCF emitido en contingencia" ✓) → el código **ya tenía** `EcfModificationCode.ReplacesContingencyNcf = 4` ✓ pero el mapper **solo** escribe la referencia cuando el XSD la **exige** ✓ (las notas 33/34 ✓) → para el reemplazo hay que escribirla **aunque no sea obligatoria** ✓ (los 10 XSD la **permiten** ✓).
   - **Las tres contingencias de la norma** ✓: falta de conectividad del emisor ✓ (el e-CF se genera offline ✓ → 72 horas ✓ → T41 ✓) · imposibilidad técnica para emitir ✓ (papel ✓ → reemplazo ✓ → T42 ✓ + T42b ✓) · indisponibilidad de los servicios de la DGII ✓.
 
+- **L117** (2026-11-16) — **El mapa de lo que queda ✓ (validado contra el código ✓)** → **para no volver a explorarlo** ✓ (el detalle vive en la memoria ✓).
+  - **H5** (el e-CF que quedó en \`Draft + RequiresReview\`): **no hay ninguna transición fuera** ✓ → \`Sign\` exige Draft ✓ pero nada limpia la marca ✓ → la emisión se niega a repetir ✓ → la cola lo ignora ✓ → **nadie lo firma nunca** ✓ → **callejón sin salida fiscal** ✓. Falta: transición de dominio ✓ + reintento del servicio ✓ + \`POST /api/ElectronicInvoices/{id}/retry\` ✓.
+  - **H2** (el cliente de la venta se entera del estado): el delta mínimo es **front** ✓ (filtrar por \`saleId\` en la superficie de estado ✓) · en el backend: \`SaleDto\` gana el id del comprobante ✓ + **capturar el \`Left\`** que hoy se descarta ✓.
+  - **T18** (multi-RNC): el certificado **ya** es por RNC emisor ✓ y los rangos **ya** son por RNC emisor ✓ → falta el **registro de RNCs del tenant** ✓ + que la venta elija su RNC ✓ + que los rangos validen contra el registro ✓.
+  - **T33** (familia Emisor-Receptor): las **dos rutas de recepción ya están publicadas** ✓ (con mTLS ✓) → faltan la **semilla** ✓ y la **validación de certificado** ✓ (con su caché aparte ✓).
+  - **T38** (ANECF): el **XSD ya está en la library** ✓ (sin usar ✓) y el spec está en \`DescTec\` ✓ → falta el escritor ✓ · el cliente ✓ · el registro de huecos ✓.
+  - **T44** (superficie alquilada): **nada de API key** ✓ · el CORS está **clavado** a \`localhost:5173\` ✓ → el seam es el claim \`CompanyId\` ✓ (un handler que lo emita deja el resto sin tocar ✓).
+  - **T16** (webhook): el polling interno ya existe ✓ · no hay ninguna llamada saliente salvo la DGII ✓ · no hay tabla de suscripciones ✓.
+  - **T48** (circuito real): el cliente real y el E2E por variables de entorno ya existen ✓ → el RNC y el e-NCF siguen **hardcodeados** ✓ → hay que leerlos del environment ✓ y **fallar fuerte** sin certificado real ✓.
+  - **Dos callejones sin salida más** ✓: \`ElectronicInvoice.Annull()\` **no tiene caller** ✓ y \`ContingencyWindow.DeadlineToReplace\` (30 días ✓) **quedó sin uso** ✓ con la norma vigente ✓.
+
+- **L118** (2026-11-16) — **La regla de trabajo** ✓ (verbatim ✓ del owner ✓): *"apegados al plan y si algo no cuadra pues investigamos"* ✓.
+  - **Qué significa** ✓: el tracker es la autoridad ✓ → se implementa lo que dice ✓; y cuando algo **no cuadra** (con el código ✓ o con la norma ✓) → **se investiga** ✓ → la fuente primero en el **repo** ✓ (\`docs/\` ✓ · los XSD ✓ · el Informe Técnico ✓) y la red después si hace falta ✓ → y **lo que se aprenda se escribe en el plan** ✓ (la spec corregida ✓ · la fila de la tarea ✓ · el Log ✓).
+  - **No es un sello de goma** ✓: la L116 es el ejemplo ✓ (el plan decía 30 días ✓ → la norma vigente no ✓ → se corrigió ✓) · y tampoco es un documento que se toca por capricho ✓: **cada corrección va con su fuente y su línea** ✓.
+  - **Lo que NO se hace** ✓: reinterpretar la norma con el plan ✓ · inventar plazos que la norma no pone ✓ ("no se adivina" ✓ · "gana la fuente oficial" ✓) · dejar el tracker mintiendo sobre el estado ✓ (esa es la regla de la L113 ✓).
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
