@@ -77,8 +77,20 @@ public sealed class ApiKeyAuthenticationHandler(
         // other error of the API uses.
         Response.StatusCode = StatusCodes.Status401Unauthorized;
         Response.ContentType = "application/json";
+        Response.Headers.Append("WWW-Authenticate", SchemeName);
 
         await Response.WriteAsync(
             JsonSerializer.Serialize(new ErrorResponse("Unauthorized."), new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+    }
+
+    protected override async Task HandleForbiddenAsync(AuthenticationProperties properties)
+    {
+        // A machine that reaches something it may not do gets the same
+        // answer a user gets.
+        Response.StatusCode = StatusCodes.Status403Forbidden;
+        Response.ContentType = "application/json";
+
+        await Response.WriteAsync(
+            JsonSerializer.Serialize(new ErrorResponse("Forbidden."), new JsonSerializerOptions(JsonSerializerDefaults.Web)));
     }
 }

@@ -6,7 +6,10 @@ namespace Volterp.Api.Controllers;
 public class AuthController(IServiceManager serviceManager, IJwtService jwtService, IPasswordHasher passwordHasher)
     : BaseController
 {
+    // A machine that rents the API does not create users of the ERP: the
+    // endpoint asks for the scheme of the user and refuses anything else.
     [HttpPost("register")]
+    [Authorize(AuthenticationSchemes = "JwtBearer")]
     public async Task<IActionResult> Register([FromBody] CreateUserDto request, CancellationToken ct)
     {
         var userId = GetCurrentUserId();

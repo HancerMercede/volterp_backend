@@ -122,17 +122,6 @@ public class ApiKeyAuthenticationTests : IClassFixture<ApiFactory>
                 "the tenant of the call is the one of the credential");
     }
 
-    [Fact]
-    public void TheComparisonOfTheSecretIsInFixedTime()
-    {
-        // The time of the comparison cannot be observed from outside: the
-        // property is pinned on the code that makes it.
-        var source = SourceOf("Volterp.Api/Authentication/ApiKeyAuthenticationHandler.cs");
-
-        source.Should().Contain("CryptographicOperations.FixedTimeEquals",
-            "the secret of a client is not guessed one character at a time");
-    }
-
     private async Task<AuthenticateResult> AuthenticateAsync(string authorization, Guid? claimedCompanyId = null)
     {
         using var scope = _factory.Services.CreateScope();

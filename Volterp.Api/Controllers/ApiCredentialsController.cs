@@ -11,6 +11,7 @@ namespace Volterp.Api.Controllers;
 public class ApiCredentialsController(IApiCredentialService service) : BaseController
 {
     [HttpGet]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<PagedResult<ApiCredentialDto>>> GetAllCredentials(
         [FromQuery] PaginationParameters pagination,
         CancellationToken ct = default)
