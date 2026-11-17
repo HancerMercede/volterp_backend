@@ -12,7 +12,15 @@ public sealed record EcfIssuance
     public DateTime? SequenceExpiresAt { get; init; }
 
     public required DateTime SignedAt { get; init; }
+
+    // The paper document this e-CF replaces: its number and its date are the
+    // reference the norm asks for.
+    public EcfReplacement? Replacement { get; init; }
 }
+
+// The document on paper that an e-CF replaces. The number and the day it
+// was issued on are what the reference of the replacement carries.
+public sealed record EcfReplacement(string Number, DateTime IssuedAt);
 
 public static class SaleEcfDocumentMapper
 {
@@ -52,7 +60,7 @@ public static class SaleEcfDocumentMapper
             Buyer = MapBuyer(sale, profile),
             Totals = EcfTotalsCalculator.Calculate(items),
             Items = items,
-            Reference = MapReference(sale),
+            Reference = MapReference(sale, issuance),
             SignedAt = issuance.SignedAt
         };
     }
@@ -65,8 +73,21 @@ public static class SaleEcfDocumentMapper
         return signedAt.Date > sale.ModifiedAt.Value.Date.AddDays(30);
     }
 
-    private static EcfReference? MapReference(Sale sale)
+    private static EcfReference? MapReference(Sale sale, EcfIssuance issuance)
     {
+        // The replacement of a paper document carries its reference even when
+        // the schema of the type does not ask for it: the norm says the
+        // e-CF identifies the document it replaces.
+        if (issuance.Replacement is not null)
+        {
+            return new EcfReference
+            {
+                ModifiedENCF = issuance.Replacement.Number,
+                ModifiedAt = issuance.Replacement.IssuedAt,
+                ModificationCode = EcfModificationCode.ReplacesContingencyNcf
+            };
+        }
+
         if (!EcfSchemas.For(sale.DocumentType).IsRequired("InformacionReferencia"))
             return null;
 

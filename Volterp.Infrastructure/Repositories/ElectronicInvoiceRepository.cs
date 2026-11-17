@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 using Volterp.ElectronicInvoicing;
 using Volterp.Infrastructure.Data;
 
@@ -28,8 +29,21 @@ public class ElectronicInvoiceRepository(VolterpDbContext context)
             .Where(e => e.CompanyId == companyId
                 && e.Status == EcfStatus.Signed
                 && !e.RequiresReview
-                && e.CreatedAt >= cutoff
+                // The replacement of a paper document waits for the
+                // contingency to be lifted, and the ceiling of the
+                // contingency of the DGII does not apply to it.
+                && (e.ReplacesContingencyDocument || e.CreatedAt >= cutoff)
                 && e.CreatedAt <= now
+                && (e.SendNotBefore == null
+                    || e.SendNotBefore <= now
+                    // The taxpayer lifted the contingency before the day the
+                    // replacement was waiting for: it goes from that moment
+                    // on, because that is when the contingency was lifted.
+                    || (e.ReplacesContingencyDocument
+                        && e.Company.ContingencyStatus == CompanyContingencyStatus.None)
+                    // A replacement that waited longer than the ceiling is
+                    // looked at even before its day: it may need a human.
+                    || (e.ReplacesContingencyDocument && e.CreatedAt < cutoff))
                 && (e.NextAttemptAt == null || e.NextAttemptAt <= now)
                 && (e.LeaseUntil == null || e.LeaseUntil <= now))
             .OrderBy(e => e.CreatedAt)
@@ -46,8 +60,13 @@ public class ElectronicInvoiceRepository(VolterpDbContext context)
             .AsNoTracking()
             .Where(e => (e.Status == EcfStatus.Signed
                     && !e.RequiresReview
-                    && e.CreatedAt >= cutoff
+                    && (e.ReplacesContingencyDocument || e.CreatedAt >= cutoff)
                     && e.CreatedAt <= now
+                    && (e.SendNotBefore == null
+                        || e.SendNotBefore <= now
+                        || (e.ReplacesContingencyDocument
+                            && e.Company.ContingencyStatus == CompanyContingencyStatus.None)
+                        || (e.ReplacesContingencyDocument && e.CreatedAt < cutoff))
                     && (e.NextAttemptAt == null || e.NextAttemptAt <= now)
                     && (e.LeaseUntil == null || e.LeaseUntil <= now))
                 || ((e.Status == EcfStatus.Sent || e.Status == EcfStatus.InProcess)
@@ -68,6 +87,10 @@ public class ElectronicInvoiceRepository(VolterpDbContext context)
     {
         // The condition and the claim are one statement: two workers can see
         // the same document, but only one of them can take it.
+        // The claim says who takes the document, not whether it may go: the
+        // query of the pending documents decides that. A replacement whose
+        // contingency was lifted before its day is already in that list, and
+        // the claim may not keep it waiting.
         var claimed = await Set()
             .IgnoreQueryFilters()
             .Where(e => e.CompanyId == companyId

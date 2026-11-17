@@ -76,6 +76,14 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
     // The document is out of the automatic queue and a human has to take it.
     public bool RequiresReview { get; set; }
 
+    // The document replaces a paper document issued while the taxpayer was
+    // in contingency: it goes only to the DGII and never to the receiver.
+    public bool ReplacesContingencyDocument { get; set; }
+
+    // The moment from which the replacement may travel to the DGII: the end
+    // of the contingency.
+    public DateTime? SendNotBefore { get; set; }
+
     public Sale Sale { get; set; } = null!;
     public Company Company { get; set; } = null!;
 

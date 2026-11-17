@@ -234,6 +234,12 @@ public class SaleService(
                         error => throw new InvalidOperationException(error.Message),
                         document => document);
 
+                    // The taxpayer in contingency owes the DGII the
+                    // replacement of the paper document: it is created next to
+                    // it and it waits for the contingency to be lifted.
+                    if (CompanyEmissionPolicy.IsInContingency(sale.Company, now))
+                        await electronicInvoices.IssueAsync(sale.Id, companyId, ct);
+
                     return sale;
                 }
 

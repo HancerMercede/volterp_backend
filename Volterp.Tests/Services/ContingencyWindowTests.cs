@@ -27,11 +27,12 @@ public class ContingencyWindowTests
     }
 
     [Fact]
-    public void TheReplacementsAreSentWithinThirtyDaysOfTheEndOfTheContingency()
+    public void TheContingencyCannotOutliveItsCeiling()
     {
         var window = new ContingencyWindow();
 
-        window.DeadlineToReplace(Issued).Should().Be(Issued.AddDays(30));
+        window.PassedTheCeiling(Issued, Issued.AddDays(15)).Should().BeFalse();
+        window.PassedTheCeiling(Issued, Issued.AddDays(16)).Should().BeTrue();
     }
 
     [Fact]

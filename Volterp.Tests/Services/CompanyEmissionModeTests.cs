@@ -121,15 +121,17 @@ public class CompanyEmissionModeTests
     [Theory]
     [InlineData(CompanyContingencyStatus.Total)]
     [InlineData(CompanyContingencyStatus.Partial)]
-    public async Task AContingencyInsideItsWindow_SuspendsTheElectronicPath(
+    public async Task AContingencyInsideItsWindow_IssuesTheReplacementOfThePaperDocument(
         CompanyContingencyStatus contingencyStatus)
     {
         GivenCompany(CompanyEmissionMode.Electronic, contingencyStatus, Now.AddHours(-1), Now.AddHours(1));
 
         await CompleteSaleAsync();
 
-        _issues.Verify(i => i.IssueAsync(
-            It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        // The electronic path is suspended: the only e-CF of the sale is the
+        // replacement of the paper document, and it waits for the contingency
+        // to be lifted.
+        _issues.Verify(i => i.IssueAsync(SaleId, CompanyId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]

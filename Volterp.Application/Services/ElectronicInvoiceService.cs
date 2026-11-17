@@ -143,11 +143,27 @@ public class ElectronicInvoiceService(
             EmissionBatchSize,
             ct);
 
+        // The state of the taxpayer decides whether a replacement can leave:
+        // the contingency it declared is what it is right now, not what it
+        // was when the document was created. It is only read when the batch
+        // carries a replacement.
+        var company = pending.Any(candidate => candidate.ReplacesContingencyDocument)
+            ? await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct)
+            : null;
+
         var leaseOwner = $"{Environment.MachineName}:{Guid.NewGuid():N}";
         var processed = 0;
 
         foreach (var candidate in pending)
         {
+            // The replacement of a paper document waits for the contingency to
+            // be lifted: the norm sends it to the DGII from that moment on.
+            if (candidate.ReplacesContingencyDocument && TheContingencyIsOpen(company, now))
+            {
+                await TakeTheWaitingReplacementAsync(companyId, candidate.Id, company, now, ct);
+                continue;
+            }
+
             var leaseUntil = now.Add(LeaseDuration);
             var claimed = await unitOfWork.ElectronicInvoices.TryClaimAsync(
                 companyId,
@@ -170,7 +186,7 @@ public class ElectronicInvoiceService(
 
             try
             {
-                if (_window.PassedTheWindow(invoice.CreatedAt, now))
+                if (!invoice.ReplacesContingencyDocument && _window.PassedTheWindow(invoice.CreatedAt, now))
                 {
                     invoice.MarkForReview(
                         "The e-CF passed the 72-hour window of the contingency instructivo.");
@@ -205,6 +221,38 @@ public class ElectronicInvoiceService(
         }
 
         return processed;
+    }
+
+    // The taxpayer is still inside the contingency it declared.
+    private static bool TheContingencyIsOpen(Company? company, DateTime now)
+        => company is not null && CompanyEmissionPolicy.IsInContingency(company, now);
+
+    // The norm does not allow the contingency to last more than fifteen
+    // days: a replacement that waits longer than that needs a human.
+    private async Task TakeTheWaitingReplacementAsync(
+        Guid companyId,
+        Guid invoiceId,
+        Company? company,
+        DateTime now,
+        CancellationToken ct)
+    {
+        if (company?.ContingencyStartsAt is null)
+            return;
+
+        if (!_window.PassedTheCeiling(company.ContingencyStartsAt.Value, now))
+            return;
+
+        var invoice = await unitOfWork.ElectronicInvoices.GetByCompanyAndIdAsync(companyId, invoiceId, ct);
+
+        if (invoice is null)
+            return;
+
+        invoice.MarkForReview(
+            "The contingency of the taxpayer is still open after the fifteen days the norm allows.");
+        invoice.MarkUpdated();
+
+        await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
+        await unitOfWork.CommitAsync(ct);
     }
 
     private async Task SendPendingAsync(ElectronicInvoice invoice, DateTime now, CancellationToken ct)
@@ -407,6 +455,8 @@ public class ElectronicInvoiceService(
 
     private async Task<ElectronicInvoice> IssueTheDocumentAsync(Guid saleId, Guid companyId, CancellationToken ct)
     {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+
         // Without an HTTP context the global tenant filter is off, so the sale
         // of another company is readable: the company travels by hand.
         var sale = await unitOfWork.Sales.GetSaleByIdAsync(saleId, ct);
@@ -442,6 +492,11 @@ public class ElectronicInvoiceService(
         if (issuer is null)
             throw new InvalidOperationException($"The company {companyId} does not exist.");
 
+        // The taxpayer in contingency issues on paper and owes the DGII the
+        // replacement of every paper document: it is created next to it and
+        // it waits for the contingency to be lifted.
+        var replacement = await TheReplacementOfThePaperDocumentAsync(sale, issuer, companyId, now, ct);
+
         var documentType = sale.DocumentType;
         var sequence = await unitOfWork.ElectronicInvoiceSequences.NextSequenceAsync(companyId, documentType, ct);
         var encf = ElectronicInvoiceSequence.BuildEncf(documentType, sequence);
@@ -455,7 +510,9 @@ public class ElectronicInvoiceService(
             ENCF = encf,
             DocumentType = documentType,
             IssuerTaxId = issuer.TaxId,
-            ReceiverTaxId = sale.ReceptorTaxId
+            ReceiverTaxId = sale.ReceptorTaxId,
+            ReplacesContingencyDocument = replacement is not null,
+            SendNotBefore = replacement is null ? null : issuer.ContingencyEndsAt
         };
 
         try
@@ -475,7 +532,8 @@ public class ElectronicInvoiceService(
             {
                 ENCF = encf,
                 SequenceExpiresAt = range?.ExpiresAt,
-                SignedAt = signedAt
+                SignedAt = signedAt,
+                Replacement = replacement
             });
 
             var itbis = document.Totals.ItbisTotal ?? 0m;
@@ -525,7 +583,47 @@ public class ElectronicInvoiceService(
         await unitOfWork.ElectronicInvoices.AddAsync(invoice, ct);
         await unitOfWork.CommitAsync(ct);
 
+        // A contingency without its exit has no moment to send the
+        // replacement from: a human has to take it.
+        if (invoice.ReplacesContingencyDocument && invoice.SendNotBefore is null)
+        {
+            invoice.MarkForReview("The contingency of the taxpayer has no exit date.");
+            invoice.MarkUpdated();
+
+            await unitOfWork.ElectronicInvoices.UpdateAsync(invoice, ct);
+            await unitOfWork.CommitAsync(ct);
+        }
+
         return invoice;
+    }
+
+    // The paper document the e-CF replaces. It is the document of the sale:
+    // its number and its day are the reference the norm asks for.
+    private async Task<EcfReplacement?> TheReplacementOfThePaperDocumentAsync(
+        Sale sale,
+        Company issuer,
+        Guid companyId,
+        DateTime now,
+        CancellationToken ct)
+    {
+        if (!CompanyEmissionPolicy.IsInContingency(issuer, now))
+            return null;
+
+        var paper = await unitOfWork.NormalFiscalDocuments.GetBySaleIdAsync(companyId, sale.Id, ct);
+
+        if (paper is null)
+            throw new InvalidOperationException(
+                $"The sale {sale.Id} has no paper document to replace.");
+
+        // The norm: the type of the e-CF is the equivalent type of the paper
+        // document it replaces.
+        var paperType = NormalFiscalDocumentTypes.For(sale.DocumentType);
+
+        if (paperType is null || paperType.Value != paper.DocumentType)
+            throw new InvalidOperationException(
+                $"The paper document {paper.Number} is not the counterpart of the e-CF {(int)sale.DocumentType}.");
+
+        return new EcfReplacement(paper.Number, paper.IssuedAt);
     }
 
     // A consumption invoice below RD$250,000 travels to the DGII as a summary

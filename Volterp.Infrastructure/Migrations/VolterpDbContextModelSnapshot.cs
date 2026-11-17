@@ -455,6 +455,9 @@ namespace Volterp.Infrastructure.Migrations
                         .HasMaxLength(13)
                         .HasColumnType("character varying(13)");
 
+                    b.Property<bool>("ReplacesContingencyDocument")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("RequiresReview")
                         .HasColumnType("boolean");
 
@@ -464,6 +467,9 @@ namespace Volterp.Infrastructure.Migrations
                     b.Property<string>("SecurityCode")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("SendNotBefore")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("SentAt")
                         .HasColumnType("timestamp with time zone");

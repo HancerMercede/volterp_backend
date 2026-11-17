@@ -32,4 +32,28 @@ public static class CompanyEmissionPolicy
         return now < company.ContingencyStartsAt.Value
             || now >= company.ContingencyEndsAt.Value;
     }
+
+    // The taxpayer inside a contingency: it cannot emit electronically, so
+    // it issues on paper and owes the DGII the replacement of every paper
+    // document. A taxpayer that invoices in the normal mode has no
+    // electronic path to suspend.
+    public static bool IsInContingency(Company? company, DateTime now)
+    {
+        if (company is null)
+            return false;
+
+        if (company.EmissionMode == CompanyEmissionMode.Normal)
+            return false;
+
+        if (company.ContingencyStatus == CompanyContingencyStatus.None)
+            return false;
+
+        // A contingency without both of its bounds is open in the
+        // conservative way, the same way it suspends the electronic path.
+        if (!company.ContingencyStartsAt.HasValue || !company.ContingencyEndsAt.HasValue)
+            return true;
+
+        return now >= company.ContingencyStartsAt.Value
+            && now < company.ContingencyEndsAt.Value;
+    }
 }
