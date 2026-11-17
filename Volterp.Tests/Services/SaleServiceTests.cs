@@ -1,6 +1,7 @@
 ﻿using EitherWay;
 using FluentAssertions;
 using Moq;
+using Volterp.Application.DTOs.ElectronicInvoiceDtos;
 using Volterp.Application.DTOs.NormalFiscalDocumentDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
@@ -1136,6 +1137,10 @@ public class  SaleServiceTests
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
+
+        _emissions.Setup(e => e.IssueAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Either<Error, ElectronicInvoiceDto>.Right(
+                new ElectronicInvoiceDto { Id = Guid.CreateVersion7(), Status = EcfStatus.Signed }));
 
         var product = new Product { Id = Guid7TestValues.ProductA, Stock = 20, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 

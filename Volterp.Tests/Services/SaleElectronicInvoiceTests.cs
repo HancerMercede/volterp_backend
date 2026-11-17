@@ -169,6 +169,35 @@ public class SaleElectronicInvoiceTests
         _persisted.SignedXml.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task CompleteSaleAsync_WhenTheSignatureFails_TellsTheCallerWhyItsFiscalDocumentIsNotGood()
+    {
+        Given();
+        _signer.Setup(s => s.Sign(It.IsAny<string>(), It.IsAny<X509Certificate2>()))
+            .Throws(new InvalidOperationException("The certificate of the issuer does not open."));
+
+        var result = await Service().CompleteSaleAsync(SaleId, CompanyId, null);
+
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+
+        dto.FiscalNote.Should().Contain("does not open");
+    }
+
+    [Fact]
+    public async Task CompleteSaleAsync_WhenTheDocumentIsSigned_TellsTheCallerThatItIsPendingInTheQueue()
+    {
+        Given();
+
+        var result = await Service().CompleteSaleAsync(SaleId, CompanyId, null);
+
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+
+        dto.ElectronicInvoiceId.Should().NotBeNull();
+        dto.FiscalState.Should().Be(EcfFiscalState.PendingEmission);
+    }
+
     private void Given()
     {
         _sale = new Sale
