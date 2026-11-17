@@ -117,6 +117,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Company Certificates** | `GET /api/CompanyCertificates`, `POST /api/CompanyCertificates` (admin) |
 | **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png`, `POST /api/ElectronicInvoices/{id}/retry` (reintenta la firma de un comprobante que quedó para revisión) |
 | **Electronic Invoice Print** | `GET /api/ElectronicInvoicePrint/{id}` (printable HTML representation; accepted e-CF only) |
+| **API Credentials** | `GET`/`POST /api/ApiCredentials`, `DELETE /api/ApiCredentials/{id}` (the machine credential of a client that rents the API) |
 | **Company Emission Mode** | `GET`/`PUT /api/CompanyEmissionMode` (how the company invoices: electronic or normal) |
 | **Company Contingency** | `PUT /api/CompanyEmissionMode/contingency` (the temporary suspension of the electronic path) |
 | **Electronic Invoice Sequences** | `GET`/`POST`/`PUT /api/ElectronicInvoiceSequences` (the e-NCF ranges the DGII authorized) |
@@ -194,6 +195,17 @@ Un e-CF que no se pudo firmar queda **para revisión**: el número ya está atad
 - Solo se reintenta un comprobante **en borrador y para revisión**; cualquier otro estado da `400` y no se toca.
 - Si la firma vuelve a fallar, el comprobante **se queda para revisión** con el motivo nuevo, y el `400` lo dice.
 - La cola es la que lo manda a la DGII después: el reintento solo lo deja firmado y esperando.
+
+### La API alquilada
+
+Un cliente que alquila la API **no es un usuario del ERP**: no tiene login ni contraseña, tiene **su propia credencial de máquina**.
+
+- La credencial es una **clave opaca**: un **selector público** (`keyId`) y un **secreto** → se presenta como `Authorization: ApiKey <keyId>.<secreto>`.
+- El secreto se guarda **como hash** y no se vuelve a mostrar: aparece **una sola vez**, al crearla (`POST /api/ApiCredentials`, de administrador). El listado **jamás** lleva el secreto ni su hash.
+- El **tenant sale de la credencial**, nunca del cuerpo de la petición: el claim `companyId` que viaja es el de la fila encontrada.
+- La credencial **se revoca, no se borra** (`DELETE /api/ApiCredentials/{id}`): lo que se emitió importa. Una vez revocada deja de autenticar.
+- La credencial **no es un administrador**: no lleva rol, así que las superficies de administrador siguen cerradas para ella.
+- Los orígenes que pueden llamar la API vienen de la **configuración** (`Cors:AllowedOrigins`), no de un literal en el código.
 
 ### El comprobante fiscal normal (NCF en papel)
 
