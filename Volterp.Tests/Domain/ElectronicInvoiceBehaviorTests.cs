@@ -45,6 +45,71 @@ public class ElectronicInvoiceBehaviorTests
     }
 
     [Fact]
+    public void SignAfterReview_SignsADocumentWaitingForARetry()
+    {
+        var invoice = CreateInvoice();
+        invoice.RequiresReview = true;
+
+        invoice.SignAfterReview("<e-CF />", Now);
+
+        invoice.Status.Should().Be(EcfStatus.Signed);
+        invoice.SignedXml.Should().Be("<e-CF />");
+        invoice.SignedAt.Should().Be(Now);
+        invoice.RequiresReview.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SignAfterReview_RejectsADocumentThatDoesNotWaitForARetry()
+    {
+        var invoice = CreateInvoice();
+
+        var act = () => invoice.SignAfterReview("<e-CF />", Now);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("The document does not require review.");
+        invoice.Status.Should().Be(EcfStatus.Draft);
+        invoice.SignedXml.Should().BeEmpty();
+        invoice.SignedAt.Should().BeNull();
+        invoice.RequiresReview.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SignAfterReview_RejectsANonDraftDocumentDuringARetry()
+    {
+        var invoice = CreateInvoice();
+        invoice.RequiresReview = true;
+        invoice.Status = EcfStatus.Accepted;
+
+        var act = () => invoice.SignAfterReview("<e-CF />", Now);
+
+        act.Should().Throw<InvalidElectronicInvoiceStateTransitionException>();
+        invoice.Status.Should().Be(EcfStatus.Accepted);
+        invoice.SignedXml.Should().BeEmpty();
+        invoice.SignedAt.Should().BeNull();
+        invoice.RequiresReview.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SequenceOf_ReadsBackThePositionUsedByARetry()
+    {
+        var encf = ElectronicInvoiceSequence.BuildEncf(EcfDocumentType.Consumer, 42);
+
+        ElectronicInvoiceSequence.SequenceOf(encf).Should().Be(42);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("E32000000001")]
+    [InlineData("E32000000000X")]
+    public void SequenceOf_RejectsAMalformedEncfForARetry(string? encf)
+    {
+        var act = () => ElectronicInvoiceSequence.SequenceOf(encf!);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
     public void MarkSent_MovesTheInvoiceToSentAndKeepsTheTrackId()
     {
         var invoice = SignedInvoice();

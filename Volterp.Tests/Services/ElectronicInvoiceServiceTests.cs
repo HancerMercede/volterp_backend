@@ -44,6 +44,7 @@ public class ElectronicInvoiceServiceTests
     private readonly Mock<ICompanyRepository> _companies = new();
     private readonly Mock<IElectronicInvoiceRepository> _invoices = new();
     private readonly Mock<IElectronicInvoiceSequenceRepository> _sequences = new();
+    private readonly Mock<INormalFiscalDocumentRepository> _normalFiscalDocuments = new();
     private readonly Mock<IEcfSigner> _signer = new();
     private readonly Mock<ISigningCertificateProvider> _certificates = new();
     private readonly DgiiStub _dgii = new();
@@ -58,6 +59,7 @@ public class ElectronicInvoiceServiceTests
         _unitOfWork.Setup(u => u.Companies).Returns(_companies.Object);
         _unitOfWork.Setup(u => u.ElectronicInvoices).Returns(_invoices.Object);
         _unitOfWork.Setup(u => u.ElectronicInvoiceSequences).Returns(_sequences.Object);
+        _unitOfWork.Setup(u => u.NormalFiscalDocuments).Returns(_normalFiscalDocuments.Object);
         _unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         _signer.Setup(s => s.Sign(It.IsAny<string>(), It.IsAny<X509Certificate2>()))
@@ -69,6 +71,10 @@ public class ElectronicInvoiceServiceTests
             .Returns(SignedXml);
 
         _invoices.Setup(i => i.AddAsync(It.IsAny<ElectronicInvoice>(), It.IsAny<CancellationToken>()))
+            .Callback((ElectronicInvoice invoice, CancellationToken _) => _persisted = invoice)
+            .Returns(Task.CompletedTask);
+
+        _invoices.Setup(i => i.UpdateAsync(It.IsAny<ElectronicInvoice>(), It.IsAny<CancellationToken>()))
             .Callback((ElectronicInvoice invoice, CancellationToken _) => _persisted = invoice)
             .Returns(Task.CompletedTask);
 
@@ -279,6 +285,140 @@ public class ElectronicInvoiceServiceTests
     }
 
     [Fact]
+    public async Task RetryAsync_ForADocumentWaitingForAReview_SignsItAgainWithoutTakingANumber()
+    {
+        Given(Sale(), Company());
+        var invoice = GivenRetryDocument();
+        var certificate = CreateCertificate();
+        _certificates.Setup(c => c.GetSigningCertificateAsync(IssuerRnc, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(certificate);
+
+        var result = await Service().RetryAsync(invoice.Id, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        var dto = ((Either<Error, ElectronicInvoiceDto>.Right)result).Value;
+        dto.ENCF.Should().Be("E320000000001");
+        dto.Status.Should().Be(EcfStatus.Signed);
+        dto.RequiresReview.Should().BeFalse();
+        dto.SignedAt.Should().NotBeNull();
+
+        _sequences.Verify(s => s.NextSequenceAsync(
+            It.IsAny<Guid>(),
+            It.IsAny<EcfDocumentType>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        _dgii.SendRequests.Should().Be(0);
+
+        _signedXmls.Should().ContainSingle();
+        _signedXmls[0].Should().Contain("<eNCF>E320000000001</eNCF>");
+        _signedWith.Should().ContainSingle().Which.Should().Be(certificate);
+
+        _persisted.Should().NotBeNull();
+        _persisted!.ENCF.Should().Be("E320000000001");
+        _persisted.Status.Should().Be(EcfStatus.Signed);
+        _persisted.RequiresReview.Should().BeFalse();
+        _persisted.SignedXml.Should().Be(SignedXml);
+    }
+
+    [Fact]
+    public async Task RetryAsync_ForADocumentThatDoesNotWaitForAReview_ReturnsLeftWithoutSigningIt()
+    {
+        Given(Sale(), Company());
+        var invoice = GivenRetryDocument(EcfStatus.Accepted, requiresReview: false);
+
+        var result = await Service().RetryAsync(invoice.Id, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Left>();
+        var error = ((Either<Error, ElectronicInvoiceDto>.Left)result).Value;
+        error.Message.Should().Be("The e-CF does not wait for a review.");
+        _signer.Verify(s => s.Sign(It.IsAny<string>(), It.IsAny<X509Certificate2>()), Times.Never);
+        _invoices.Verify(i => i.UpdateAsync(
+            It.IsAny<ElectronicInvoice>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        invoice.Status.Should().Be(EcfStatus.Accepted);
+        invoice.SignedXml.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RetryAsync_ForADocumentOfAnotherCompany_ReturnsNotFound()
+    {
+        var invoice = new ElectronicInvoice
+        {
+            Id = Guid.CreateVersion7(),
+            CompanyId = OtherCompanyId,
+            SaleId = SaleId,
+            ENCF = "E320000000001",
+            DocumentType = EcfDocumentType.Consumer,
+            IssuerTaxId = IssuerRnc,
+            Status = EcfStatus.Draft,
+            RequiresReview = true
+        };
+        _invoices.Setup(r => r.GetByCompanyAndIdAsync(CompanyId, invoice.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ElectronicInvoice?)null);
+
+        var result = await Service().RetryAsync(invoice.Id, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Left>();
+        var error = ((Either<Error, ElectronicInvoiceDto>.Left)result).Value;
+        error.Kind.Should().Be(ErrorKind.NotFound);
+        _signer.Verify(s => s.Sign(It.IsAny<string>(), It.IsAny<X509Certificate2>()), Times.Never);
+        _invoices.Verify(i => i.UpdateAsync(
+            It.IsAny<ElectronicInvoice>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RetryAsync_WhenTheSigningFailsAgain_LeavesTheDocumentForReviewWithTheNewReason()
+    {
+        Given(Sale(), Company());
+        var invoice = GivenRetryDocument();
+        _certificates.Setup(c => c.GetSigningCertificateAsync(IssuerRnc, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("The signing certificate is unavailable."));
+
+        var result = await Service().RetryAsync(invoice.Id, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Left>();
+        var error = ((Either<Error, ElectronicInvoiceDto>.Left)result).Value;
+        error.Message.Should().Contain("signing certificate is unavailable");
+
+        _persisted.Should().NotBeNull();
+        _persisted!.Status.Should().Be(EcfStatus.Draft);
+        _persisted.RequiresReview.Should().BeTrue();
+        _persisted.VerdictNote.Should().Be("The signing certificate is unavailable.");
+        _persisted.SignedXml.Should().BeEmpty();
+        _dgii.SendRequests.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task RetryAsync_ForAReplacement_KeepsThePaperReferenceAfterTheContingencyIsLifted()
+    {
+        Given(Sale(), Company());
+        var invoice = GivenRetryDocument();
+        invoice.ReplacesContingencyDocument = true;
+        _normalFiscalDocuments.Setup(r => r.GetBySaleIdAsync(
+                CompanyId,
+                SaleId,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new NormalFiscalDocument
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = CompanyId,
+                SaleId = SaleId,
+                Number = "B0200000001",
+                DocumentType = NormalFiscalDocumentType.Consumer,
+                IssuerTaxId = IssuerRnc,
+                Total = 236m,
+                IssuedAt = new DateTime(2026, 11, 4)
+            });
+
+        var result = await Service().RetryAsync(invoice.Id, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        _signedXmls.Should().ContainSingle();
+        _signedXmls[0].Should().Contain("<NCFModificado>B0200000001</NCFModificado>");
+        _signedXmls[0].Should().Contain("<CodigoModificacion>4</CodigoModificacion>");
+    }
+
+    [Fact]
     public async Task RecoverAsync_WhenTheAnswerOfTheSendWasLost_AdoptsTheTrackIdTheDgiiGave()
     {
         Given(Sale(), Company());
@@ -470,6 +610,30 @@ public class ElectronicInvoiceServiceTests
         _companies.Setup(r => r.GetCompanyByIdAsync(company.Id, It.IsAny<CancellationToken>())).ReturnsAsync(company);
         _invoices.Setup(r => r.GetBySaleIdAsync(sale.Id, It.IsAny<CancellationToken>())).ReturnsAsync((ElectronicInvoice?)null);
         _sequences.Setup(s => s.NextSequenceAsync(company.Id, It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
+    }
+
+    private ElectronicInvoice GivenRetryDocument(
+        EcfStatus status = EcfStatus.Draft,
+        bool requiresReview = true,
+        string encf = "E320000000001")
+    {
+        var invoice = new ElectronicInvoice
+        {
+            Id = Guid.CreateVersion7(),
+            CompanyId = CompanyId,
+            SaleId = SaleId,
+            ENCF = encf,
+            DocumentType = EcfDocumentType.Consumer,
+            IssuerTaxId = IssuerRnc,
+            Status = status,
+            RequiresReview = requiresReview,
+            VerdictNote = "The previous signature attempt failed."
+        };
+
+        _invoices.Setup(r => r.GetByCompanyAndIdAsync(CompanyId, invoice.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(invoice);
+
+        return invoice;
     }
 
     private void GivenDocument(EcfStatus status, string encf)

@@ -61,6 +61,51 @@ public class ElectronicInvoiceEmissionTests
     }
 
     [Fact]
+    public async Task RetryAsync_AfterTheCertificateFails_SignsTheSameDocumentWithoutMovingTheSequence()
+    {
+        await using var fixture = new EmissionFixture();
+        await fixture.InitializeAsync();
+        fixture.CertificateProvider
+            .Setup(c => c.GetSigningCertificateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("The signing certificate is unavailable."));
+
+        var issue = await fixture.Service.IssueAsync(fixture.SaleId, fixture.CompanyId);
+
+        issue.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Left>();
+        fixture.Context.ChangeTracker.Clear();
+        var invoice = await fixture.Context.ElectronicInvoices.SingleAsync();
+        invoice.ENCF.Should().Be("E320000000001");
+        invoice.Status.Should().Be(EcfStatus.Draft);
+        invoice.RequiresReview.Should().BeTrue();
+        invoice.VerdictNote.Should().Contain("signing certificate is unavailable");
+
+        var range = await fixture.Context.ElectronicInvoiceSequences
+            .SingleAsync(s => s.CompanyId == fixture.CompanyId && s.DocumentType == EcfDocumentType.Consumer);
+        range.CurrentSequence.Should().Be(1);
+
+        fixture.AllowSigning();
+        var retry = await fixture.Service.RetryAsync(invoice.Id, fixture.CompanyId);
+
+        retry.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+        var dto = ((Either<Error, ElectronicInvoiceDto>.Right)retry).Value;
+        dto.ENCF.Should().Be("E320000000001");
+        dto.Status.Should().Be(EcfStatus.Signed);
+        dto.RequiresReview.Should().BeFalse();
+
+        fixture.Context.ChangeTracker.Clear();
+        var retried = await fixture.Context.ElectronicInvoices.SingleAsync();
+        retried.ENCF.Should().Be("E320000000001");
+        retried.Status.Should().Be(EcfStatus.Signed);
+        retried.RequiresReview.Should().BeFalse();
+        retried.SignedAt.Should().NotBeNull();
+
+        var unchangedRange = await fixture.Context.ElectronicInvoiceSequences
+            .SingleAsync(s => s.CompanyId == fixture.CompanyId && s.DocumentType == EcfDocumentType.Consumer);
+        unchangedRange.CurrentSequence.Should().Be(1);
+        fixture.Dgii.SendRequests.Should().Be(0);
+    }
+
+    [Fact]
     public async Task ProcessPendingAsync_ThenRetrackAsync_AcceptsTheDocumentSentByTheQueue()
     {
         await using var fixture = new EmissionFixture();
@@ -281,6 +326,7 @@ public class ElectronicInvoiceEmissionTests
         public DbContextOptions<VolterpDbContext> Options { get; }
         public VolterpDbContext Context { get; }
         public DgiiStub Dgii { get; } = new();
+        public Mock<ISigningCertificateProvider> CertificateProvider { get; } = new();
         public Guid CompanyId { get; private set; }
         public Guid OtherCompanyId { get; private set; }
         public Guid SaleId { get; private set; }
@@ -317,9 +363,7 @@ public class ElectronicInvoiceEmissionTests
 
             await Context.SaveChangesAsync();
 
-            var certificates = new Mock<ISigningCertificateProvider>();
-            certificates.Setup(c => c.GetSigningCertificateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(CreateCertificate());
+            AllowSigning();
 
             var signer = new XmlDsigEcfSigner();
             var authenticator = new DgiiAuthenticator(Dgii, signer, new DgiiTokenCache());
@@ -330,9 +374,16 @@ public class ElectronicInvoiceEmissionTests
                 UnitOfWork,
                 new EcfXmlWriter(),
                 signer,
-                certificates.Object,
+                CertificateProvider.Object,
                 authenticator,
                 Dgii);
+        }
+
+        public void AllowSigning()
+        {
+            CertificateProvider
+                .Setup(c => c.GetSigningCertificateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(CreateCertificate());
         }
 
         private static Company Company(Guid id, string taxId) => new()
