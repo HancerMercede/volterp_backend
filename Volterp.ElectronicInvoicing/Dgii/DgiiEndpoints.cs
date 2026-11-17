@@ -19,4 +19,7 @@ public static class DgiiEndpoints
 
     // p. 30: GET {base}/{ambiente}/consultatrackids/api/trackids/consulta?rncemisor=&encf=
     public const string TrackIdByEncf = "consultatrackids/api/trackids/consulta";
+
+    // p. 35: POST {base}/{ambiente}/anulacionrangos/api/operaciones/anularrango
+    public const string AnnulRanges = "anulacionrangos/api/operaciones/anularrango";
 }

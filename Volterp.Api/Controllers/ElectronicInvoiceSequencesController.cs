@@ -1,13 +1,16 @@
 using Volterp.Application.DTOs.ElectronicInvoiceSequenceDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
+using Volterp.Application.Services;
 
 namespace Volterp.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ElectronicInvoiceSequencesController(IServiceManager serviceManager) : BaseController
+public class ElectronicInvoiceSequencesController(
+    IServiceManager serviceManager,
+    IRangeAnnulmentService annulment) : BaseController
 {
     private IElectronicInvoiceSequenceService Service => serviceManager.ElectronicInvoiceSequences;
 
@@ -62,6 +65,25 @@ public class ElectronicInvoiceSequencesController(IServiceManager serviceManager
         return result.Match<ActionResult<ElectronicInvoiceSequenceDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             range => Ok(range)
+        );
+    }
+
+    // The numbers of a range that the taxpayer never used are announced to
+    // the DGII. The company comes from the token, never from the request.
+    [HttpPost("{id}/annul")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<RangeAnnulmentResult>> AnnulRange(
+        Guid id,
+        CancellationToken ct = default)
+    {
+        var companyId = GetCurrentUserCompanyId();
+        var result = await annulment.AnnulAsync(id, companyId, ct);
+
+        return result.Match<ActionResult<RangeAnnulmentResult>>(
+            error => error.Kind == ErrorKind.NotFound
+                ? NotFound(new ErrorResponse(error.Message))
+                : BadRequest(new ErrorResponse(error.Message)),
+            answer => Ok(answer)
         );
     }
 }

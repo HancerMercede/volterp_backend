@@ -31,4 +31,13 @@ public interface IDgiiClient
     /// e-NCF. It is how a lost answer is recovered without sending twice.
     /// </summary>
     Task<DgiiTrackLookup> GetTrackIdAsync(string issuerTaxId, string encf, string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Announces to the DGII the ranges of e-NCF that will not be used, with
+    /// the signed document of the annulment.
+    /// </summary>
+    // The default implementation keeps the clients that only carry e-CF alive:
+    // the ones that annul ranges of e-NCF implement it.
+    Task<DgiiRangeAnnulmentAnswer> AnnulRangesAsync(string signedAnecfXml, string token, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException("This client cannot annul ranges of e-NCF.");
 }

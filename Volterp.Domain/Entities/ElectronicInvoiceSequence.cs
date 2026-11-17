@@ -18,9 +18,29 @@ public class ElectronicInvoiceSequence : AuditEntity, ITenantScoped
     public int To { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public int CurrentSequence { get; set; }
+
+    // The day the range was annulled and the answer of the DGII: a range
+    // that is annulled is closed and can never be used again.
+    public DateTime? AnnulledAt { get; set; }
+    public string? AnnulmentResponse { get; set; }
+
     public Company Company { get; set; } = null!;
 
     public bool HasRoom => CurrentSequence < To;
+
+    public bool IsAnnulled => AnnulledAt is not null;
+
+    // The annulment closes the range: the tail it still had is consumed by
+    // it, so no number of the range can be handed out again.
+    public void MarkAnnulled(DateTime annulledAt, string? rawResponse)
+    {
+        if (IsAnnulled)
+            throw new InvalidOperationException("The range was already annulled.");
+
+        AnnulledAt = annulledAt;
+        AnnulmentResponse = Cut(rawResponse);
+        CurrentSequence = To;
+    }
 
     // The types that carry no expiry date (32 and 34) never expire.
     public bool IsExpired(DateTime now)
@@ -45,4 +65,13 @@ public class ElectronicInvoiceSequence : AuditEntity, ITenantScoped
 
         return sequence;
     }
+
+    // The body of the DGII is a diagnostic, not a payload: a pathological
+    // answer cannot grow the row without limit. The cut says so: whoever
+    // reads the answer has to know that it is not the whole one. The room is
+    // the one the answer of a document gets.
+    private static string? Cut(string? body)
+        => body is null || body.Length <= ElectronicInvoice.MaxRawResponseLength
+            ? body
+            : body[..ElectronicInvoice.MaxRawResponseLength] + "... [truncated]";
 }

@@ -57,6 +57,7 @@ builder.Services.AddAuthentication()
 ServiceExtensions.ConfigureControllers(builder.Services);
 ServiceExtensions.ConfigureCors(builder.Services, builder.Configuration);
 ServiceExtensions.ConfigureApiCredentials(builder.Services);
+ServiceExtensions.ConfigureRangeAnnulment(builder.Services);
 ServiceExtensions.ConfigureExceptionLogStore(builder.Services);
 ServiceExtensions.ConfigureCurrentUser(builder.Services);
 ServiceExtensions.ConfigureTenantContext(builder.Services);

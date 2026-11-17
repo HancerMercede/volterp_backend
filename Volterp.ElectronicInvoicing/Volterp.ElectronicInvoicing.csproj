@@ -17,6 +17,9 @@
        they are signed and sent. -->
   <ItemGroup>
     <EmbeddedResource Include="Schemas\ecf-*.xsd" />
+    <!-- The schema of the annulment of the ranges of e-NCF: it is a document
+         of its own, with a root of its own. -->
+    <EmbeddedResource Include="Schemas\ANECF-v1.0.xsd" />
   </ItemGroup>
 
 </Project>

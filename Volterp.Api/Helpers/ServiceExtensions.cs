@@ -119,6 +119,11 @@ public static class ServiceExtensions
         services.AddScoped<IApiCredentialService, ApiCredentialService>();
     }
 
+    public static void ConfigureRangeAnnulment(IServiceCollection services)
+    {
+        services.AddScoped<IRangeAnnulmentService, RangeAnnulmentService>();
+    }
+
     private static bool IsApiKeyRequest(HttpRequest request)
         => request.Headers.Authorization.ToString()
             .StartsWith(ApiKeyAuthenticationHandler.HeaderPrefix, StringComparison.OrdinalIgnoreCase);

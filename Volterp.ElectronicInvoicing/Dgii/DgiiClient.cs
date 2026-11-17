@@ -38,7 +38,7 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
 
         using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(DgiiEndpoints.ValidateSeed));
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-        request.Content = BuildXmlForm(signedSeedXml, SeedFileName());
+        request.Content = BuildXmlForm(signedSeedXml, ResponseFileName());
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -150,6 +150,35 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         return new DgiiTrackLookup(parsed.TrackId, parsed.Estado, ParseDate(parsed.FechaRecepcion));
     }
 
+    public async Task<DgiiRangeAnnulmentAnswer> AnnulRangesAsync(string signedAnecfXml, string token, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(signedAnecfXml);
+        ArgumentException.ThrowIfNullOrWhiteSpace(token);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(DgiiEndpoints.AnnulRanges));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Add("Authorization", $"bearer {token}");
+        request.Content = BuildXmlForm(signedAnecfXml, ResponseFileName());
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            throw new DgiiException(
+                $"The DGII rejected the annulment of the ranges ({response.StatusCode}).",
+                body,
+                statusCode: response.StatusCode);
+
+        var parsed = Deserialize<DgiiRangeAnnulmentResponse>(body, "annulment");
+
+        return new DgiiRangeAnnulmentAnswer(
+            parsed.Rnc,
+            parsed.Codigo,
+            parsed.Nombre,
+            parsed.Mensajes ?? [])
+        { RawBody = body };
+    }
+
     private string BuildUrl(string relativePath)
     {
         var baseUrl = _options.BaseUrl.TrimEnd('/');
@@ -168,7 +197,9 @@ public sealed class DgiiClient(HttpClient httpClient, DgiiOptions options) : IDg
         return form;
     }
 
-    private static string SeedFileName()
+    // The name of a file that is not named after an e-NCF: the seed and the
+    // annulment of the ranges take the shape of the response.
+    private static string ResponseFileName()
         => $"response_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.xml";
 
     // The name the DGII expects for a document: the issuer RNC followed by the

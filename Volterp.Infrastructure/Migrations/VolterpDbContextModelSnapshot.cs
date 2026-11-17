@@ -587,6 +587,12 @@ namespace Volterp.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("AnnulledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("AnnulmentResponse")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
