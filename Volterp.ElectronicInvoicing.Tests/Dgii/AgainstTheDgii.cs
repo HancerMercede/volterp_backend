@@ -83,22 +83,39 @@ public class AgainstTheDgii
     }
 
     // The name of the file the DGII expects is taken from the document, so it
-    // has to say who emits it and under which number.
+    // has to say who emits it and under which number. Against the real DGII
+    // those are the taxpayer's: they come from the environment and never from
+    // the repository.
     private const string EcfTemplate = """
         <?xml version="1.0" encoding="utf-8"?>
         <ECF Version="1.0">
           <Encabezado>
             <Emisor>
-              <RNCEmisor>101500018</RNCEmisor>
+              <RNCEmisor>{{RNCEMISOR}}</RNCEmisor>
             </Emisor>
             <TipoIngresos>01</TipoIngresos>
-            <eNCF>E320000000001</eNCF>
-            <FechaEmision>2026-11-13</FechaEmision>
+            <eNCF>{{ENCF}}</eNCF>
+            <FechaEmision>{{FECHAEMISION}}</FechaEmision>
           </Encabezado>
         </ECF>
         """;
 
-    private static string EcfXml() => EcfTemplate;
+    private static string EcfXml()
+    {
+        var issuer = DgiiEnvironmentSettings.IssuerRnc;
+        var encf = DgiiEnvironmentSettings.Encf;
+
+        if (string.IsNullOrWhiteSpace(issuer) || string.IsNullOrWhiteSpace(encf))
+            throw new InvalidOperationException(
+                "The issuer and the number come from the environment "
+                + "(VOLTERP_DGII_ISSUER_RNC, VOLTERP_DGII_ENCF): against the real DGII the document "
+                + "has to be the taxpayer's own.");
+
+        return EcfTemplate
+            .Replace("{{RNCEMISOR}}", issuer)
+            .Replace("{{ENCF}}", encf)
+            .Replace("{{FECHAEMISION}}", DateTime.UtcNow.ToString("dd-MM-yyyy"));
+    }
 
     private static DgiiClient CreateClient()
         => new(
@@ -120,6 +137,13 @@ public class AgainstTheDgii
 
             return X509CertificateLoader.LoadPkcs12FromFile(path, DgiiEnvironmentSettings.CertificatePassword);
         }
+
+        // Against the real DGII a certificate made here proves nothing: the
+        // DGII only trusts the certificate the taxpayer registered.
+        if (DgiiEnvironmentRequirements.IsTheRealDgii(DgiiEnvironmentSettings.BaseUrl))
+            throw new InvalidOperationException(
+                "The issuer certificate comes from the environment (VOLTERP_DGII_CERTIFICATE): "
+                + "against the real DGII a certificate made here is not accepted.");
 
         return CreateSelfSignedCertificate();
     }

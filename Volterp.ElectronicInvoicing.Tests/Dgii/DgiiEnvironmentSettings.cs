@@ -26,6 +26,13 @@ internal static class DgiiEnvironmentSettings
 
     public static string? CertificatePassword => System.Environment.GetEnvironmentVariable("VOLTERP_DGII_CERTIFICATE_PASSWORD");
 
+    // Who emits and under which number: the real circuit is about the
+    // taxpayer's own document, so both come from the environment and never
+    // from the repository.
+    public static string? IssuerRnc => System.Environment.GetEnvironmentVariable("VOLTERP_DGII_ISSUER_RNC");
+
+    public static string? Encf => System.Environment.GetEnvironmentVariable("VOLTERP_DGII_ENCF");
+
     public static DgiiEnvironment Environment =>
         Enum.TryParse(System.Environment.GetEnvironmentVariable("VOLTERP_DGII_ENVIRONMENT"), true, out DgiiEnvironment environment)
             ? environment
