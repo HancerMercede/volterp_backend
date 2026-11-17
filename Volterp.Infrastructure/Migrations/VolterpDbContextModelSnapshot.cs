@@ -100,7 +100,59 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("AccountingTransactions");
+                    b.ToTable("AccountingTransactions", (string)null);
+                });
+
+            modelBuilder.Entity("Volterp.Domain.Entities.ApiCredential", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("KeyId")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SecretHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("KeyId")
+                        .IsUnique();
+
+                    b.ToTable("ApiCredentials", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Category", b =>
@@ -149,7 +201,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("Name", "CompanyId")
                         .IsUnique();
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Client", b =>
@@ -256,7 +308,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "EntityType")
                         .IsUnique();
 
-                    b.ToTable("CodeSequences");
+                    b.ToTable("CodeSequences", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Company", b =>
@@ -336,7 +388,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("TaxId")
                         .IsUnique();
 
-                    b.ToTable("Companies");
+                    b.ToTable("Companies", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.CompanyCertificate", b =>
@@ -384,7 +436,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("CompanyCertificates");
+                    b.ToTable("CompanyCertificates", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoice", b =>
@@ -526,7 +578,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId", "Status", "NextAttemptAt", "LeaseUntil");
 
-                    b.ToTable("ElectronicInvoices");
+                    b.ToTable("ElectronicInvoices", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoiceSequence", b =>
@@ -577,7 +629,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("IssuerTaxId", "DocumentType", "From")
                         .IsUnique();
 
-                    b.ToTable("ElectronicInvoiceSequences");
+                    b.ToTable("ElectronicInvoiceSequences", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Employee", b =>
@@ -692,7 +744,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Employees");
+                    b.ToTable("Employees", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.NormalFiscalDocument", b =>
@@ -765,7 +817,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("IssuerTaxId", "Number")
                         .IsUnique();
 
-                    b.ToTable("NormalFiscalDocuments");
+                    b.ToTable("NormalFiscalDocuments", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.NormalFiscalSequence", b =>
@@ -816,7 +868,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("IssuerTaxId", "DocumentType", "From")
                         .IsUnique();
 
-                    b.ToTable("NormalFiscalSequences");
+                    b.ToTable("NormalFiscalSequences", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Product", b =>
@@ -906,7 +958,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Purchase", b =>
@@ -973,7 +1025,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Purchases");
+                    b.ToTable("Purchases", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.PurchaseItem", b =>
@@ -1015,7 +1067,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("PurchaseId");
 
-                    b.ToTable("PurchaseItems");
+                    b.ToTable("PurchaseItems", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.ReceivedElectronicInvoice", b =>
@@ -1088,7 +1140,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("IssuerTaxId", "ENCF")
                         .IsUnique();
 
-                    b.ToTable("ReceivedElectronicInvoices");
+                    b.ToTable("ReceivedElectronicInvoices", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Sale", b =>
@@ -1179,7 +1231,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Sales");
+                    b.ToTable("Sales", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.SaleItem", b =>
@@ -1230,7 +1282,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("SaleId");
 
-                    b.ToTable("SaleItems");
+                    b.ToTable("SaleItems", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Supplier", b =>
@@ -1308,7 +1360,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.User", b =>
@@ -1377,7 +1429,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.AccountingTransaction", b =>

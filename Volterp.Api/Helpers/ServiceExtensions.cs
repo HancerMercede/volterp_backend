@@ -6,23 +6,27 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Volterp.Api.Authentication;
 using Volterp.Api.Configuration;
 using Volterp.Api.Http;
 using Volterp.Api.Workers;
 using Volterp.Application.Abstractions;
 using Volterp.Application.Diagnostics;
 using Volterp.Application.DTOs;
+using Volterp.Application.Interfaces;
 using Volterp.Application.Services;
 using Volterp.ElectronicInvoicing.Abstractions;
 using Volterp.ElectronicInvoicing.Dgii;
 using Volterp.ElectronicInvoicing.Signing;
 using Volterp.ElectronicInvoicing.Xml;
 using Volterp.Infrastructure.Data;
+using Volterp.Infrastructure.Repositories;
 using Volterp.Infrastructure.Services;
 using Volterp.Infrastructure.UnitOfWork;
 
@@ -30,6 +34,10 @@ namespace Volterp.Api.Helpers;
 
 public static class ServiceExtensions
 {
+    // The scheme of the JWT. It lives behind the default scheme, which is
+    // the one that reads the header and decides who is calling.
+    private const string JwtBearerSchemeName = "JwtBearer";
+
     public static void ConfigureDbContext(IServiceCollection services, DatabaseSettings settings)
         => services.AddDbContext<VolterpDbContext>(options =>
             options.UseNpgsql(settings.DefaultConnection));
@@ -50,7 +58,16 @@ public static class ServiceExtensions
         services.AddScoped<IPasswordHasher, PasswordHasher>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
+            // The default scheme reads the header and forwards it: the two
+            // kinds of caller travel in the same header and neither of them
+            // knows about the other.
+            .AddPolicyScheme(JwtBearerDefaults.AuthenticationScheme, "Bearer token or API key of a client", options =>
+            {
+                options.ForwardDefaultSelector = context => IsApiKeyRequest(context.Request)
+                    ? ApiKeyAuthenticationHandler.SchemeName
+                    : JwtBearerSchemeName;
+            })
+            .AddJwtBearer(JwtBearerSchemeName, options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
@@ -87,10 +104,24 @@ public static class ServiceExtensions
                             JsonSerializer.Serialize(new ErrorResponse("Forbidden."), jsonOptions));
                     }
                 };
-            });
+            })
+            .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+                ApiKeyAuthenticationHandler.SchemeName,
+                "API key of a client",
+                _ => { });
 
         services.AddAuthorization();
     }
+
+    public static void ConfigureApiCredentials(IServiceCollection services)
+    {
+        services.AddScoped<IApiCredentialRepository, ApiCredentialRepository>();
+        services.AddScoped<IApiCredentialService, ApiCredentialService>();
+    }
+
+    private static bool IsApiKeyRequest(HttpRequest request)
+        => request.Headers.Authorization.ToString()
+            .StartsWith(ApiKeyAuthenticationHandler.HeaderPrefix, StringComparison.OrdinalIgnoreCase);
 
     public static void ConfigureEncryption(IServiceCollection services, EncryptionSettings settings)
         => services.AddSingleton<ICredentialProtector>(new AesCredentialProtector(settings.MasterKey));
@@ -130,12 +161,18 @@ public static class ServiceExtensions
             .AddJsonOptions(options =>
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-    public static void ConfigureCors(IServiceCollection services)
-        => services.AddCors(options =>
+    public static void ConfigureCors(IServiceCollection services, IConfiguration configuration)
+    {
+        // The origins that may call the API are the ones of the configuration:
+        // the front of the ERP and the clients that rent the API.
+        var origins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+        services.AddCors(options =>
             options.AddDefaultPolicy(policy =>
-                policy.WithOrigins("http://localhost:5173")
+                policy.WithOrigins(origins)
                       .AllowAnyHeader()
                       .AllowAnyMethod()));
+    }
 
     public static void ConfigureExceptionLogStore(IServiceCollection services)
         => services.AddSingleton<IExceptionLogStore>(new InMemoryExceptionLogStore(100));
