@@ -118,6 +118,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png`, `POST /api/ElectronicInvoices/{id}/retry` (reintenta la firma de un comprobante que quedó para revisión) |
 | **Electronic Invoice Print** | `GET /api/ElectronicInvoicePrint/{id}` (printable HTML representation; accepted e-CF only) |
 | **API Credentials** | `GET`/`POST /api/ApiCredentials`, `DELETE /api/ApiCredentials/{id}` (the machine credential of a client that rents the API) |
+| **Electronic Invoice Sequences** | `GET`/`POST`/`PUT /api/ElectronicInvoiceSequences`, `POST /api/ElectronicInvoiceSequences/{id}/annul` (annuls the e-NCF numbers the taxpayer never used) |
 | **Company Emission Mode** | `GET`/`PUT /api/CompanyEmissionMode` (how the company invoices: electronic or normal) |
 | **Company Contingency** | `PUT /api/CompanyEmissionMode/contingency` (the temporary suspension of the electronic path) |
 | **Electronic Invoice Sequences** | `GET`/`POST`/`PUT /api/ElectronicInvoiceSequences` (the e-NCF ranges the DGII authorized) |
@@ -206,6 +207,16 @@ Un cliente que alquila la API **no es un usuario del ERP**: no tiene login ni co
 - La credencial **se revoca, no se borra** (`DELETE /api/ApiCredentials/{id}`): lo que se emitió importa. Una vez revocada deja de autenticar.
 - La credencial **no es un administrador**: no lleva rol, así que las superficies de administrador siguen cerradas para ella.
 - Los orígenes que pueden llamar la API vienen de la **configuración** (`Cors:AllowedOrigins`), no de un literal en el código.
+
+### La anulación de los rangos que no se usaron
+
+Un rango de e-NCF que la DGII autorizó y que el contribuyente no usó **pierde** esos números si no se los anuncia: `POST /api/ElectronicInvoiceSequences/{id}/annul` (de administrador) manda a la DGII el documento **ANECF** con la cola sin usar del rango.
+
+- El hueco de un rango es **la cola que nunca se usó**: el asignador es contiguo y la posición que declara el contribuyente es el último número usado, así que lo declarado y lo nuestro coinciden.
+- El ANECF se **firma con el certificado del emisor** y se manda **solo a la DGII**.
+- Si la DGII lo rechaza, el rango **queda exactamente como estaba** y la respuesta viaja al que lo pidió.
+- Un rango **sin cola** no tiene nada que anular y **falla cerrado**; uno ya anulado también.
+- La anulación **cierra** el rango: sus números no vuelven a servir.
 
 ### El comprobante fiscal normal (NCF en papel)
 
