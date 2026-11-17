@@ -2,6 +2,7 @@ using System.Text;
 using Volterp.Api.Helpers;
 using Volterp.Application.DTOs;
 using Volterp.Application.DTOs.ElectronicInvoiceDtos;
+using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 
@@ -24,6 +25,20 @@ public class ElectronicInvoicesController(IUnitOfWork unitOfWork, IServiceManage
         return result.Match<ActionResult<ElectronicInvoiceStateSurfaceDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
             surface => Ok(surface)
+        );
+    }
+
+    [HttpPost("{id}/retry")]
+    public async Task<ActionResult<ElectronicInvoiceDto>> Retry(Guid id, CancellationToken ct = default)
+    {
+        var companyId = GetCurrentUserCompanyId();
+        var result = await serviceManager.ElectronicInvoices.RetryAsync(id, companyId, ct);
+
+        return result.Match<ActionResult<ElectronicInvoiceDto>>(
+            error => error.Kind == ErrorKind.NotFound
+                ? NotFound(new ErrorResponse(error.Message))
+                : BadRequest(new ErrorResponse(error.Message)),
+            invoice => Ok(invoice)
         );
     }
 

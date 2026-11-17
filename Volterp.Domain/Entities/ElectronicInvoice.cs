@@ -106,6 +106,18 @@ public class ElectronicInvoice : AuditEntity, ITenantScoped
         Status = EcfStatus.Signed;
     }
 
+    public void SignAfterReview(string signedXml, DateTime signedAt)
+    {
+        if (Status != EcfStatus.Draft)
+            throw InvalidTransition(EcfStatus.Signed);
+
+        if (!RequiresReview)
+            throw new InvalidOperationException("The document does not require review.");
+
+        Sign(signedXml, signedAt);
+        RequiresReview = false;
+    }
+
     public void MarkSent(string? trackId, DateTime sentAt)
     {
         if (Status != EcfStatus.Signed)

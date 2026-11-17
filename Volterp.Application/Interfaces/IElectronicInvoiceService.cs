@@ -13,6 +13,11 @@ public interface IElectronicInvoiceService
     // waits in the durable queue for the worker that sends it to the DGII.
     Task<Either<Error, ElectronicInvoiceDto>> IssueAsync(Guid saleId, Guid companyId, CancellationToken ct = default);
 
+    // The explicit retry of a document whose signature failed: it keeps its
+    // e-NCF and returns to the queue when the signature succeeds.
+    Task<Either<Error, ElectronicInvoiceDto>> RetryAsync(
+        Guid invoiceId, Guid companyId, CancellationToken ct = default);
+
     // The recovery of a document whose answer was lost: the DGII is asked
     // whether it received it instead of sending it again, because a second
     // send of the same e-NCF would burn the number twice.

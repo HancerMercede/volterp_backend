@@ -1,3 +1,4 @@
+using System.Globalization;
 using Volterp.Domain.Abstractions;
 using Volterp.ElectronicInvoicing;
 using Volterp.ElectronicInvoicing.Xml;
@@ -29,4 +30,19 @@ public class ElectronicInvoiceSequence : AuditEntity, ITenantScoped
 
     public static string BuildEncf(EcfDocumentType documentType, int sequence)
         => $"E{(int)documentType:D2}{sequence:D10}";
+
+    public static int SequenceOf(string encf)
+    {
+        if (string.IsNullOrEmpty(encf) || encf.Length != 13)
+            throw new ArgumentException("The e-NCF must have thirteen characters.", nameof(encf));
+
+        if (!int.TryParse(
+                encf.AsSpan(3, 10),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var sequence))
+            throw new ArgumentException("The e-NCF does not end in a valid sequence.", nameof(encf));
+
+        return sequence;
+    }
 }
