@@ -100,7 +100,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("AccountingTransactions", (string)null);
+                    b.ToTable("AccountingTransactions");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.ApiCredential", b =>
@@ -201,7 +201,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("Name", "CompanyId")
                         .IsUnique();
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Client", b =>
@@ -308,7 +308,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "EntityType")
                         .IsUnique();
 
-                    b.ToTable("CodeSequences", (string)null);
+                    b.ToTable("CodeSequences");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Company", b =>
@@ -388,7 +388,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("TaxId")
                         .IsUnique();
 
-                    b.ToTable("Companies", (string)null);
+                    b.ToTable("Companies");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.CompanyCertificate", b =>
@@ -436,7 +436,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.ToTable("CompanyCertificates", (string)null);
+                    b.ToTable("CompanyCertificates");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoice", b =>
@@ -578,7 +578,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId", "Status", "NextAttemptAt", "LeaseUntil");
 
-                    b.ToTable("ElectronicInvoices", (string)null);
+                    b.ToTable("ElectronicInvoices");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoiceSequence", b =>
@@ -635,7 +635,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("IssuerTaxId", "DocumentType", "From")
                         .IsUnique();
 
-                    b.ToTable("ElectronicInvoiceSequences", (string)null);
+                    b.ToTable("ElectronicInvoiceSequences");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Employee", b =>
@@ -750,7 +750,35 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Employees", (string)null);
+                    b.ToTable("Employees");
+                });
+
+            modelBuilder.Entity("Volterp.Domain.Entities.IssuedSeed", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("IssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Value")
+                        .IsUnique();
+
+                    b.ToTable("IssuedSeeds", (string)null);
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.NormalFiscalDocument", b =>
@@ -823,7 +851,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("IssuerTaxId", "Number")
                         .IsUnique();
 
-                    b.ToTable("NormalFiscalDocuments", (string)null);
+                    b.ToTable("NormalFiscalDocuments");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.NormalFiscalSequence", b =>
@@ -874,7 +902,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("IssuerTaxId", "DocumentType", "From")
                         .IsUnique();
 
-                    b.ToTable("NormalFiscalSequences", (string)null);
+                    b.ToTable("NormalFiscalSequences");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Product", b =>
@@ -964,7 +992,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Purchase", b =>
@@ -1031,7 +1059,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Purchases", (string)null);
+                    b.ToTable("Purchases");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.PurchaseItem", b =>
@@ -1073,7 +1101,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("PurchaseId");
 
-                    b.ToTable("PurchaseItems", (string)null);
+                    b.ToTable("PurchaseItems");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.ReceivedElectronicInvoice", b =>
@@ -1146,7 +1174,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("IssuerTaxId", "ENCF")
                         .IsUnique();
 
-                    b.ToTable("ReceivedElectronicInvoices", (string)null);
+                    b.ToTable("ReceivedElectronicInvoices");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Sale", b =>
@@ -1237,7 +1265,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Sales", (string)null);
+                    b.ToTable("Sales");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.SaleItem", b =>
@@ -1288,7 +1316,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("SaleId");
 
-                    b.ToTable("SaleItems", (string)null);
+                    b.ToTable("SaleItems");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.Supplier", b =>
@@ -1366,7 +1394,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Suppliers", (string)null);
+                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.User", b =>
@@ -1435,7 +1463,7 @@ namespace Volterp.Infrastructure.Migrations
                     b.HasIndex("CompanyId", "Code")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Volterp.Domain.Entities.AccountingTransaction", b =>

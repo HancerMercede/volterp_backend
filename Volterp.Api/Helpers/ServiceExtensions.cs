@@ -124,6 +124,17 @@ public static class ServiceExtensions
         services.AddScoped<IRangeAnnulmentService, RangeAnnulmentService>();
     }
 
+    public static void ConfigureSeedAuthentication(IServiceCollection services)
+    {
+        services.AddScoped<IIssuedSeedRepository, IssuedSeedRepository>();
+        services.AddScoped<ISeedAuthenticationService, SeedAuthenticationService>();
+
+        // The token of the third party is the session it opened against this
+        // platform, and it outlives the request that opened it.
+        services.AddSingleton<ThirdPartyTokenCache>();
+        services.AddSingleton<ISeedTokenCache>(provider => provider.GetRequiredService<ThirdPartyTokenCache>());
+    }
+
     private static bool IsApiKeyRequest(HttpRequest request)
         => request.Headers.Authorization.ToString()
             .StartsWith(ApiKeyAuthenticationHandler.HeaderPrefix, StringComparison.OrdinalIgnoreCase);
