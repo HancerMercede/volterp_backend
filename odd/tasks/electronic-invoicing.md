@@ -414,7 +414,7 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 | T8 | S7 | — | — | **Cambiado (2026-11-04)**: alta del emisor ante la DGII por la vía de **sistema de desarrollo propio**. El cliente se certifica como emisor electrónico en el Portal de Certificación de la DGII registrándonos como software **"Tipo EXTERNO"** con nuestros datos y **nuestras URLs de recepción y aprobación comercial**; el cliente nos entrega su `.p12` + password (el `.p12` lo emite una **entidad de certificación autorizada por INDOTEL**, no la DGII: `control-guia6.txt:138-143`); su clave de la OFV es del trámite de habilitación y **no la guardamos** — para los web services la credencial es **solo el certificado**. No es un endpoint: es un proceso + acuerdo comercial. **Depende de T14 y T15 vivos** (el cliente registra URLs que tienen que funcionar). |
 | T9 | S7 | inline | `714117f` | **Cerrado.** Tests: el material sensible nunca aparece en ninguna respuesta de la API. La fila quedó desactualizada: el chequeo de la respuesta HTTP completa ya existe en `CompanyCertificateIntegrationTests` — 6 tests de integración prueban que el body HTTP no lleva ni el texto claro ni el ciphertext, que la fila guardada sí queda cifrada, que otro tenant no puede ni leer ni listar el certificado y que un no-admin no puede crearlo. |
 | T17 | S15 | inline | `28ee400` | **Resuelto.** El enum `SaleDocumentType` se eliminó y lo sustituyó `EcfDocumentType` en la library, que trae **los 10 tipos oficiales** (31, 32, 33, 34, 41, 43, 44, 45, 46, 47) → **la nota de crédito E34 ya está en el catálogo**, sin trabajo extra. La venta se corrige con nota, no editando. |
-| T18 | S16 | — | — | Multi-RNC por tenant: el certificado pertenece al RNC emisor; `Company` deja de tener un solo RNC implícito. |
+| T18 | S16 | inline (parent) | `57b8c4a` + `507f000` | **Cerrado (2026-11-18).** **Multi-RNC por tenant**: el tenant registra los **RNC que emiten** (sus sucursales) y la venta nombra el RNC que la emite. El registro es una tabla propia, **única por tenant** ✓, con su API `/api/CompanyIssuers` (alta y modificación de administrador ✓). El RNC de la empresa **no** se registra: es su propia identidad ✓ (y el registro lo rechaza ✓). La venta lleva `issuerTaxId` (opcional ✓): vacío = la empresa ✓ · con valor, tiene que ser **un emisor del tenant** (falla cerrado ✓). El e-CF y el comprobante normal salen con **el RNC de la venta** ✓: el número del rango de ese RNC ✓ · el certificado de ese RNC ✓ · el bloque del emisor del XML con **su** RNC y **su** razón social ✓. El certificado y los dos rangos se cargan con el RNC de un emisor del tenant ✓. La recepción atribuye el documento al tenant cuyo RNC (propio o de sucursal) aparece como receptor ✓ (ambiguo → **falla cerrado** ✓). Una sucursal desactivada **no emite** ✓. El reintento conserva el emisor del documento ✓. La migración `20261118201231_AddCompanyIssuers` ✓. |
 
 ### Fase 2 — Generación y firma
 
@@ -1310,6 +1310,14 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **La verificación** ✓: build por proyecto **0 errores** ✓ · los tests de la semilla **21/21** ✓ → la **suite completa** queda pendiente de correrse al final de la sesión (pendiente ✓).
   - **Lo que quedó para revisar** ✓: el worker se colgó antes de reportar ✓ → el código está commiteado ✓ pero **falta la prueba de la migración** (aplica y revierte ✓) y el nombre de la caché nueva (`Volterp.Api/Authentication/DgiiTokenCache.cs` ✓ → convendría que se llamara por lo que es ✓).
 
+- **L128** (2026-11-18) — **T18: el tenant puede tener varios RNC emisores** ✓ (cerrado ✓).
+  - **La decisión** ✓: el RNC de la empresa es su propia identidad y **no** se registra ✓ → el registro `CompanyIssuers` es de las **sucursales** ✓ → una sola fuente de verdad ✓ (la venta nombra el RNC o no lo nombra ✓).
+  - **La costura** ✓ (método de `legacy-code` ✓): el comportamiento nuevo vive en funciones **nuevas** (`CompanyIssuerRepository.ResolveIssuerTaxIdAsync` ✓ · `CompanyIssuerService` ✓) y los servicios que ya existían solo la invocan ✓ → los tests que ya estaban siguen siendo la red de caracterización ✓.
+  - **Lo que el emisor toca** ✓: la emisión ✓ · el comprobante normal ✓ · los dos rangos ✓ · el certificado ✓ · la recepción ✓ · la venta ✓ · el mapper (`IssuerIdentity` ✓ → el emisor del XML es **explícito** ✓).
+  - **La verificación** ✓: build **0 errores** ✓ · las suites afectadas **190/190** ✓ · la suite del ERP **1015/1015** ✓ · la library **263 + 2 skipped** ✓ · la **mutación** ✓ (con el RNC de la empresa en lugar del de la venta, el test nuevo **falla** ✓ → el test muerde ✓).
+  - **Los pendientes de ayer** ✓ (L127 ✓): la caché del tercero ya se llama por lo que es ✓ (`ThirdPartyTokenCache` ✓ · el archivo ✓ · el DI ✓) · la **prueba de la migración** (aplica y revierte ✓): la cadena real **no se puede correr en esta máquina** (no hay servidor Postgres ✓ → solo quedó el `data` dir de 2023 ✓) → la prueba queda **no disponible** ✓ · la **suite completa** ✓ (al final de la sesión ✓).
+  - **Lo que queda del plan** ✓: **T52** con su parte de Postgres (la cadena real sobre un servidor) → **prueba no disponible en esta máquina** ✓ · **T48** bloqueado por el `.p12` de INDOTEL ✓ (externo ✓) · **T8** es un trámite externo ✓. **Ninguno de los tres es código que se pueda escribir hoy** ✓.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
@@ -1357,6 +1365,11 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
 - `Volterp.ElectronicInvoicing.Tests/Xml/EcfXmlWriterTests.cs` — fixture `MontoItem` corregido + test del teléfono
 - `Volterp.Tests/Mappers/SaleEcfDocumentMapperTests.cs` — tests del mapper + round-trip contra el XSD oficial (31 y 32)
 - `Volterp.Domain/Entities/Sale.cs` — `TaxRate` delega en `EcfTaxRates.FractionOf`
+- `Volterp.Domain/Entities/CompanyIssuer.cs` — los RNC que emiten por el tenant (sus sucursales)
+- `Volterp.Infrastructure/Data/Configurations/CompanyIssuerConfiguration.cs` — la tabla y su índice único por tenant
+- `Volterp.Infrastructure/Repositories/CompanyIssuerRepository.cs` — los RNC que pueden emitir por el tenant y la resolución del emisor
+- `Volterp.Application/Services/CompanyIssuerService.cs` — el registro de emisores (alta, modificación y consulta)
+- `Volterp.Api/Controllers/CompanyIssuersController.cs` — los endpoints del registro de emisores
 
 ## La library portable
 
