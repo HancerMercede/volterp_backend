@@ -234,6 +234,50 @@ public class ElectronicInvoiceReceptionEndpointTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task TheRoutesThatAlreadyExisted_KeepAnsweringTheSame()
+    {
+        await using var factory = await AuthenticatedFactoryAsync();
+        var client = factory.CreateClient();
+
+        var reception = await client.PostAsync(
+            "/fe/recepcion/api/ecf",
+            ReceptionContent(
+                ReceptionTestDocuments.ReceivedEcf(IssuerRnc, ReceiverRnc, Encf),
+                ReceiverRnc,
+                Encf));
+
+        reception.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var received = JsonDocument.Parse(await reception.Content.ReadAsStringAsync());
+        var receivedRoot = received.RootElement;
+        receivedRoot.GetProperty("issuerTaxId").GetString().Should().Be(IssuerRnc);
+        receivedRoot.GetProperty("receiverTaxId").GetString().Should().Be(ReceiverRnc);
+        receivedRoot.GetProperty("encf").GetString().Should().Be(Encf);
+        receivedRoot.GetProperty("documentType").GetString().Should().Be("FiscalCredit");
+        receivedRoot.GetProperty("approvalStatus").GetString().Should().Be("Received");
+        receivedRoot.GetProperty("alreadyReceived").GetBoolean().Should().BeFalse();
+
+        var approval = await client.PostAsync(
+            "/fe/aprobacioncomercial/api/ecf",
+            ReceptionContent(
+                ReceptionTestDocuments.CommercialApproval(
+                    IssuerRnc,
+                    ReceiverRnc,
+                    Encf,
+                    approved: true,
+                    ApprovalReason),
+                ReceiverRnc,
+                Encf));
+
+        approval.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var approved = JsonDocument.Parse(await approval.Content.ReadAsStringAsync());
+        approved.RootElement.GetProperty("approvalStatus").GetString().Should().Be("Approved");
+        approved.RootElement.GetProperty("approvalDecidedBy").GetString().Should().Be(ReceiverRnc);
+        approved.RootElement.GetProperty("approvalReason").GetString().Should().Be(ApprovalReason);
+    }
+
+    [Fact]
     public async Task TenantDecisionEndpoint_UsesTheTenantFromTheTokenAndHidesAnotherTenant()
     {
         await SeedCompaniesAsync(_factory);
