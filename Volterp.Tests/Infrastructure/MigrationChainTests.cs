@@ -22,7 +22,9 @@ public class MigrationChainTests
     private const string ConnectionString =
         "Host=localhost;Database=volterp;Username=volterp;Password=temppassword123;Port=5432";
 
-    // The five migrations of the e-CF, with the task that wrote each one.
+    // The migrations of the e-CF, with the task that wrote each one. Every
+    // one of them has to be able to roll back: a Down that does nothing
+    // leaves the schema of the client in the state of the migration.
     public static TheoryData<string> EcfMigrations => new()
     {
         "20261104163914_AddElectronicInvoices",
@@ -30,7 +32,13 @@ public class MigrationChainTests
         "20261113160000_UniqueDocumentPerSale",
         "20261114011904_AddDurableElectronicInvoiceQueue",
         "20261114221020_AddDgiiResponses",
-        "20261115173226_AddReceivedElectronicInvoices"
+        "20261115173226_AddReceivedElectronicInvoices",
+        "20261115211134_AddNormalFiscalDocuments",
+        "20261117031551_AddContingencyReplacement",
+        "20261117130000_AddApiCredentials",
+        "20261117140000_AddRangeAnnulment",
+        "20261117150000_AddIssuedSeeds",
+        "20261118201231_AddCompanyIssuers"
     };
 
     [Fact]
