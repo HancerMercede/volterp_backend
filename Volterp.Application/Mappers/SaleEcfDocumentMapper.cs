@@ -22,18 +22,24 @@ public sealed record EcfIssuance
 // was issued on are what the reference of the replacement carries.
 public sealed record EcfReplacement(string Number, DateTime IssuedAt);
 
+// The identity that issues the document: the RNC of the issuer and the
+// legal name the DGII reads. A branch of the tenant issues with its own RNC
+// and its own legal name.
+public sealed record IssuerIdentity(string TaxId, string LegalName);
+
 public static class SaleEcfDocumentMapper
 {
-    public static EcfDocument Map(Sale sale, Company issuer, EcfIssuance issuance)
+    public static EcfDocument Map(Sale sale, Company company, IssuerIdentity issuer, EcfIssuance issuance)
     {
         ArgumentNullException.ThrowIfNull(sale);
+        ArgumentNullException.ThrowIfNull(company);
         ArgumentNullException.ThrowIfNull(issuer);
         ArgumentNullException.ThrowIfNull(issuance);
 
         if (sale.Items.Count == 0)
             throw new InvalidOperationException("The sale has no lines to issue.");
 
-        if (sale.CompanyId != issuer.Id)
+        if (sale.CompanyId != company.Id)
             throw new InvalidOperationException(
                 "The sale does not belong to the company that issues the document.");
 
@@ -56,7 +62,7 @@ public static class SaleEcfDocumentMapper
                 TypeIncome = profile.TypeIncome,
                 PaymentType = profile.PaymentType
             },
-            Issuer = MapIssuer(sale, issuer),
+            Issuer = MapIssuer(sale, company, issuer),
             Buyer = MapBuyer(sale, profile),
             Totals = EcfTotalsCalculator.Calculate(items),
             Items = items,
@@ -129,20 +135,22 @@ public static class SaleEcfDocumentMapper
         return items;
     }
 
-    private static EcfIssuer MapIssuer(Sale sale, Company issuer)
+    private static EcfIssuer MapIssuer(Sale sale, Company company, IssuerIdentity issuer)
     {
-        var legalName = string.IsNullOrWhiteSpace(issuer.LegalName) ? issuer.Name : issuer.LegalName;
+        var legalName = string.IsNullOrWhiteSpace(issuer.LegalName)
+            ? string.IsNullOrWhiteSpace(company.LegalName) ? company.Name : company.LegalName
+            : issuer.LegalName;
 
         return new EcfIssuer
         {
             TaxId = issuer.TaxId,
             BusinessName = legalName,
-            TradeName = issuer.Name == legalName ? null : issuer.Name,
-            Address = issuer.Address,
-            PhoneNumbers = string.IsNullOrWhiteSpace(issuer.Phone)
+            TradeName = company.Name == legalName ? null : company.Name,
+            Address = company.Address,
+            PhoneNumbers = string.IsNullOrWhiteSpace(company.Phone)
                 ? Array.Empty<string>()
-                : new[] { issuer.Phone },
-            Email = string.IsNullOrWhiteSpace(issuer.Email) ? null : issuer.Email,
+                : new[] { company.Phone },
+            Email = string.IsNullOrWhiteSpace(company.Email) ? null : company.Email,
             IssuedAt = sale.CreatedAt
         };
     }

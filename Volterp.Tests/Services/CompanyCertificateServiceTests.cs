@@ -24,6 +24,13 @@ public class CompanyCertificateServiceTests
     public CompanyCertificateServiceTests()
     {
         _unitOfWork.Setup(u => u.CompanyCertificates).Returns(_certificates.Object);
+
+        // The RNCs that can issue for the tenant: the certificate belongs to
+        // one of them.
+        var issuers = new Mock<ICompanyIssuerRepository>();
+        issuers.Setup(i => i.IssuerTaxIdsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([IssuerRnc]);
+        _unitOfWork.Setup(u => u.CompanyIssuers).Returns(issuers.Object);
         _unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
         _certificates.Setup(r => r.AddAsync(It.IsAny<CompanyCertificate>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);

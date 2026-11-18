@@ -21,7 +21,7 @@ public class SaleEcfDocumentMapperTests
         sale.AddItem(Guid.NewGuid(), "Café molido", 2, 100m, TaxCode.ItbisTasa1);
         sale.AddItem(Guid.NewGuid(), "Pan integral", 1, 50m, TaxCode.Exento);
 
-        var document = SaleEcfDocumentMapper.Map(sale, Company(), Issuance());
+        var document = SaleEcfDocumentMapper.Map(sale, Company(), Issuer(), Issuance());
 
         document.Items.Should().HaveCount(2);
         document.Items[0].LineNumber.Should().Be(1);
@@ -42,7 +42,7 @@ public class SaleEcfDocumentMapperTests
         sale.AddItem(Guid.NewGuid(), "Licuadora", 1, 500m, TaxCode.ItbisTasa2);
         sale.AddItem(Guid.NewGuid(), "Pan integral", 1, 100m, TaxCode.Exento);
 
-        var totals = SaleEcfDocumentMapper.Map(sale, Company(), Issuance()).Totals;
+        var totals = SaleEcfDocumentMapper.Map(sale, Company(), Issuer(), Issuance()).Totals;
 
         totals.TaxableTotal.Should().Be(1500m);
         totals.TaxableAtRate1.Should().Be(1000m);
@@ -59,7 +59,7 @@ public class SaleEcfDocumentMapperTests
     [Fact]
     public void Map_UsesTheCompanyAsTheIssuer()
     {
-        var document = SaleEcfDocumentMapper.Map(SaleWithOneLine(), Company(), Issuance());
+        var document = SaleEcfDocumentMapper.Map(SaleWithOneLine(), Company(), Issuer(), Issuance());
 
         document.Issuer.TaxId.Should().Be("10100000101");
         document.Issuer.BusinessName.Should().Be("Distribuidora del Norte SRL");
@@ -73,7 +73,7 @@ public class SaleEcfDocumentMapperTests
         sale.ReceptorTaxId = "101010101";
         sale.ClienteName = "Cliente de Prueba SRL";
 
-        var document = SaleEcfDocumentMapper.Map(sale, Company(), Issuance());
+        var document = SaleEcfDocumentMapper.Map(sale, Company(), Issuer(), Issuance());
 
         document.Buyer.Should().NotBeNull();
         document.Buyer!.TaxId.Should().Be("101010101");
@@ -85,7 +85,7 @@ public class SaleEcfDocumentMapperTests
     {
         var issuance = Issuance(new DateTime(2026, 12, 31));
 
-        var document = SaleEcfDocumentMapper.Map(SaleWithOneLine(), Company(), issuance);
+        var document = SaleEcfDocumentMapper.Map(SaleWithOneLine(), Company(), Issuer(), issuance);
 
         document.Identity.ENCF.Should().Be("B310000000000");
         document.Identity.SequenceExpiresAt.Should().Be(new DateTime(2026, 12, 31));
@@ -103,7 +103,7 @@ public class SaleEcfDocumentMapperTests
         sale.ClienteName = "Cliente de Prueba SRL";
         sale.AddItem(Guid.NewGuid(), "Café molido", 1, 1000m, TaxCode.ItbisTasa1);
 
-        var document = SaleEcfDocumentMapper.Map(sale, Company(), Issuance(new DateTime(2026, 12, 31)));
+        var document = SaleEcfDocumentMapper.Map(sale, Company(), Issuer(), Issuance(new DateTime(2026, 12, 31)));
 
         var violations = EcfSchemas.For(EcfDocumentType.FiscalCredit).ValidateUnsigned(_writer.Write(document));
 
@@ -116,7 +116,7 @@ public class SaleEcfDocumentMapperTests
         var sale = Sale();
         sale.AddItem(Guid.NewGuid(), "Café molido", 1, 1000m, TaxCode.ItbisTasa1);
 
-        var document = SaleEcfDocumentMapper.Map(sale, Company(), Issuance());
+        var document = SaleEcfDocumentMapper.Map(sale, Company(), Issuer(), Issuance());
 
         var violations = EcfSchemas.For(EcfDocumentType.Consumer).ValidateUnsigned(_writer.Write(document));
 
@@ -130,7 +130,7 @@ public class SaleEcfDocumentMapperTests
         sale.AddItem(Guid.NewGuid(), "Café molido", 1, 1000m, TaxCode.ItbisTasa1);
         sale.AddItem(Guid.NewGuid(), "Licuadora", 1, 500m, TaxCode.ItbisTasa2);
 
-        var xml = _writer.Write(SaleEcfDocumentMapper.Map(sale, Company(), Issuance()));
+        var xml = _writer.Write(SaleEcfDocumentMapper.Map(sale, Company(), Issuer(), Issuance()));
 
         xml.Should().Contain("<MontoItem>1000.00</MontoItem>");
         xml.Should().Contain("<MontoItem>500.00</MontoItem>");
@@ -149,7 +149,7 @@ public class SaleEcfDocumentMapperTests
         sale.ReceptorTaxId = "101010101";
         sale.AddItem(Guid.NewGuid(), "Café molido", 1, 1000m, TaxCode.ItbisTasa1);
 
-        var act = () => SaleEcfDocumentMapper.Map(sale, Company(), Issuance());
+        var act = () => SaleEcfDocumentMapper.Map(sale, Company(), Issuer(), Issuance());
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*sequence*");
     }
@@ -161,7 +161,7 @@ public class SaleEcfDocumentMapperTests
         sale.DocumentType = EcfDocumentType.FiscalCredit;
         sale.AddItem(Guid.NewGuid(), "Café molido", 1, 1000m, TaxCode.ItbisTasa1);
 
-        var act = () => SaleEcfDocumentMapper.Map(sale, Company(), Issuance(new DateTime(2026, 12, 31)));
+        var act = () => SaleEcfDocumentMapper.Map(sale, Company(), Issuer(), Issuance(new DateTime(2026, 12, 31)));
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*tax id*");
     }
@@ -169,7 +169,7 @@ public class SaleEcfDocumentMapperTests
     [Fact]
     public void Map_ThrowsWhenTheSaleHasNoLines()
     {
-        var act = () => SaleEcfDocumentMapper.Map(Sale(), Company(), Issuance());
+        var act = () => SaleEcfDocumentMapper.Map(Sale(), Company(), Issuer(), Issuance());
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*line*");
     }
@@ -180,7 +180,7 @@ public class SaleEcfDocumentMapperTests
         var otherCompany = Company();
         otherCompany.Id = Guid.NewGuid();
 
-        var act = () => SaleEcfDocumentMapper.Map(SaleWithOneLine(), otherCompany, Issuance());
+        var act = () => SaleEcfDocumentMapper.Map(SaleWithOneLine(), otherCompany, Issuer(), Issuance());
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*company*");
     }
@@ -209,6 +209,10 @@ public class SaleEcfDocumentMapperTests
         Phone = "809-555-1234",
         Email = "facturacion@distribuidora.do"
     };
+
+    // The RNC and the legal name of the issuer: the company itself when
+    // the sale does not name a branch.
+    private static IssuerIdentity Issuer() => new("10100000101", "Distribuidora del Norte SRL");
 
     private static EcfIssuance Issuance(DateTime? sequenceExpiresAt = null) => new()
     {

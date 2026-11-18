@@ -193,19 +193,14 @@ public class ElectronicInvoiceReceptionService(IUnitOfWork unitOfWork) : IElectr
 
     private async Task<Company> ResolveCompanyAsync(string receiverTaxId, CancellationToken ct)
     {
-        var companies = await unitOfWork.Companies.GetAllAsync(
-            company => company.TaxId == receiverTaxId,
-            1,
-            2,
-            ct);
+        // The receiver RNC identifies the tenant that receives: its own RNC
+        // or the one of one of its branches.
+        var company = await unitOfWork.CompanyIssuers.CompanyOfIssuerAsync(receiverTaxId, ct);
 
-        if (companies.RowCount == 0)
+        if (company is null)
             throw new InvalidOperationException("The receiver RNC is unknown.");
 
-        if (companies.RowCount != 1 || companies.Items.Count != 1)
-            throw new InvalidOperationException("The receiver RNC is ambiguous.");
-
-        return companies.Items.Single();
+        return company;
     }
 
     private static bool ApplyDecision(

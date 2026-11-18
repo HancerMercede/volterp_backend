@@ -14,6 +14,7 @@ public record SaleDto:IMapFrom<Sale>
     public SaleStatus Status { get; set; }
     public EcfDocumentType DocumentType { get; set; }
     public string? ReceptorTaxId { get; set; }
+    public string? IssuerTaxId { get; set; }
     public decimal Subtotal { get; set; }
     public decimal Itbis { get; set; }
     public decimal Total { get; set; }
@@ -38,6 +39,7 @@ public record SaleDto:IMapFrom<Sale>
         Status = source.Status;
         DocumentType = source.DocumentType;
         ReceptorTaxId = source.ReceptorTaxId;
+        IssuerTaxId = source.IssuerTaxId;
         Subtotal = source.Subtotal;
         Itbis = source.Itbis;
         Total = source.Total;

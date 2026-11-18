@@ -34,6 +34,14 @@ public class NormalFiscalDocumentServiceTests
         _unitOfWork.Setup(u => u.NormalFiscalSequences).Returns(_sequences.Object);
         _unitOfWork.Setup(u => u.ElectronicInvoiceSequences).Returns(_electronicSequences.Object);
         _unitOfWork.Setup(u => u.Companies).Returns(_companies.Object);
+
+        // The paper document is issued by the RNC the sale names; without
+        // one, the company issues with its own.
+        var issuers = new Mock<ICompanyIssuerRepository>();
+        issuers.Setup(i => i.ResolveIssuerTaxIdAsync(
+                It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("10100000101");
+        _unitOfWork.Setup(u => u.CompanyIssuers).Returns(issuers.Object);
         _unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         _companies.Setup(c => c.GetCompanyByIdAsync(_companyId, It.IsAny<CancellationToken>()))

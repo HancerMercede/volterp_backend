@@ -198,6 +198,13 @@ public class ElectronicInvoiceSequenceServiceTests
         unitOfWork.Setup(u => u.Companies).Returns(companies.Object);
         unitOfWork.Setup(u => u.ElectronicInvoiceSequences).Returns(sequences.Object);
 
+        // The RNCs that can issue for the tenant: its own and the branches
+        // it registered.
+        var issuers = new Mock<ICompanyIssuerRepository>();
+        issuers.Setup(i => i.IssuerTaxIdsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([IssuerRnc]);
+        unitOfWork.Setup(u => u.CompanyIssuers).Returns(issuers.Object);
+
         return (new ElectronicInvoiceSequenceService(unitOfWork.Object), unitOfWork);
     }
 }

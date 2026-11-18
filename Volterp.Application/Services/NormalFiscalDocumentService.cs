@@ -52,8 +52,9 @@ public class NormalFiscalDocumentService(IUnitOfWork unitOfWork) : INormalFiscal
             throw new InvalidOperationException(
                 $"The document {(int)sale.DocumentType} requires the document it modifies.");
 
-        var issuer = await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct)
-            ?? throw new InvalidOperationException($"The company {companyId} does not exist.");
+        // The paper document is issued by the RNC the sale names: the RNC of
+        // the tenant itself when it does not name one.
+        var issuerTaxId = await unitOfWork.CompanyIssuers.ResolveIssuerTaxIdAsync(companyId, sale.IssuerTaxId, ct);
 
         // The number is taken inside the transaction of the unit of work, so
         // the document that carries it and the sale that completes land
@@ -65,7 +66,7 @@ public class NormalFiscalDocumentService(IUnitOfWork unitOfWork) : INormalFiscal
             // The number is taken from the range of the normal documents, a
             // range of its own: the electronic one is not touched.
             var sequence = await unitOfWork.NormalFiscalSequences
-                .NextSequenceAsync(companyId, issuer.TaxId, documentType, ct);
+                .NextSequenceAsync(companyId, issuerTaxId, documentType, ct);
 
             var document = new NormalFiscalDocument
             {
@@ -74,7 +75,7 @@ public class NormalFiscalDocumentService(IUnitOfWork unitOfWork) : INormalFiscal
                 SaleId = sale.Id,
                 Number = NormalFiscalDocument.BuildNumber(documentType, sequence),
                 DocumentType = documentType,
-                IssuerTaxId = issuer.TaxId,
+                IssuerTaxId = issuerTaxId,
                 ReceiverTaxId = sale.ReceptorTaxId,
                 ReceiverName = sale.ClienteName,
                 Subtotal = sale.Subtotal,

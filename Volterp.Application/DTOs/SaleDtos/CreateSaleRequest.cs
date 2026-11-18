@@ -12,7 +12,8 @@ public record CreateSaleRequest(
     string? Notes,
     List<CreateSaleItemRequest> Items,
     EcfDocumentType DocumentType = EcfDocumentType.Consumer,
-    string? Code = null
+    string? Code = null,
+    string? IssuerTaxId = null
 ) : IMapTo<Sale>
 {
     public Sale MapTo()
@@ -32,6 +33,7 @@ public record CreateSaleRequest(
             DocumentType = DocumentType,
             Notes = Notes,
             Code = Code ?? string.Empty,
+            IssuerTaxId = IssuerTaxId,
             Items = Items.Map(i => i.Project())
         };
     }

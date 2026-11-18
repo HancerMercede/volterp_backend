@@ -228,6 +228,7 @@ public class T46OpenRiskVerifierTests
         unitOfWork.Setup(u => u.Sales).Returns(new SaleRepository(context));
         unitOfWork.Setup(u => u.Companies).Returns(new CompanyRepository(context));
         unitOfWork.Setup(u => u.ElectronicInvoiceSequences).Returns(new ElectronicInvoiceSequenceRepository(context));
+        unitOfWork.Setup(u => u.CompanyIssuers).Returns(new CompanyIssuerRepository(context));
         unitOfWork.Setup(u => u.ElectronicInvoices).Returns(invoices.Object);
         unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
             .Returns((CancellationToken ct) => context.SaveChangesAsync(ct));

@@ -27,12 +27,14 @@ public class ElectronicInvoiceReceptionServiceTests
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<ICompanyRepository> _companies = new();
     private readonly Mock<IReceivedElectronicInvoiceRepository> _received = new();
+    private readonly Mock<ICompanyIssuerRepository> _issuers = new();
 
     public ElectronicInvoiceReceptionServiceTests()
     {
         _unitOfWork.SetupGet(u => u.Companies).Returns(_companies.Object);
         _unitOfWork.SetupGet(u => u.ReceivedElectronicInvoices).Returns(_received.Object);
         _unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _unitOfWork.Setup(u => u.CompanyIssuers).Returns(_issuers.Object);
 
         GivenCompany(ReceiverRnc, Guid7TestValues.CompanyA);
         _received
@@ -319,6 +321,24 @@ public class ElectronicInvoiceReceptionServiceTests
                 PageCount = rowCount == 0 ? 0 : 1,
                 Items = companies.ToList()
             });
+
+        // The tenant is resolved by the RNC of its issuer: the one of the
+        // company or the one of one of its branches.
+        if (rowCount == 0)
+        {
+            _issuers.Setup(i => i.CompanyOfIssuerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Company?)null);
+        }
+        else if (rowCount > 1)
+        {
+            _issuers.Setup(i => i.CompanyOfIssuerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException("The receiver RNC is ambiguous."));
+        }
+        else
+        {
+            _issuers.Setup(i => i.CompanyOfIssuerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(companies.Single());
+        }
     }
 
     private static Company Company(Guid id, string taxId)

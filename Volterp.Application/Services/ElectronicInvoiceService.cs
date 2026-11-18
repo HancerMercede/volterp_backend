@@ -488,6 +488,13 @@ public class ElectronicInvoiceService(
         if (issuer is null)
             throw new InvalidOperationException($"The company {companyId} does not exist.");
 
+        // The document keeps the issuer it was created with: the retry signs
+        // it with the same RNC the document carries.
+        if (string.IsNullOrWhiteSpace(invoice.IssuerTaxId))
+            throw new InvalidOperationException("The document does not carry the RNC of its issuer.");
+
+        var issuerIdentity = await IssuerIdentityAsync(issuer, invoice.IssuerTaxId, ct);
+
         var signedAt = DateTime.UtcNow;
 
         try
@@ -501,6 +508,7 @@ public class ElectronicInvoiceService(
                 invoice,
                 sale,
                 issuer,
+                issuerIdentity,
                 replacement,
                 companyId,
                 signedAt,
@@ -567,13 +575,18 @@ public class ElectronicInvoiceService(
         if (issuer is null)
             throw new InvalidOperationException($"The company {companyId} does not exist.");
 
+        // The sale is issued by the RNC it names: the RNC of the tenant
+        // itself when it does not name one.
+        var issuerTaxId = await unitOfWork.CompanyIssuers.ResolveIssuerTaxIdAsync(companyId, sale.IssuerTaxId, ct);
+        var issuerIdentity = await IssuerIdentityAsync(issuer, issuerTaxId, ct);
+
         // The taxpayer in contingency issues on paper and owes the DGII the
         // replacement of every paper document: it is created next to it and
         // it waits for the contingency to be lifted.
         var replacement = await TheReplacementOfThePaperDocumentAsync(sale, issuer, companyId, now, ct);
 
         var documentType = sale.DocumentType;
-        var sequence = await unitOfWork.ElectronicInvoiceSequences.NextSequenceAsync(companyId, documentType, ct);
+        var sequence = await unitOfWork.ElectronicInvoiceSequences.NextSequenceAsync(companyId, issuerTaxId, documentType, ct);
         var encf = ElectronicInvoiceSequence.BuildEncf(documentType, sequence);
         var signedAt = DateTime.UtcNow;
 
@@ -584,7 +597,7 @@ public class ElectronicInvoiceService(
             SaleId = saleId,
             ENCF = encf,
             DocumentType = documentType,
-            IssuerTaxId = issuer.TaxId,
+            IssuerTaxId = issuerTaxId,
             ReceiverTaxId = sale.ReceptorTaxId,
             ReplacesContingencyDocument = replacement is not null,
             SendNotBefore = replacement is null ? null : issuer.ContingencyEndsAt
@@ -596,6 +609,7 @@ public class ElectronicInvoiceService(
                 invoice,
                 sale,
                 issuer,
+                issuerIdentity,
                 replacement,
                 companyId,
                 signedAt,
@@ -637,10 +651,24 @@ public class ElectronicInvoiceService(
         return invoice;
     }
 
+    // The identity of the issuer: its RNC and the legal name the DGII
+    // reads. A branch of the tenant issues with its own name.
+    private async Task<IssuerIdentity> IssuerIdentityAsync(Company company, string issuerTaxId, CancellationToken ct)
+    {
+        if (issuerTaxId == company.TaxId)
+            return new IssuerIdentity(issuerTaxId, company.LegalName);
+
+        var issuer = await unitOfWork.CompanyIssuers.GetByCondictionsAsync(
+            candidate => candidate.CompanyId == company.Id && candidate.TaxId == issuerTaxId, ct);
+
+        return new IssuerIdentity(issuerTaxId, issuer?.LegalName ?? company.LegalName);
+    }
+
     private async Task<SignedDocument> BuildAndSignTheDocumentAsync(
         ElectronicInvoice invoice,
         Sale sale,
         Company issuer,
+        IssuerIdentity issuerIdentity,
         EcfReplacement? replacement,
         Guid companyId,
         DateTime signedAt,
@@ -652,14 +680,14 @@ public class ElectronicInvoiceService(
         // carries the day the authorized sequence expires.
         var range = await unitOfWork.ElectronicInvoiceSequences.GetByCondictionsAsync(
             r => r.CompanyId == companyId
-                && r.IssuerTaxId == issuer.TaxId
+                && r.IssuerTaxId == issuerIdentity.TaxId
                 && r.DocumentType == invoice.DocumentType
                 && r.From <= sequence && sequence <= r.To,
             ct);
 
         // Fail-closed: the types that need the expiry of the authorized
         // sequence fail here until that date is on record.
-        var document = SaleEcfDocumentMapper.Map(sale, issuer, new EcfIssuance
+        var document = SaleEcfDocumentMapper.Map(sale, issuer, issuerIdentity, new EcfIssuance
         {
             ENCF = invoice.ENCF,
             SequenceExpiresAt = range?.ExpiresAt,
@@ -680,7 +708,7 @@ public class ElectronicInvoiceService(
 
         // The certificate belongs to the issuer and there is no fallback,
         // so the signature fails closed without it.
-        var certificate = await certificateProvider.GetSigningCertificateAsync(issuer.TaxId, ct);
+        var certificate = await certificateProvider.GetSigningCertificateAsync(issuerIdentity.TaxId, ct);
         var signedXml = signer.Sign(xml, certificate);
 
         // The security code the taxpayer prints next to the QR: it comes

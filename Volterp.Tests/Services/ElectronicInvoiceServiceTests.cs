@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Net;
@@ -47,6 +48,7 @@ public class ElectronicInvoiceServiceTests
     private readonly Mock<INormalFiscalDocumentRepository> _normalFiscalDocuments = new();
     private readonly Mock<IEcfSigner> _signer = new();
     private readonly Mock<ISigningCertificateProvider> _certificates = new();
+    private readonly Mock<ICompanyIssuerRepository> _issuers = new();
     private readonly DgiiStub _dgii = new();
     private readonly List<string> _signedXmls = [];
     private readonly List<X509Certificate2> _signedWith = [];
@@ -60,6 +62,13 @@ public class ElectronicInvoiceServiceTests
         _unitOfWork.Setup(u => u.ElectronicInvoices).Returns(_invoices.Object);
         _unitOfWork.Setup(u => u.ElectronicInvoiceSequences).Returns(_sequences.Object);
         _unitOfWork.Setup(u => u.NormalFiscalDocuments).Returns(_normalFiscalDocuments.Object);
+        _unitOfWork.Setup(u => u.CompanyIssuers).Returns(_issuers.Object);
+
+        // The sale names the RNC that issues it; without one, the company
+        // issues with its own.
+        _issuers.Setup(i => i.ResolveIssuerTaxIdAsync(
+                It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(IssuerRnc);
         _unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         _signer.Setup(s => s.Sign(It.IsAny<string>(), It.IsAny<X509Certificate2>()))
@@ -100,7 +109,7 @@ public class ElectronicInvoiceServiceTests
 
         // The number comes from the sequence of the issuer, and it is the only
         // one that is taken.
-        _sequences.Verify(s => s.NextSequenceAsync(CompanyId, EcfDocumentType.Consumer, It.IsAny<CancellationToken>()), Times.Once);
+        _sequences.Verify(s => s.NextSequenceAsync(CompanyId, IssuerRnc, EcfDocumentType.Consumer, It.IsAny<CancellationToken>()), Times.Once);
 
         // The document that was signed carries the number the DGII will read.
         _signedXmls.Should().Contain(xml => xml.Contains("<eNCF>E320000000001</eNCF>"));
@@ -137,7 +146,7 @@ public class ElectronicInvoiceServiceTests
         dto.ENCF.Should().Be("E320000000009");
 
         // No second e-NCF is taken and nothing goes to the DGII twice.
-        _sequences.Verify(s => s.NextSequenceAsync(It.IsAny<Guid>(), It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sequences.Verify(s => s.NextSequenceAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>()), Times.Never);
         _dgii.SendRequests.Should().Be(0);
         _persisted.Should().BeNull();
     }
@@ -165,7 +174,7 @@ public class ElectronicInvoiceServiceTests
         var error = ((Either<Error, ElectronicInvoiceDto>.Left)result).Value;
         error.Message.Should().Contain("pending signature");
 
-        _sequences.Verify(s => s.NextSequenceAsync(It.IsAny<Guid>(), It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sequences.Verify(s => s.NextSequenceAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>()), Times.Never);
         _dgii.SendRequests.Should().Be(0);
     }
 
@@ -182,9 +191,48 @@ public class ElectronicInvoiceServiceTests
 
         // The sale of another company is not issued by this company: no
         // number is taken and nothing reaches the DGII.
-        _sequences.Verify(s => s.NextSequenceAsync(It.IsAny<Guid>(), It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>()), Times.Never);
+        _sequences.Verify(s => s.NextSequenceAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>()), Times.Never);
         _dgii.SendRequests.Should().Be(0);
         _persisted.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task IssueAsync_WithASaleThatNamesABranch_IssuesTheDocumentWithTheRncOfTheBranch()
+    {
+        const string branchRnc = "101500026";
+
+        var sale = Sale();
+        sale.IssuerTaxId = branchRnc;
+
+        Given(sale, Company());
+
+        _issuers.Setup(i => i.ResolveIssuerTaxIdAsync(CompanyId, branchRnc, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(branchRnc);
+
+        _issuers.Setup(i => i.GetByCondictionsAsync(
+                It.IsAny<Expression<Func<CompanyIssuer, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CompanyIssuer
+            {
+                CompanyId = CompanyId,
+                TaxId = branchRnc,
+                LegalName = "Sucursal Norte"
+            });
+
+        var result = await Service().IssueAsync(SaleId, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+
+        // The document is issued by the RNC the sale names: it carries that
+        // RNC, it is signed with the certificate of that RNC and it takes
+        // the number of the range of that RNC.
+        _persisted.Should().NotBeNull();
+        _persisted!.IssuerTaxId.Should().Be(branchRnc);
+        _certificates.Verify(
+            c => c.GetSigningCertificateAsync(branchRnc, It.IsAny<CancellationToken>()), Times.Once);
+        _sequences.Verify(
+            s => s.NextSequenceAsync(CompanyId, branchRnc, EcfDocumentType.Consumer, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _signedXmls.Should().Contain(xml => xml.Contains(branchRnc));
     }
 
     [Fact]
@@ -304,7 +352,7 @@ public class ElectronicInvoiceServiceTests
 
         _sequences.Verify(s => s.NextSequenceAsync(
             It.IsAny<Guid>(),
-            It.IsAny<EcfDocumentType>(),
+            It.IsAny<string>(), It.IsAny<EcfDocumentType>(),
             It.IsAny<CancellationToken>()), Times.Never);
         _dgii.SendRequests.Should().Be(0);
 
@@ -609,7 +657,7 @@ public class ElectronicInvoiceServiceTests
         _sales.Setup(r => r.GetSaleByIdAsync(sale.Id, It.IsAny<CancellationToken>())).ReturnsAsync(sale);
         _companies.Setup(r => r.GetCompanyByIdAsync(company.Id, It.IsAny<CancellationToken>())).ReturnsAsync(company);
         _invoices.Setup(r => r.GetBySaleIdAsync(sale.Id, It.IsAny<CancellationToken>())).ReturnsAsync((ElectronicInvoice?)null);
-        _sequences.Setup(s => s.NextSequenceAsync(company.Id, It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _sequences.Setup(s => s.NextSequenceAsync(company.Id, It.IsAny<string>(), It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
     }
 
     private ElectronicInvoice GivenRetryDocument(

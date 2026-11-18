@@ -38,6 +38,7 @@ public class SaleElectronicInvoiceTests
     private readonly Mock<IElectronicInvoiceSequenceRepository> _sequences = new();
     private readonly Mock<IEcfSigner> _signer = new();
     private readonly Mock<ISigningCertificateProvider> _certificates = new();
+    private readonly Mock<ICompanyIssuerRepository> _issuers = new();
     private readonly Mock<INormalFiscalDocumentService> _normalDocuments = new();
     private readonly DgiiStub _dgii = new();
 
@@ -51,6 +52,13 @@ public class SaleElectronicInvoiceTests
         _unitOfWork.Setup(u => u.Companies).Returns(_companies.Object);
         _unitOfWork.Setup(u => u.ElectronicInvoices).Returns(_invoices.Object);
         _unitOfWork.Setup(u => u.ElectronicInvoiceSequences).Returns(_sequences.Object);
+        _unitOfWork.Setup(u => u.CompanyIssuers).Returns(_issuers.Object);
+
+        // The sale names the RNC that issues it; without one, the company
+        // issues with its own.
+        _issuers.Setup(i => i.ResolveIssuerTaxIdAsync(
+                It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(IssuerRnc);
         _unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         _signer.Setup(s => s.Sign(It.IsAny<string>(), It.IsAny<X509Certificate2>())).Returns(SignedXml);
@@ -218,7 +226,7 @@ public class SaleElectronicInvoiceTests
             .ReturnsAsync([]);
         _companies.Setup(r => r.GetCompanyByIdAsync(CompanyId, It.IsAny<CancellationToken>())).ReturnsAsync(Company());
         _invoices.Setup(r => r.GetBySaleIdAsync(SaleId, It.IsAny<CancellationToken>())).ReturnsAsync((ElectronicInvoice?)null);
-        _sequences.Setup(r => r.NextSequenceAsync(CompanyId, It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
+        _sequences.Setup(r => r.NextSequenceAsync(CompanyId, It.IsAny<string>(), It.IsAny<EcfDocumentType>(), It.IsAny<CancellationToken>())).ReturnsAsync(1);
     }
 
     private SaleService Service()

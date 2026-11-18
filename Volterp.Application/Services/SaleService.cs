@@ -59,6 +59,10 @@ public class SaleService(
                 // must not leave the inventory half-updated.
                 sale.Code = await ResolveCodeForCreateAsync(req.Code, companyId, ct);
 
+                // The sale is issued by the RNC it names: it has to be one of
+                // the issuers of the tenant.
+                sale.IssuerTaxId = await ResolveIssuerTaxIdAsync(req.IssuerTaxId, companyId, ct);
+
                 // Batch query: single SELECT for all products (avoids N+1)
                 var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
                 var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
@@ -111,6 +115,13 @@ public class SaleService(
                 // must not leave the inventory half-updated.
                 var code = await ResolveCodeForUpdateAsync(request.Code, sale.Code, companyId, sale.Id, ct);
 
+                // The sale is issued by the RNC it names: it has to be one of
+                // the issuers of the tenant. An empty one keeps the issuer
+                // the sale already had.
+                var issuerTaxId = string.IsNullOrWhiteSpace(request.IssuerTaxId)
+                    ? sale.IssuerTaxId
+                    : await ResolveIssuerTaxIdAsync(request.IssuerTaxId, companyId, ct);
+
                 // Collect all product IDs (old items + new items)
                 var allProductIds = sale.Items.Select(i => i.ProductId)
                     .Concat(request.Items.Select(i => i.ProductId))
@@ -160,6 +171,7 @@ public class SaleService(
                     s.DocumentType = request.DocumentType;
                     s.Notes = request.Notes;
                     s.Code = code;
+                    s.IssuerTaxId = issuerTaxId;
                     s.UpdatedAt = DateTime.UtcNow;
                     if (userId.HasValue) s.SetUpdatedBy(userId.Value);
                     s.Items = newItems;
@@ -328,6 +340,17 @@ public class SaleService(
                 return new Unit();
             }, ex => new Error(ex.Message))
             .Run();
+    }
+
+    // The RNC that issues the sale. It has to be one of the issuers of the
+    // tenant: its own RNC or the one of one of its branches. Empty means the
+    // tenant itself.
+    private async Task<string?> ResolveIssuerTaxIdAsync(string? requestedTaxId, Guid companyId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(requestedTaxId))
+            return null;
+
+        return await unitOfWork.CompanyIssuers.ResolveIssuerTaxIdAsync(companyId, requestedTaxId, ct);
     }
 
     private async Task ResolveReceptorTaxIdAsync(Sale sale, CancellationToken ct)

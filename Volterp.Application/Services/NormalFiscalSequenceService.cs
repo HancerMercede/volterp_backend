@@ -37,7 +37,8 @@ public class NormalFiscalSequenceService(IUnitOfWork unitOfWork) : INormalFiscal
     public async Task<Either<Error, NormalFiscalSequenceDto>> CreateAsync(
         SaveNormalFiscalSequenceDto request, Guid companyId, CancellationToken ct = default)
     {
-        var issuer = await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct);
+        var company = await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct);
+        var issuers = await unitOfWork.CompanyIssuers.IssuerTaxIdsAsync(companyId, ct);
         var existing = await FindAsync(request, companyId, ct);
 
         return await EitherAsync<Error, SaveNormalFiscalSequenceDto>
@@ -53,8 +54,8 @@ public class NormalFiscalSequenceService(IUnitOfWork unitOfWork) : INormalFiscal
                 new Error("This type of comprobante needs the expiry date of its authorized sequence."))
             .Ensure(r => r.RequiresExpiry || r.ExpiresAt is null,
                 new Error("This type of comprobante does not take an expiry date."))
-            .Ensure(r => issuer is not null && r.IssuerTaxId == issuer.TaxId,
-                new Error("The issuer RNC is not the one of this company."))
+            .Ensure(r => company is not null && issuers.Contains(r.IssuerTaxId),
+                new Error("The issuer RNC is not one of the issuers of this company."))
             .Map(r => r.MapTo())
             .Map(range =>
             {
@@ -74,7 +75,8 @@ public class NormalFiscalSequenceService(IUnitOfWork unitOfWork) : INormalFiscal
     public async Task<Either<Error, NormalFiscalSequenceDto>> UpdateAsync(
         Guid id, SaveNormalFiscalSequenceDto request, Guid companyId, CancellationToken ct = default)
     {
-        var issuer = await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct);
+        var company = await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct);
+        var issuers = await unitOfWork.CompanyIssuers.IssuerTaxIdsAsync(companyId, ct);
         var existing = await unitOfWork.NormalFiscalSequences.GetByIdAsync(id, ct);
 
         return await EitherAsync<Error, SaveNormalFiscalSequenceDto>
@@ -96,8 +98,8 @@ public class NormalFiscalSequenceService(IUnitOfWork unitOfWork) : INormalFiscal
                 new Error("This type of comprobante needs the expiry date of its authorized sequence."))
             .Ensure(r => r.RequiresExpiry || r.ExpiresAt is null,
                 new Error("This type of comprobante does not take an expiry date."))
-            .Ensure(r => issuer is not null && r.IssuerTaxId == issuer.TaxId,
-                new Error("The issuer RNC is not the one of this company."))
+            .Ensure(r => company is not null && issuers.Contains(r.IssuerTaxId),
+                new Error("The issuer RNC is not one of the issuers of this company."))
             .Map(r =>
             {
                 var range = existing!;

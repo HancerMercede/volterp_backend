@@ -33,6 +33,12 @@ public class CompanyCertificateService(IUnitOfWork unitOfWork, ICredentialProtec
     {
         var credential = request.Credential;
 
+        // The certificate belongs to an issuer of the tenant: its own RNC or
+        // the one of one of its branches.
+        var parsed = Rnc.TryParse(request.TaxId, out var rnc);
+        var taxId = parsed ? rnc.Value : string.Empty;
+        var issuers = await unitOfWork.CompanyIssuers.IssuerTaxIdsAsync(companyId, ct);
+
         // The credential stays opaque here on purpose: it is the encrypted
         // value of the issuer, and what it carries is decided by the host that
         // signs with it, not by the API that stores it.
@@ -40,7 +46,9 @@ public class CompanyCertificateService(IUnitOfWork unitOfWork, ICredentialProtec
             .FromRight(request)
             .Ensure(r => !string.IsNullOrWhiteSpace(r.Name), new Error("The name is required."))
             .Ensure(r => !string.IsNullOrWhiteSpace(r.Credential), new Error("The credential is required."))
-            .Ensure(r => Rnc.TryParse(r.TaxId, out _), new Error("The tax id must be a valid RNC or citizen ID."))
+            .Ensure(r => parsed, new Error("The tax id must be a valid RNC or citizen ID."))
+            .Ensure(r => issuers.Contains(taxId),
+                new Error("The tax id is not one of the issuers of this company."))
             .Ensure(r => r.ExpiresAt > DateTime.UtcNow, new Error("The expiration date must be in the future."))
             .Map(r => r.Project())
             .Map(certificate =>

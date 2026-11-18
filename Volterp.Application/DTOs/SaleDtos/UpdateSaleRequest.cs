@@ -11,5 +11,6 @@ public record UpdateSaleRequest(
     string? Notes,
     List<CreateSaleItemRequest> Items,
     EcfDocumentType DocumentType = EcfDocumentType.Consumer,
-    string? Code = null
+    string? Code = null,
+    string? IssuerTaxId = null
 );
