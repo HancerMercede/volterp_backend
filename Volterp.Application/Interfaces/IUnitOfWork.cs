@@ -14,6 +14,7 @@ public interface IUnitOfWork
     IClientRepository Clients { get; }
     IElectronicInvoiceSequenceRepository ElectronicInvoiceSequences { get; }
     ICompanyCertificateRepository CompanyCertificates { get; }
+    ICompanyIssuerRepository CompanyIssuers { get; }
     IElectronicInvoiceRepository ElectronicInvoices { get; }
     IReceivedElectronicInvoiceRepository ReceivedElectronicInvoices { get; }
     INormalFiscalDocumentRepository NormalFiscalDocuments { get; }

@@ -36,6 +36,9 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
 
     private ICompanyCertificateService? _companyCertificates;
     public ICompanyCertificateService CompanyCertificates => _companyCertificates ??= new CompanyCertificateService(unitOfWork, credentialProtector);
+    
+    private ICompanyIssuerService? _companyIssuers;
+    public ICompanyIssuerService CompanyIssuers => _companyIssuers ??= new CompanyIssuerService(unitOfWork);
 
     private IElectronicInvoiceSequenceService? _electronicInvoiceSequences;
     public IElectronicInvoiceSequenceService ElectronicInvoiceSequences => _electronicInvoiceSequences ??= new ElectronicInvoiceSequenceService(unitOfWork);

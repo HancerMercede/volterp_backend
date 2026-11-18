@@ -115,6 +115,7 @@ All endpoints are prefixed with `/api`. Protected endpoints require a JWT Bearer
 | **Purchases** | CRUD `/api/purchases` |
 | **Companies** | CRUD `/api/companies` |
 | **Company Certificates** | `GET /api/CompanyCertificates`, `POST /api/CompanyCertificates` (admin) |
+| **Company Issuers** | `GET`/`POST`/`PUT /api/CompanyIssuers` (the issuer RNCs of the tenant: the branches that issue on its behalf) |
 | **Electronic Invoices** | `GET /api/ElectronicInvoices/state` (estado fiscal del tenant), `GET /api/ElectronicInvoices/{id}/qr.svg`, `GET /api/ElectronicInvoices/{id}/qr.png`, `POST /api/ElectronicInvoices/{id}/retry` (reintenta la firma de un comprobante que quedó para revisión) |
 | **Electronic Invoice Print** | `GET /api/ElectronicInvoicePrint/{id}` (printable HTML representation; accepted e-CF only) |
 | **API Credentials** | `GET`/`POST /api/ApiCredentials`, `DELETE /api/ApiCredentials/{id}` (the machine credential of a client that rents the API) |
@@ -230,6 +231,17 @@ La empresa declara **cómo factura** (`GET`/`PUT /api/CompanyEmissionMode`): **e
 - **La factura comercial**: en el camino normal, el que completa la venta puede pedir que esa venta salga como **factura comercial** (`PUT /api/sales/{id}/complete` con el cuerpo opcional `{"asCommercialInvoice": true}`): sin NCF, sin documento fiscal, sin tocar ningún rango y sin nada hacia la DGII. Sin ese cuerpo, la venta sale con el comprobante fiscal normal. En el camino electrónico no aplica y falla cerrado.
 - **La contingencia**: `PUT /api/CompanyEmissionMode/contingency` declara la **suspensión temporal** del camino electrónico (`Total` o `Partial`, con entrada y salida, y dentro de los **quince días** que permite la norma). Mientras la ventana está abierta, la venta sale en papel; fuera de ella, el camino electrónico vuelve. No es un modo: no reemplaza la declaración de cómo factura la empresa.
 - **El e-CF que reemplaza al comprobante de papel**: el comprobante normal emitido durante la contingencia se reemplaza por un e-CF del **mismo tipo**, que se crea junto al papel y lleva su referencia en `InformacionReferencia` (`NCFModificado` = el número del papel, `FechaNCFModificado` = su fecha en formato día-mes-año y `CodigoModificacion` = **4**, el de reemplazo por contingencia). Ese e-CF sale **solo hacia la DGII** —nunca al receptor, que conserva el comprobante en papel— y **desde el levantamiento de la contingencia**: mientras la ventana está abierta espera en la cola, y no le aplican el plazo de 72 horas ni el corte de 15 días de la contingencia de la DGII. Si la contingencia sigue abierta después de los quince días que permite la norma, el reemplazo queda **para revisión** y lo toma una persona.
+
+### Los emisores del tenant (multi-RNC)
+
+Un tenant puede tener **varios RNC emisores**: el de la empresa y el de sus sucursales. El certificado pertenece al **RNC emisor** y no al tenant, y la venta nombra el RNC que la emite.
+
+- El registro de emisores vive en `/api/CompanyIssuers` (`GET`, `GET {id}`, `POST` y `PUT {id}`; el alta y la modificación son de administrador). El RNC de la empresa **no** se registra: es su propia identidad, y el registro lo rechaza. Un RNC ya registrado, uno inválido o uno sin razón social también.
+- La venta lleva el `issuerTaxId` opcional (`POST`/`PUT /api/sales`): vacío significa que emite la empresa; con valor, tiene que ser **uno de los emisores del tenant** (falla cerrado).
+- El e-CF y el comprobante normal salen con **el RNC de la venta**: el número se toma del rango de ese RNC, se firma con **su** certificado y el bloque del emisor del XML lleva **su** RNC y **su** razón social.
+- El certificado se carga con el RNC de un emisor del tenant (`/api/CompanyCertificates`), y el rango también (`/api/ElectronicInvoiceSequences` y `/api/NormalFiscalSequences`).
+- La recepción de un e-CF de un tercero atribuye el documento al tenant cuyo RNC —el propio o el de una sucursal— aparece como receptor. Si dos tenants registran el mismo RNC, la atribución **falla cerrado** por ambigua.
+- Una sucursal desactivada **no emite**: su RNC deja de ser un emisor válido y la venta que lo nombra falla cerrada. El RNC de un emisor no se cambia: el certificado y los rangos autorizados están atados a él.
 
 ### El QR de la representación impresa
 

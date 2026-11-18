@@ -30,6 +30,7 @@ public class Company : AuditEntity
     public ICollection<ElectronicInvoiceSequence> ElectronicInvoiceSequences { get; set; } = new List<ElectronicInvoiceSequence>();
     public ICollection<CodeSequence> CodeSequences { get; set; } = new List<CodeSequence>();
     public ICollection<CompanyCertificate> Certificates { get; set; } = new List<CompanyCertificate>();
+    public ICollection<CompanyIssuer> Issuers { get; set; } = new List<CompanyIssuer>();
     public ICollection<ElectronicInvoice> ElectronicInvoices { get; set; } = new List<ElectronicInvoice>();
 
     public void Activate() => IsActive = true;

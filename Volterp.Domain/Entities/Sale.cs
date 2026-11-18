@@ -27,6 +27,10 @@ public class Sale : AuditEntity, ITenantScoped
     public EcfDocumentType DocumentType { get; set; } = EcfDocumentType.Consumer;
     public string? ReceptorTaxId { get; set; }
 
+    // The RNC that issues this sale. Empty means the RNC of the tenant
+    // itself; a branch of the tenant issues with its own RNC.
+    public string? IssuerTaxId { get; set; }
+
     // The document a credit or debit note modifies: a note never edits the
     // document it corrects, it points at it.
     public string? ModifiedENCF { get; set; }

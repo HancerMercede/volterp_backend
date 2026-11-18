@@ -439,6 +439,50 @@ namespace Volterp.Infrastructure.Migrations
                     b.ToTable("CompanyCertificates");
                 });
 
+            modelBuilder.Entity("Volterp.Domain.Entities.CompanyIssuer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LegalName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TaxId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("CompanyId", "TaxId")
+                        .IsUnique();
+
+                    b.ToTable("CompanyIssuers");
+                });
+
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1210,6 +1254,9 @@ namespace Volterp.Infrastructure.Migrations
                     b.Property<int>("DocumentType")
                         .HasColumnType("integer");
 
+                    b.Property<string>("IssuerTaxId")
+                        .HasColumnType("text");
+
                     b.Property<decimal>("Itbis")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -1521,6 +1568,17 @@ namespace Volterp.Infrastructure.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Volterp.Domain.Entities.CompanyIssuer", b =>
+                {
+                    b.HasOne("Volterp.Domain.Entities.Company", "Company")
+                        .WithMany("Issuers")
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
             modelBuilder.Entity("Volterp.Domain.Entities.ElectronicInvoice", b =>
                 {
                     b.HasOne("Volterp.Domain.Entities.Company", "Company")
@@ -1710,6 +1768,8 @@ namespace Volterp.Infrastructure.Migrations
                     b.Navigation("ElectronicInvoices");
 
                     b.Navigation("Employees");
+
+                    b.Navigation("Issuers");
 
                     b.Navigation("Products");
 
