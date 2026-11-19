@@ -32,6 +32,9 @@ Release/
 # La carpeta local del certificado y su password: nada de eso entra al repo
 certificado/
 
+# El log de la corrida del circuito contra la DGII: es de la corrida, no del repo
+t48-certificado.log
+
 # La carpeta Microsoft/ del SDK no es de este repo: se ignora para que no pese
 # en cada barrido del árbol sin trackear
 Microsoft/
