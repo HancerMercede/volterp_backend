@@ -1349,6 +1349,12 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Una corrección que saves el circuito** ✓: la **primera pata (semilla → token) no usa el RNC** ✓ (`DgiiAuthenticator` lo usa como **clave de caché** ✓ → no viaja en la petición ✓) → si esa pata falla, el problema es el **certificado** ✓ y no el número ✓.
   - **Lo que falta** ✓: la llamada la corre el **owner** ✓ (el harness no deja leer el `.p12` ✓) · y el mirror de Engram no se pudo refrescar en esta sesión porque **Engram estaba caído** ✓ (el dato queda acá ✓ y se refresca cuando levante ✓).
 
+- **L134** (2026-11-19) — **T48: la primera llamada real a la DGII de prueba** ✓ (el circuito ya no está bloqueado ✓).
+  - **Lo que pasó** ✓: el E2E corrió contra `https://ecf.dgii.gov.do/testecf` con el **certificado del cliente** ✓ → la **semilla** volvió como `<SemillaModel>` ✓ (la DGII real ✓) → la **firma se aceptó** ✓ → **hubo token** ✓ (con hora de expiración ✓) → el **documento entró** ✓ → el fallo vino recién al pedir el **veredicto** ✓.
+  - **El bug que encontró la llamada** ✓: la DGII contesta el **código del veredicto como texto** ✓ (`"codigo": "1"` ✓) y el modelo lo pedía como **número** ✓ → la respuesta no se leía ✓ → **el veredicto nunca llegaba** ✓ → corregido ✓ (`AllowReadingFromString` ✓ · el mismo trato para el **código de cada mensaje** ✓ · el `codigo` de la anulación de rangos ya era texto ✓) → con test ✓ (**RED**: la misma excepción que la DGII ✓ · **GREEN**: 266/266 ✓) → `48f5128` ✓.
+  - **Lo que aprendimos** ✓: la spec lo anticipa en **dos formas** ✓ (`Descripción Técnica Servicios DGII` p. 21 con `"codigo": "string"` ✓ · p. 10 con `"codigo": 1` ✓) → **la DGII escribe los códigos como texto en unos servicios y como número en otros** ✓ → hay que leer **las dos formas** ✓. Y el **certificado del cliente es aceptado** por la pre-certificación ✓ → el contribuyente de la prueba (la **cédula** ✓, que es el `SERIALNUMBER` del certificado ✓) tiene su **token** ✓.
+  - **Lo que falta** ✓: el **veredicto** del documento (la segunda pata ✓) → se vuelve a correr el circuito ✓ (el script `t48-dgii-test.ps1` ✓ deja el log en `t48-certificado.log` ✓).
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)
