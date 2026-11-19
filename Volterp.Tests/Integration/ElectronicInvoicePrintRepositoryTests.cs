@@ -155,6 +155,7 @@ public class ElectronicInvoicePrintRepositoryTests : IAsyncDisposable
             DocumentType = EcfDocumentType.FiscalCredit,
             Identity = new EcfIdentity
             {
+                LineAmountsIncludeItbis = false,
                 ENCF = Encf,
                 SequenceExpiresAt = new DateTime(2028, 12, 31),
                 TypeIncome = EcfTypeIncome.Operations,

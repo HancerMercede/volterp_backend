@@ -56,6 +56,14 @@ public sealed record EcfIdentity
     /// </summary>
     public bool? CreditNoteBeyondThirtyDays { get; init; }
 
+    /// <summary>
+    /// Whether the amounts of the lines include the ITBIS, as the DGII codes
+    /// it in the "IndicadorMontoGravado" field: 0 when they do not, 1 when
+    /// they do. The schema leaves the field optional but the DGII asks for
+    /// it, so every document carries it.
+    /// </summary>
+    public required bool LineAmountsIncludeItbis { get; init; }
+
     /// <summary>The kind of income the sale represents.</summary>
     public EcfTypeIncome? TypeIncome { get; init; }
 

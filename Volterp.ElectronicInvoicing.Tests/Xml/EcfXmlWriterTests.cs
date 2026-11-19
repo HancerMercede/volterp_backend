@@ -55,6 +55,21 @@ public class EcfXmlWriterTests
         signed.Should().Contain("<Signature");
     }
 
+    [Theory]
+    [InlineData(false, "0")]
+    [InlineData(true, "1")]
+    public void Write_CarriesTheIndicatorOfWhetherTheAmountsOfTheLinesIncludeTheItbis(
+        bool lineAmountsIncludeItbis,
+        string expectedCode)
+    {
+        // The schema leaves the field optional but the DGII asks for it: an
+        // e-CF without it was rejected with the code 176 (the answer of the
+        // test environment on 2026-11-19).
+        var xml = _writer.Write(BuildDocument(EcfDocumentType.FiscalCredit, lineAmountsIncludeItbis));
+
+        xml.Should().Contain($"<IndicadorMontoGravado>{expectedCode}</IndicadorMontoGravado>");
+    }
+
     [Fact]
     public void Write_UsesTheRootAndTheVersionTheDgiiExpects()
     {
@@ -325,10 +340,10 @@ public class EcfXmlWriterTests
         xml.Should().NotContain("> <");
     }
 
-    private static EcfDocument BuildDocument(EcfDocumentType documentType) => new()
+    private static EcfDocument BuildDocument(EcfDocumentType documentType, bool lineAmountsIncludeItbis = false) => new()
     {
         DocumentType = documentType,
-        Identity = BuildIdentity(documentType),
+        Identity = BuildIdentity(documentType, lineAmountsIncludeItbis),
         Issuer = BuildIssuer(),
         Buyer = documentType is EcfDocumentType.CreditNote or EcfDocumentType.DebitNote
             ? null
@@ -365,10 +380,11 @@ public class EcfXmlWriterTests
         SignedAt = new DateTime(2026, 11, 4, 10, 30, 0)
     };
 
-    private static EcfIdentity BuildIdentity(EcfDocumentType documentType) => new()
+    private static EcfIdentity BuildIdentity(EcfDocumentType documentType, bool lineAmountsIncludeItbis = false) => new()
     {
         ENCF = "B310000000000",
         SequenceExpiresAt = new DateTime(2026, 12, 31),
+        LineAmountsIncludeItbis = lineAmountsIncludeItbis,
         // The types whose schema declares no income carry none.
         TypeIncome = documentType is EcfDocumentType.Purchase
             or EcfDocumentType.MinorExpenses

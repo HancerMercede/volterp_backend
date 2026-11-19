@@ -592,6 +592,7 @@ public class EcfPrintRendererTests
             DocumentType = documentType,
             Identity = new EcfIdentity
             {
+                LineAmountsIncludeItbis = false,
                 ENCF = $"E{(int)documentType:D2}0000000001",
                 SequenceExpiresAt = new DateTime(2028, 12, 31),
                 TypeIncome = EcfTypeIncome.Operations,

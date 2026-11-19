@@ -43,6 +43,9 @@ internal static class TestEcfDocument
             {
                 ENCF = encf,
                 SequenceExpiresAt = SequenceExpiresAt,
+                // The amounts of the line are the base and the ITBIS is
+                // computed apart: the DGII's "IndicadorMontoGravado" is 0.
+                LineAmountsIncludeItbis = false,
                 TypeIncome = profile.TypeIncome,
                 PaymentType = profile.PaymentType
             },

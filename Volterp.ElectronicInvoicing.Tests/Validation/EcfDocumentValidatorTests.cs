@@ -319,6 +319,7 @@ public class EcfDocumentValidatorTests
             DocumentType = documentType,
             Identity = new EcfIdentity
             {
+                LineAmountsIncludeItbis = false,
                 ENCF = "B310000000000",
                 SequenceExpiresAt = profile.RequiresSequenceExpiry ? new DateTime(2026, 12, 31) : null,
                 TypeIncome = profile.TypeIncome,

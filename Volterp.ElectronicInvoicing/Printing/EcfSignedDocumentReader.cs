@@ -84,6 +84,7 @@ public static class EcfSignedDocumentReader
                 ?? throw new InvalidOperationException("The signed document carries no e-NCF."),
             SequenceExpiresAt = Day(root.SelectSingleNode("Encabezado/IdDoc/FechaVencimientoSecuencia")),
             CreditNoteBeyondThirtyDays = Flag(root.SelectSingleNode("Encabezado/IdDoc/IndicadorNotaCredito")),
+            LineAmountsIncludeItbis = Flag(root.SelectSingleNode("Encabezado/IdDoc/IndicadorMontoGravado")) ?? false,
             TypeIncome = income is null ? null : EcfTypeIncomes.FromCode(income),
             PaymentType = PaymentType(root.SelectSingleNode("Encabezado/IdDoc/TipoPago")),
             PaymentDueDate = Day(root.SelectSingleNode("Encabezado/IdDoc/FechaLimitePago")),

@@ -283,6 +283,7 @@ public class EcfSignedDocumentReaderTests
         DocumentType = EcfDocumentType.DebitNote,
         Identity = new EcfIdentity
         {
+            LineAmountsIncludeItbis = false,
             ENCF = "E330000000001",
             SequenceExpiresAt = new DateTime(2028, 12, 31),
             TypeIncome = EcfTypeIncome.Operations,
@@ -324,6 +325,7 @@ public class EcfSignedDocumentReaderTests
             DocumentType = documentType,
             Identity = new EcfIdentity
             {
+                LineAmountsIncludeItbis = false,
                 ENCF = buyerTaxId is null ? "E320000000001" : "E310000000001",
                 SequenceExpiresAt = buyerTaxId is null ? null : new DateTime(2028, 12, 31),
                 TypeIncome = EcfTypeIncome.Operations,

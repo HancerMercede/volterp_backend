@@ -137,6 +137,7 @@ public sealed class EcfXmlWriter
         WriteElement(writer, schema, "Encabezado/IdDoc/eNCF", identity.ENCF);
         WriteElement(writer, schema, "Encabezado/IdDoc/IndicadorNotaCredito", Flag(identity.CreditNoteBeyondThirtyDays));
         WriteElement(writer, schema, "Encabezado/IdDoc/FechaVencimientoSecuencia", FormatDate(identity.SequenceExpiresAt));
+        WriteElement(writer, schema, "Encabezado/IdDoc/IndicadorMontoGravado", Flag(identity.LineAmountsIncludeItbis));
         WriteElement(writer, schema, "Encabezado/IdDoc/TipoIngresos", TypeIncomeCode(document, schema));
         WriteElement(writer, schema, "Encabezado/IdDoc/TipoPago", identity.PaymentType is null ? null : Code((int)identity.PaymentType.Value));
         WriteElement(writer, schema, "Encabezado/IdDoc/FechaLimitePago", FormatDate(identity.PaymentDueDate));

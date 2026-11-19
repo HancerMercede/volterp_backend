@@ -530,6 +530,7 @@ public class ElectronicInvoicePrintEndpointTests : IClassFixture<ApiFactory>
             DocumentType = BuyerTaxId is null ? EcfDocumentType.Consumer : EcfDocumentType.FiscalCredit,
             Identity = new EcfIdentity
             {
+                LineAmountsIncludeItbis = false,
                 ENCF = BuyerTaxId is null ? ConsumerEncf : SignedEncf,
                 SequenceExpiresAt = BuyerTaxId is null ? null : new DateTime(2028, 12, 31),
                 TypeIncome = EcfTypeIncome.Operations,

@@ -58,6 +58,9 @@ public static class SaleEcfDocumentMapper
             {
                 ENCF = issuance.ENCF,
                 SequenceExpiresAt = issuance.SequenceExpiresAt,
+                // The amounts of the lines are the base and the ITBIS is
+                // computed apart: the DGII's "IndicadorMontoGravado" is 0.
+                LineAmountsIncludeItbis = false,
                 CreditNoteBeyondThirtyDays = MapCreditNoteBeyondThirtyDays(sale, issuance.SignedAt),
                 TypeIncome = profile.TypeIncome,
                 PaymentType = profile.PaymentType
