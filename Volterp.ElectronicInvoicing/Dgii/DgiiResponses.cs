@@ -125,6 +125,9 @@ internal sealed class DgiiStatusResponse
     public string? TrackId { get; set; }
 
     [JsonPropertyName("codigo")]
+    // The DGII answers the code of the verdict as a number in some services
+    // and as text in others ("codigo": "1"), so both are read.
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
     public int Codigo { get; set; }
 
     [JsonPropertyName("estado")]
@@ -152,6 +155,9 @@ internal sealed class DgiiMessageResponse
     public string? Value { get; set; }
 
     [JsonPropertyName("codigo")]
+    // The same answer that carries the code of the verdict carries the code
+    // of its messages, and the DGII writes both as text.
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
     public int Code { get; set; }
 }
 

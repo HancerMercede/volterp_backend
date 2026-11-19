@@ -216,6 +216,23 @@ public class DgiiClientTests
         status.RawBody.Should().Be(body);
     }
 
+    [Fact]
+    public async Task GetStatusAsync_ReadsTheAnswerWhenTheDgiiCodesTheVerdictAsText()
+    {
+        // The DGII answers the code of the verdict as text in this service:
+        // "codigo": "1" (Descripción Técnica Servicios DGII, p. 21, and the
+        // answer of the test environment on 2026-11-19).
+        const string body =
+            """{"trackId":"track-1","codigo":"1","estado":"Aceptado","eNCF":"E310000000001","secuenciaUtilizada":true,"mensajes":[{"valor":"El comprobante fue recibido","codigo":"7"}]}""";
+        var handler = StubHttpMessageHandler.ReturningJson(body);
+        var client = CreateClient(handler);
+
+        var status = await client.GetStatusAsync("track-1", "jwt");
+
+        status.Verdict.Should().Be(DgiiVerdict.Accepted);
+        status.Messages.Should().ContainSingle(message => message.Code == 7);
+    }
+
     [Theory]
     [InlineData(0, DgiiVerdict.NotFound)]
     [InlineData(1, DgiiVerdict.Accepted)]
