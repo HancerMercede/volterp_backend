@@ -78,7 +78,13 @@ public class AgainstTheDgii
             attempts++;
         }
 
-        _output.WriteLine($"Track id {receipt.TrackId} → {status.Verdict} ({status.StatusText})");
+        _output.WriteLine($"Track id {receipt.TrackId} -> {status.Verdict} ({status.StatusText})");
+
+        // The reason of the verdict travels in the messages of the answer:
+        // without them a rejection says nothing about what to correct.
+        foreach (var message in status.Messages)
+            _output.WriteLine($"  {message.Code}: {message.Value}");
+
         status.Verdict.Should().NotBe(DgiiVerdict.InProcess, "the verdict arrives sooner or later");
     }
 
