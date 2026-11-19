@@ -14,9 +14,11 @@ internal static class TestEcfDocument
     // The pre-certification ranges of the DGII expire on this date.
     public static readonly DateTime SequenceExpiresAt = new(2028, 12, 31);
 
-    // The buyer of the test document: a valid RNC that says nothing about
-    // anybody's data.
-    private const string BuyerRnc = "101500018";
+    // The buyer of the test document: an RNC the DGII knows. The one of
+    // the demo seed is synthetic and the DGII answers that the field is
+    // not valid (the code 1385, the answer of the test environment on
+    // 2026-11-19).
+    private const string BuyerRnc = "430359157";
 
     public static string Build(string issuerRnc, string encf)
     {
