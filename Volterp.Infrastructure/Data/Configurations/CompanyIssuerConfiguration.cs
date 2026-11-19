@@ -10,7 +10,9 @@ public class CompanyIssuerConfiguration : IEntityTypeConfiguration<CompanyIssuer
     {
         entity.HasKey(e => e.Id);
         entity.HasIndex(e => e.CompanyId);
-        entity.HasIndex(e => new { e.CompanyId, e.TaxId }).IsUnique();
+        // The RNC is unique in the country: the same one cannot be
+        // registered by two tenants.
+        entity.HasIndex(e => e.TaxId).IsUnique();
         entity.Property(e => e.TaxId).IsRequired().HasMaxLength(20);
         entity.Property(e => e.LegalName).IsRequired().HasMaxLength(200);
         entity.Property(e => e.Status).HasConversion<int>().IsRequired();

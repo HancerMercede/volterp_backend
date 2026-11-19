@@ -661,7 +661,13 @@ public class ElectronicInvoiceService(
         var issuer = await unitOfWork.CompanyIssuers.GetByCondictionsAsync(
             candidate => candidate.CompanyId == company.Id && candidate.TaxId == issuerTaxId, ct);
 
-        return new IssuerIdentity(issuerTaxId, issuer?.LegalName ?? company.LegalName);
+        // The branch that issues is on record: without it, the document
+        // would carry the RNC of the branch and the name of the company.
+        if (issuer is null)
+            throw new InvalidOperationException(
+                $"The issuer {issuerTaxId} is not registered for this company.");
+
+        return new IssuerIdentity(issuerTaxId, issuer.LegalName);
     }
 
     private async Task<SignedDocument> BuildAndSignTheDocumentAsync(

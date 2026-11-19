@@ -114,8 +114,32 @@ public class CompanyIssuerRepositoryTests
         await using var fixture = new IssuerFixture();
         await fixture.InitializeAsync();
 
-        // The same RNC registered by two tenants: the receiver is ambiguous
-        // and the document cannot be attributed to one of them.
+        // The RNC of the company registered as a branch of another tenant:
+        // the receiver is ambiguous and the document cannot be attributed
+        // to one of them.
+        fixture.Context.CompanyIssuers.Add(new CompanyIssuer
+        {
+            Id = Guid.CreateVersion7(),
+            CompanyId = fixture.OtherCompanyId,
+            TaxId = CompanyRnc,
+            LegalName = "Sucursal de otro tenant"
+        });
+
+        await fixture.Context.SaveChangesAsync();
+
+        var act = () => fixture.Repository.CompanyOfIssuerAsync(CompanyRnc);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task TheSameRncCannotBeRegisteredByTwoTenants()
+    {
+        await using var fixture = new IssuerFixture();
+        await fixture.InitializeAsync();
+
+        // The RNC of a branch of this tenant, registered by another one:
+        // the database refuses it, because an RNC is of one taxpayer.
         fixture.Context.CompanyIssuers.Add(new CompanyIssuer
         {
             Id = Guid.CreateVersion7(),
@@ -124,11 +148,11 @@ public class CompanyIssuerRepositoryTests
             LegalName = "Sucursal de otro tenant"
         });
 
-        await fixture.Context.SaveChangesAsync();
+        var act = () => fixture.Context.SaveChangesAsync();
 
-        var act = () => fixture.Repository.CompanyOfIssuerAsync(BranchRnc);
-
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<DbUpdateException>(
+            "the index of the RNC is unique in the country: the second tenant that "
+            + "registers it does not get it");
     }
 
     private sealed class IssuerFixture : IAsyncDisposable

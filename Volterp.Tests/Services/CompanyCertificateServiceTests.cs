@@ -86,6 +86,19 @@ public class CompanyCertificateServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WithAnRncThatIsNotAnIssuerOfTheCompany_ReturnsLeft()
+    {
+        var service = new CompanyCertificateService(_unitOfWork.Object, _protector.Object);
+
+        // A valid RNC, but not one of the tenant: the certificate belongs to
+        // an issuer of the tenant and to nobody else.
+        var result = await service.CreateAsync(
+            Request(taxId: "130862354"), Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        result.Should().BeOfType<Either<Error, CompanyCertificateDto>.Left>();
+    }
+
+    [Fact]
     public async Task CreateAsync_WithAnInvalidIssuerRnc_ReturnsLeft()
     {
         var service = new CompanyCertificateService(_unitOfWork.Object, _protector.Object);

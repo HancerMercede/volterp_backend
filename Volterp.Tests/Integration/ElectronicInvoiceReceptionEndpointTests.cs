@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Volterp.Api.Authentication;
 using Volterp.Api.Controllers;
 using Volterp.Domain.Entities;
+using Volterp.Domain.Enums;
 using Volterp.ElectronicInvoicing;
 using Volterp.Infrastructure.Data;
 using Volterp.Tests.Authentication;
@@ -28,6 +29,8 @@ public class ElectronicInvoiceReceptionEndpointTests : IClassFixture<ApiFactory>
     private const string OtherRnc = "101000001";
     private const string SecondCompanyRnc = "101500026";
     private const string Encf = "E310000000001";
+    private const string BranchRnc = "101500034";
+    private const string BranchEncf = "E310000000002";
     private const string ApprovalReason = "The commercial terms do not match.";
 
     private static readonly Guid CompanyA = Guid.CreateVersion7();
@@ -305,6 +308,95 @@ public class ElectronicInvoiceReceptionEndpointTests : IClassFixture<ApiFactory>
             new { approved = false, reason = "A decision from another tenant" });
 
         hidden.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task ReceptionEndpoint_WithTheRncOfABranch_AttributesTheDocumentToTheTenant()
+    {
+        await using var factory = await AuthenticatedFactoryAsync();
+        var client = factory.CreateClient();
+
+        await SeedBranchAsync(factory);
+
+        var response = await client.PostAsync(
+            "/fe/recepcion/api/ecf",
+            ReceptionContent(
+                ReceptionTestDocuments.ReceivedEcf(IssuerRnc, BranchRnc, BranchEncf),
+                BranchRnc,
+                BranchEncf));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+
+        var received = await db.ReceivedElectronicInvoices
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .SingleAsync(invoice => invoice.ENCF == BranchEncf);
+
+        received.CompanyId.Should().Be(CompanyA,
+            "the branch belongs to the tenant: the document is attributed to it");
+    }
+
+    [Fact]
+    public async Task ReceptionEndpoint_WithAnAmbiguousReceiverRnc_ReturnsBadRequest()
+    {
+        await using var factory = await AuthenticatedFactoryAsync();
+        var client = factory.CreateClient();
+
+        // The same RNC claimed by two tenants: the receiver is ambiguous and
+        // the document cannot be attributed to one of them.
+        await SeedCompetingBranchAsync(factory);
+
+        var response = await client.PostAsync(
+            "/fe/recepcion/api/ecf",
+            ReceptionContent(
+                ReceptionTestDocuments.ReceivedEcf(IssuerRnc, ReceiverRnc, Encf),
+                ReceiverRnc,
+                Encf));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    private static async Task SeedBranchAsync(ApiFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+
+        if (!await db.CompanyIssuers.AnyAsync(issuer => issuer.TaxId == BranchRnc))
+        {
+            db.CompanyIssuers.Add(new CompanyIssuer
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = CompanyA,
+                TaxId = BranchRnc,
+                LegalName = "Sucursal Norte",
+                Status = EntityStatus.Active
+            });
+
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private static async Task SeedCompetingBranchAsync(ApiFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VolterpDbContext>();
+
+        if (!await db.CompanyIssuers.AnyAsync(issuer => issuer.TaxId == ReceiverRnc))
+        {
+            db.CompanyIssuers.Add(new CompanyIssuer
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = CompanyB,
+                TaxId = ReceiverRnc,
+                LegalName = "Sucursal en conflicto",
+                Status = EntityStatus.Active
+            });
+
+            await db.SaveChangesAsync();
+        }
     }
 
     private static async Task<ApiFactory> AuthenticatedFactoryAsync()

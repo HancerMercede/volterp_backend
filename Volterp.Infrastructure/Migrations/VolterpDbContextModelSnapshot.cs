@@ -477,7 +477,7 @@ namespace Volterp.Infrastructure.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.HasIndex("CompanyId", "TaxId")
+                    b.HasIndex("TaxId")
                         .IsUnique();
 
                     b.ToTable("CompanyIssuers");

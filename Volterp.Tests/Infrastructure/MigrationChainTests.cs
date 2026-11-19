@@ -38,7 +38,8 @@ public class MigrationChainTests
         "20261117130000_AddApiCredentials",
         "20261117140000_AddRangeAnnulment",
         "20261117150000_AddIssuedSeeds",
-        "20261118201231_AddCompanyIssuers"
+        "20261118201231_AddCompanyIssuers",
+        "20261119031728_AddCompanyIssuerUniqueRnc"
     };
 
     [Fact]

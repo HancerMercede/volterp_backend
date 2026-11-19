@@ -233,6 +233,42 @@ public class ElectronicInvoiceServiceTests
             s => s.NextSequenceAsync(CompanyId, branchRnc, EcfDocumentType.Consumer, It.IsAny<CancellationToken>()),
             Times.Once);
         _signedXmls.Should().Contain(xml => xml.Contains(branchRnc));
+
+        // The block of the issuer carries the legal name of the branch, not
+        // the one of the company.
+        _signedXmls.Should().Contain(xml => xml.Contains("Sucursal Norte"));
+    }
+
+    [Fact]
+    public async Task RetryAsync_KeepsTheIssuerOfTheDocument()
+    {
+        const string branchRnc = "101500026";
+
+        Given(Sale(), Company());
+
+        var invoice = GivenRetryDocument();
+        invoice.IssuerTaxId = branchRnc;
+
+        _issuers.Setup(i => i.GetByCondictionsAsync(
+                It.IsAny<Expression<Func<CompanyIssuer, bool>>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CompanyIssuer
+            {
+                CompanyId = CompanyId,
+                TaxId = branchRnc,
+                LegalName = "Sucursal Norte"
+            });
+
+        var result = await Service().RetryAsync(invoice.Id, CompanyId);
+
+        result.Should().BeOfType<Either<Error, ElectronicInvoiceDto>.Right>();
+
+        // The document keeps the issuer it was created with: the retry signs
+        // it with the certificate of that RNC and not with the one of the
+        // company.
+        _certificates.Verify(
+            c => c.GetSigningCertificateAsync(branchRnc, It.IsAny<CancellationToken>()), Times.Once);
+        _certificates.Verify(
+            c => c.GetSigningCertificateAsync(IssuerRnc, It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

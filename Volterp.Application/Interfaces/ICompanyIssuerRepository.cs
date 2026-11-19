@@ -16,4 +16,8 @@ public interface ICompanyIssuerRepository : IRepositoryBase<CompanyIssuer>
     // The tenant that owns an issuer RNC: the one whose RNC it is and the
     // ones that registered it as a branch.
     Task<Company?> CompanyOfIssuerAsync(string taxId, CancellationToken ct = default);
+
+    // The tenants that own an RNC. More than one means the RNC is already
+    // claimed twice and nobody can take it.
+    Task<IReadOnlyList<Guid>> OwnersOfAsync(string taxId, CancellationToken ct = default);
 }

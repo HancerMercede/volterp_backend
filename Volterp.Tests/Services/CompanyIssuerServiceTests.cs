@@ -74,6 +74,23 @@ public class CompanyIssuerServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenTheRncBelongsToAnotherCompany_ReturnsLeft()
+    {
+        var (service, _, issuers) = BuildService();
+
+        // The RNC is already claimed by another taxpayer: with it the tenant
+        // would issue in the name of somebody else.
+        issuers.Setup(i => i.OwnersOfAsync(BranchRnc, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([OtherCompanyId]);
+
+        var result = await service.CreateAsync(Request(), CompanyId, UserId);
+
+        result.Should().BeOfType<Either<Error, CompanyIssuerDto>.Left>();
+        ((Either<Error, CompanyIssuerDto>.Left)result).Value.Message
+            .Should().Contain("another company");
+    }
+
+    [Fact]
     public async Task CreateAsync_WithoutTheLegalName_ReturnsLeft()
     {
         var (service, _, _) = BuildService();
@@ -171,6 +188,10 @@ public class CompanyIssuerServiceTests
         unitOfWork.Setup(u => u.Companies).Returns(companies.Object);
         unitOfWork.Setup(u => u.CompanyIssuers).Returns(issuers.Object);
         unitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        // By default nobody claims the RNC: the tenant is the only owner.
+        issuers.Setup(i => i.OwnersOfAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
 
         return (new CompanyIssuerService(unitOfWork.Object), unitOfWork, issuers);
     }

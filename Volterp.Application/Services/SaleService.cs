@@ -55,13 +55,13 @@ public class SaleService(
                 sale.CompanyId = companyId;
                 if (userId.HasValue) sale.SetCreatedBy(userId.Value);
 
+                // The issuer is resolved first: a rejected issuer must not
+                // burn a code.
+                sale.IssuerTaxId = await ResolveIssuerTaxIdAsync(req.IssuerTaxId, companyId, ct);
+
                 // The code is resolved before any stock movement: a rejected code
                 // must not leave the inventory half-updated.
                 sale.Code = await ResolveCodeForCreateAsync(req.Code, companyId, ct);
-
-                // The sale is issued by the RNC it names: it has to be one of
-                // the issuers of the tenant.
-                sale.IssuerTaxId = await ResolveIssuerTaxIdAsync(req.IssuerTaxId, companyId, ct);
 
                 // Batch query: single SELECT for all products (avoids N+1)
                 var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();

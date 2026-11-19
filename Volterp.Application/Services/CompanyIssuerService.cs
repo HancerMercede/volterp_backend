@@ -48,6 +48,14 @@ public class CompanyIssuerService(IUnitOfWork unitOfWork) : ICompanyIssuerServic
                 issuer => issuer.CompanyId == companyId && issuer.TaxId == taxId, ct)
             : null;
 
+        // An RNC belongs to one taxpayer: a tenant cannot take the RNC of
+        // another one, because with it it could issue in its name. The
+        // repository answers with the owners of the RNC: an empty list is
+        // nobody claiming it.
+        var owners = parsed
+            ? await unitOfWork.CompanyIssuers.OwnersOfAsync(taxId, ct) ?? []
+            : [];
+
         return await EitherAsync<Error, CreateCompanyIssuerRequest>
             .FromRight(request)
             .Ensure(r => company is not null, new Error("The company does not exist."))
@@ -55,6 +63,8 @@ public class CompanyIssuerService(IUnitOfWork unitOfWork) : ICompanyIssuerServic
             .Ensure(r => parsed, new Error("The tax id must be a valid RNC or citizen ID."))
             .Ensure(r => company is not null && taxId != company.TaxId,
                 new Error("The RNC of the company is already an issuer of its own."))
+            .Ensure(r => owners.All(owner => owner == companyId),
+                new Error("This RNC already belongs to another company."))
             .Ensure(r => existing is null, new Error("This RNC is already registered as an issuer."))
             .Map(r => r.Project())
             .Map(issuer =>
