@@ -82,24 +82,10 @@ public class AgainstTheDgii
         status.Verdict.Should().NotBe(DgiiVerdict.InProcess, "the verdict arrives sooner or later");
     }
 
-    // The name of the file the DGII expects is taken from the document, so it
-    // has to say who emits it and under which number. Against the real DGII
-    // those are the taxpayer's: they come from the environment and never from
-    // the repository.
-    private const string EcfTemplate = """
-        <?xml version="1.0" encoding="utf-8"?>
-        <ECF Version="1.0">
-          <Encabezado>
-            <Emisor>
-              <RNCEmisor>{{RNCEMISOR}}</RNCEmisor>
-            </Emisor>
-            <TipoIngresos>01</TipoIngresos>
-            <eNCF>{{ENCF}}</eNCF>
-            <FechaEmision>{{FECHAEMISION}}</FechaEmision>
-          </Encabezado>
-        </ECF>
-        """;
-
+    // The document the DGII receives is the taxpayer's own: its RNC and the
+    // number of the range it was authorized come from the environment. It is
+    // built the same way the ERP builds one, so the verdict of the DGII is
+    // about the taxpayer and not about the shape of the document.
     private static string EcfXml()
     {
         var issuer = DgiiEnvironmentSettings.IssuerRnc;
@@ -111,10 +97,7 @@ public class AgainstTheDgii
                 + "(VOLTERP_DGII_ISSUER_RNC, VOLTERP_DGII_ENCF): against the real DGII the document "
                 + "has to be the taxpayer's own.");
 
-        return EcfTemplate
-            .Replace("{{RNCEMISOR}}", issuer)
-            .Replace("{{ENCF}}", encf)
-            .Replace("{{FECHAEMISION}}", DateTime.UtcNow.ToString("dd-MM-yyyy"));
+        return TestEcfDocument.Build(issuer, encf);
     }
 
     private static DgiiClient CreateClient()
