@@ -236,12 +236,27 @@ La empresa declara **cómo factura** (`GET`/`PUT /api/CompanyEmissionMode`): **e
 
 Un tenant puede tener **varios RNC emisores**: el de la empresa y el de sus sucursales. El certificado pertenece al **RNC emisor** y no al tenant, y la venta nombra el RNC que la emite.
 
-- El registro de emisores vive en `/api/CompanyIssuers` (`GET`, `GET {id}`, `POST` y `PUT {id}`; el alta y la modificación son de administrador). El RNC de la empresa **no** se registra: es su propia identidad, y el registro lo rechaza. Un RNC ya registrado, uno inválido o uno sin razón social también.
+- El registro de emisores vive en `/api/CompanyIssuers` (`GET`, `GET {id}`, `POST` y `PUT {id}`; el alta y la modificación son de administrador). El RNC de la empresa **no** se registra: es su propia identidad, y el registro lo rechaza. Un RNC ya registrado, uno inválido o uno sin razón social también. Y un RNC que **pertenece a otro contribuyente** se rechaza: un RNC es de un solo contribuyente, así que con él el tenant emitiría en nombre de otro. El índice de la base lo garantiza (el segundo tenant que lo registra no lo obtiene) y la atribución de un documento recibido **falla cerrada** cuando el RNC del receptor aparece en dos tenants.
 - La venta lleva el `issuerTaxId` opcional (`POST`/`PUT /api/sales`): vacío significa que emite la empresa; con valor, tiene que ser **uno de los emisores del tenant** (falla cerrado).
 - El e-CF y el comprobante normal salen con **el RNC de la venta**: el número se toma del rango de ese RNC, se firma con **su** certificado y el bloque del emisor del XML lleva **su** RNC y **su** razón social.
 - El certificado se carga con el RNC de un emisor del tenant (`/api/CompanyCertificates`), y el rango también (`/api/ElectronicInvoiceSequences` y `/api/NormalFiscalSequences`).
 - La recepción de un e-CF de un tercero atribuye el documento al tenant cuyo RNC —el propio o el de una sucursal— aparece como receptor. Si dos tenants registran el mismo RNC, la atribución **falla cerrado** por ambigua.
 - Una sucursal desactivada **no emite**: su RNC deja de ser un emisor válido y la venta que lo nombra falla cerrada. El RNC de un emisor no se cambia: el certificado y los rangos autorizados están atados a él.
+
+### El circuito contra la DGII de prueba
+
+El E2E contra la DGII real corre **solo** con las variables de entorno puestas: sin ellas los dos tests se saltan (no es un fallo). El `.p12` y su contraseña **nunca** viajan en el repositorio.
+
+| Variable | Qué es |
+|---|---|
+| `VOLTERP_DGII_BASE_URL` | la base de la DGII (`https://ecf.dgii.gov.do`) |
+| `VOLTERP_DGII_ENVIRONMENT` | el ambiente: `PreCertification` (`testecf`), `Certification` (`certecf`), `Production` (`ecf`) |
+| `VOLTERP_DGII_CERTIFICATE` | la ruta del `.p12` del contribuyente |
+| `VOLTERP_DGII_CERTIFICATE_PASSWORD` | la contraseña del `.p12` |
+| `VOLTERP_DGII_ISSUER_RNC` | el RNC (o la cédula) del contribuyente que emite |
+| `VOLTERP_DGII_ENCF` | el e-NCF del rango que la DGII autorizó (13 posiciones: `E` + 2 del tipo + 10 de secuencia) |
+
+En la **pre-certificación** la DGII da a cada contribuyente habilitado un rango por tipo: el 31 va de `E310000000001` a `E310010000000` y el 32 de `E320000000001` a `E320050000000`, con vencimiento el **31-12-2028** ("Descripción Técnica Servicios DGII"). El documento del circuito es un e-CF de verdad —de crédito fiscal (31), construido como lo construye el ERP y validado contra el esquema oficial—, porque si no el veredicto de la DGII hablaría de la forma del documento y no del contribuyente.
 
 ### El QR de la representación impresa
 
