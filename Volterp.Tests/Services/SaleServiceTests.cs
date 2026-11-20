@@ -37,6 +37,70 @@ public class  SaleServiceTests
     }
 
     [Fact]
+    public async Task CompleteSaleAsync_DoesNotDeductTheStockAgain()
+    {
+        // The stock is deducted when the sale is created: that is the
+        // reservation. Completing the sale turns the reservation into a
+        // sale, it does not deduct a second time. The POS leaves sales
+        // pending and completes them later, so every sale was deducting
+        // twice.
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+        var mockCompaniesRepo = new Mock<ICompanyRepository>();
+
+        var product = new Product
+        {
+            Id = Guid7TestValues.ProductA,
+            Stock = 8,
+            CompanyId = Guid7TestValues.CompanyA,
+            Name = "Test Product"
+        };
+
+        var company = new Company
+        {
+            Id = Guid7TestValues.CompanyA,
+            Name = "Test Company",
+            TaxId = "130862346",
+            Address = "1 A Street",
+            LegalName = "Test Company Legal",
+            Email = "a@company.test",
+            Phone = "809-555-1234",
+            IsActive = true,
+            EmissionMode = CompanyEmissionMode.Normal
+        };
+
+        var sale = new Sale
+        {
+            Id = Guid7TestValues.SaleA,
+            CompanyId = Guid7TestValues.CompanyA,
+            Company = company,
+            Code = "V-0001",
+            Status = SaleStatus.Pending
+        };
+
+        sale.AddItem(Guid7TestValues.ProductA, "Test Product", 2, 100m, TaxCode.ItbisTasa1);
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sale);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockCompaniesRepo.Setup(r => r.GetCompanyByIdAsync(Guid7TestValues.CompanyA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(company);
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.Companies).Returns(mockCompaniesRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
+
+        await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        product.Stock.Should().Be(8,
+            "the stock was already deducted when the sale was created: completing the sale does not deduct it again");
+    }
+
+    [Fact]
     public async Task CreateSaleAsync_WithValidInput_DecrementsProductStock()
     {
         // ARRANGE
@@ -1094,18 +1158,35 @@ public class  SaleServiceTests
     }
 
     [Fact]
-    public async Task CompleteSaleAsync_WithInsufficientStock_ThrowsInvalidOperationException()
+    public async Task CompleteSaleAsync_DoesNotCheckTheStockAgain_TheReservationWasMadeAtTheCreation()
     {
-        // ARRANGE - product has only 3 in stock but sale item requires 10
+        // The stock was deducted when the sale was created: that is the
+        // reservation. The completion turns the reservation into a sale, so
+        // it does not look at the stock again (it used to deduct it a second
+        // time, and a sale of 10 units against a stock of 3 failed at the
+        // completion even though the stock had already been reserved).
         var mockUnitOfWork = new Mock<IUnitOfWork>();
         var mockSalesRepo = new Mock<ISaleRepository>();
         var mockProductsRepo = new Mock<IProductRepository>();
 
         var product = new Product { Id = Guid7TestValues.ProductA, Stock = 3, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
 
+        var company = new Company
+        {
+            Id = Guid7TestValues.CompanyA,
+            Name = "Test Company",
+            TaxId = "130862346",
+            Address = "1 A Street",
+            LegalName = "Test Company Legal",
+            Email = "a@company.test",
+            Phone = "809-555-1234",
+            IsActive = true,
+            EmissionMode = CompanyEmissionMode.Normal
+        };
+
         var sale = new Sale
         {
-            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 1000,
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Company = company, Status = SaleStatus.Pending, Total = 1000,
             Items = new List<SaleItem>
             {
                 new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 10, UnitPrice = 100, Subtotal = 1000 }
@@ -1125,9 +1206,10 @@ public class  SaleServiceTests
         var result = await service.CompleteSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
 
         // ASSERT
-        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
-        var error = ((Either<Error, SaleDto>.Left)result).Value;
-        error.Message.Should().Contain("Insufficient stock");
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>(
+            "the stock was reserved when the sale was created");
+
+        product.Stock.Should().Be(3, "the completion does not deduct the stock again");
     }
 
     [Fact]

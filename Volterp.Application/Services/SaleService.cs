@@ -70,7 +70,8 @@ public class SaleService(
 
                 // Validate and deduct stock for each item
                 // NOTE: Stock is deducted at creation time to reserve inventory.
-                // The double-deduction behavior (at creation AND completion) is preserved.
+                // The completion turns the reservation into a sale: it does not
+                // deduct the stock again.
                 foreach (var item in sale.Items)
                 {
                     if (!productMap.TryGetValue(item.ProductId, out var product))
@@ -205,21 +206,10 @@ public class SaleService(
             .FlatMap(async sale =>
             {
                 sale.Complete();
-                // Validate and deduct stock for each item
-                var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
-                if (productIds.Count > 0)
-                {
-                    var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
-                    var productMap = products.ToDictionary(p => p.Id);
 
-                    foreach (var item in sale.Items)
-                    {
-                        if (!productMap.TryGetValue(item.ProductId, out var product))
-                            continue;
-
-                        product.DeductStock(item.Quantity);
-                    }
-                }
+                // The stock was deducted when the sale was created: that is
+                // the reservation. Completing the sale turns the reservation
+                // into a sale, it does not deduct the stock a second time.
 
                 sale.Apply(s =>
                 {

@@ -129,7 +129,7 @@ E32 (consumo) por debajo de RD$250,000 puede ser en papel continuo; **desde RD$2
 
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
-| UX0 | S6, F10 | inline (parent) | PENDING | **Bloqueo previo**: el stock se descuenta dos veces (create + complete). Hoy el POS no completa y por eso no se nota; en cuanto UX1 conecte el complete, toda venta del POS descuenta el doble. Bugfix aislado con sus tests en `SaleServiceTests` |
+| UX0 | S6, F10 | inline (parent) | DONE | **Bloqueo previo**: el stock se descuenta dos veces (create + complete). Hoy el POS no completa y por eso no se nota; en cuanto UX1 conecte el complete, toda venta del POS descuenta el doble. Bugfix aislado con sus tests en `SaleServiceTests` |
 | UX1 | S6, F4, F5 | handoff al front (`erp-mvp`) | PENDING | El botón "Completar Venta" completa la venta: se llama `PUT /api/sales/{id}/complete` y el `<select>` de estado sale de la caja (o pasa a ser el tipo de documento) |
 | UX2 | S5, F2, F3 | handoff al front (`erp-mvp`) | PENDING | La elección del documento en la caja: **Consumo (E32)** / **Crédito fiscal (E31)** / **Comercial** (solo si el modo de la empresa es normal; el back rechaza el resto). Default por tipo de cliente |
 | UX3 | S7, S8, F7 | handoff al front (`erp-mvp`) | PENDING | El estado fiscal de la venta con el vocabulario de la DGII, con color, **separado del estado de pago**, con el veredicto y el QR de la venta |
@@ -165,3 +165,17 @@ La validación (S2) y el mapa del front se hicieron con dos exploradores de solo
 **El bloqueo que une las dos features**: F10. El doble descuento de stock está vivo en el back, pero el POS no completa ventas → el bug está latente. Conectar el complete (UX1) lo vuelve visible en todas las ventas del POS. UX0 va primero, y es el mismo bugfix que el plan de `roles-permissions` tenía anotado como bloqueo del POS (apéndice de `odd/tasks/roles-permissions.md`).
 
 **Decisión de encuadre**: esta feature **no se implementa todavía**. El owner pidió un plan; el plan está arriba, con el bloqueo previo y la dependencia de `roles-permissions` (T6/T8) señaladas.
+
+### L3 — 2026-11-20 — UX0: el stock no se descuenta dos veces
+
+> (el dueño: *"el POS puede dejar una venta pendiente y luego la completa el mismo vendedor si ya el usuario no quiere nada mas"*)
+
+- **El modelo del inventario de una venta** ✓: **crear = reservar** (el stock se descuenta) → **completar = convertir la reserva** (ya no se descuenta otra vez) → **liberar** (al cancelar o al borrar, que ya existe ✓).
+- **El bug** ✓: la creación descontaba y la **completación descontaba otra vez** → cada venta del POS iba a descontar el doble. Estaba **latente** porque el front nunca completaba una venta ✓ → en cuanto se conecte el `complete` (UX1) aparece en todas ✓ → por eso UX0 va primero ✓.
+- **El arreglo** ✓: la completion ya no toca el stock (`SaleService.CompleteSaleAsync` ✓) → el stock que se descontó al crear **es** la venta ✓.
+- **Un test que fijaba el bug** ✓: la completion fallaba por falta de stock (porque descontaba de nuevo) → ese test ahora dice lo que tiene que decir ✓ (la reserva se hizo al crear ✓) y hay otro que dice que la completion **no** vuelve a descontar ✓.
+- **Tests** ✓: suite completa **1103/1103** ✓.
+
+**Lo que falta del ciclo**: **liberar** la reserva de una venta pendiente que el cliente nunca se lleva (hoy no hay endpoint de cancelar ✓ → el POS necesita el botón de "descartar" ✓, que va con UX1) y la **expiración** de las ventas pendientes que quedan abiertas (eso pertenece al cierre del turno ✓ → T10 / la feature del POS).
+
+**Risk**: item 1 (datos) — el cambio afecta el stock de las ventas **que se completen** a partir de ahora ✓; las ventas ya completadas con el doble descuento **no se corrigen solas** (9 pendientes y 36 completadas con el doble ✓ → la migración de datos es una decisión aparte ✓).
