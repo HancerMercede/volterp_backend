@@ -144,7 +144,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 | T1 | S1, S5 | inline (parent) | DONE | Catálogo `Module` + `Permission` + matriz `RolePermissions` en `Volterp.Domain/Authorization/` + tests — la matriz es **la del front** (`erp-mvp/src/domain/constants/permisos.ts`) y el vocabulario es el del plan (módulo × acción de dominio) |
 | T2 | S2 | inline (parent) | DONE | `User.Role` → colección: tabla puente `UserRoles` (tenant-scoped, índice único `(UserId, Role)`) + migración `AddUserRoles` con backfill + drop de la columna + `User.AssignRole/RemoveRole/HasRole` + `UserService.UpdateRolesAsync` + `PUT /api/Users/{id}/roles`. **Se hizo junto con T3**: sacar `User.Role` de la persistencia obliga a cambiar el token en el mismo commit |
 | T3 | S2 | inline (parent) | DONE | JWT multi-claim (un claim por rol) + `LoginResponse.Roles[]` + `CreateUserDto.Roles[]` + `UserDto.Roles[]` + `IsInRole` en `BaseController` y `CurrentUserService` (con varios claims, `FindFirst` solo veía el primero) |
-| T4 | S1, S4, S5 | inline (parent) | PENDING | `PermissionRequirement` + handler + policies registradas en `ServiceExtensions` + mensaje de 403 por permiso |
+| T4 | S1, S4, S5 | inline (parent) | DONE | `PermissionRequirement` + handler + una policy por permiso (`PermissionPolicies`, los nombres son constantes) + el 403 nombra el permiso que falta. La unión de los permisos de los roles vive en `RolePermissions.For(IEnumerable<UserRole>)` |
 | T5 | S4 | inline (parent) | PENDING | Declarar permiso en **cada** endpoint (deny-by-default). Unit de trabajo por controller; el test de inventario de endpoints cierra la unidad |
 | T6 | S6 | inline (parent) | PENDING | `PermissionsController` (`me`, `roles`) + `IPermissionService` + DTOs |
 | T7 | S1-S6 | inline (parent) | PENDING | Verificación: suite completa + test de inventario de endpoints + E2E contra la API viva (login → `me` → un endpoint denegado → uno permitido) |
@@ -335,3 +335,16 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **La revisión nativa (RDD) no corrió** ⚠: el binario `gentle-ai` package-local no está en la máquina (el owner lo había eliminado) → sin binario no hay revisión nativa ni push ✓. Queda para cuando el owner lo decida ✓.
 
 **Risk**: item 1 (datos) — la migración reescribe filas (backfill) y borra la columna `Users.Role`. Verificado con el backfill contra Postgres real ✓ y con la cadena completa de migraciones (apply → rollback → re-apply) ✓.
+
+### L17 — 2026-11-20 — T4: el permiso que pide el endpoint y el que el 403 nombra
+
+> "Champ vamos a continuar con la implementacion de la matrix de permisos que dejamos aye"
+
+- **El endpoint declara el permiso que necesita** ✓: `PermissionRequirement` (un permiso del catálogo) + `PermissionRequirementHandler` (lee los roles del token, une sus permisos y deja entrar si el pedido está entre ellos) ✓.
+- **Una policy por permiso** ✓ (`PermissionPolicies`): los nombres son **constantes** (`perm.ventas.read`, …) → un endpoint que nombra una policy que no existe es un error del compilador, no un 500 en producción ✓. Las 46 policies se registran al boot desde el catálogo ✓ (`Permissions.All`) → el catálogo cerrado no puede quedar atrás ✓.
+- **La unión vive en el dominio** ✓: `RolePermissions.For(IEnumerable<UserRole>)` → la misma regla que usará el `PermissionService` de T6 ✓ (una sola fuente para la unión ✓).
+- **El 403 nombra el permiso que falta** ✓: *"You do not have the permission 'inventario.read'."* → un caller que no sabe cuál le falta no puede hacer nada con el rechazo ✓. El canal es `HttpContext.Items` (el `ForbiddenContext` de .NET 10 no expone el `AuthorizationFailure` ✓).
+- **El contrato de la API no cambia todavía** ✓: las policies existen pero **ningún endpoint las declara** → el comportamiento es el de antes ✓ (eso es T5, que es donde cambia cada endpoint ✓).
+- **Tests** ✓: `PermissionPolicyTests` (7 ✓: toda permission del catálogo tiene su policy ✓ · los nombres son únicos ✓ · la unión de los roles ✓ · el que tiene el rol entra ✓ · el que no, no ✓ · con dos roles tiene los permisos de ambos ✓ · sin roles no tiene ninguno ✓ · un claim de un rol que nadie conoce no concede nada ✓) · `PermissionPolicyEndpointTests` (5 ✓: entra ✓ · se lo rechaza ✓ · el rechazo nombra el permiso ✓ · con dos roles entra por los dos ✓ · sin token ni se pregunta ✓) → **suite completa 1078/1078** ✓.
+
+**Risk**: item 2 (seguridad) — las policies son el mecanismo del deny-by-default, pero mientras ningún endpoint las declare el comportamiento no cambia → el riesgo real vive en T5, y el test de inventario de endpoints de T5 es lo que lo cierra ✓.

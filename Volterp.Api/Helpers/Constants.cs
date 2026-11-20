@@ -9,7 +9,7 @@ public static class Constants
         <ul>
           <li><code>name</code> — username</li>
           <li><code>email</code> — user's email</li>
-          <li><code>role</code> — <code>Admin</code>, <code>SuperAdmin</code>, etc.</li>
+          <li><code>role</code> — one claim per role the user holds (<code>Admin</code>, <code>SuperAdmin</code>, etc.). The permissions of the user are the union of the permissions of its roles.</li>
           <li><code>companyId</code> — tenant identifier (every request is implicitly scoped to this tenant)</li>
           <li><code>userId</code> — current user identifier (populates <code>CreatedBy</code> / <code>UpdatedBy</code> audit fields automatically)</li>
         </ul>

@@ -21,6 +21,19 @@ public static class RolePermissions
     public static IReadOnlySet<Permission> For(UserRole role)
         => Matrix.TryGetValue(role, out var permissions) ? permissions : new HashSet<Permission>();
 
+    // The permissions of the roles a user holds: the union of them. The
+    // effective permissions of a user are never less than the ones of any of
+    // the roles it holds.
+    public static IReadOnlySet<Permission> For(IEnumerable<UserRole> roles)
+    {
+        var permissions = new HashSet<Permission>();
+
+        foreach (var role in roles)
+            permissions.UnionWith(For(role));
+
+        return permissions;
+    }
+
     private static IReadOnlyDictionary<UserRole, IReadOnlySet<Permission>> Build()
     {
         var everything = Enum.GetValues<Permission>().ToHashSet();

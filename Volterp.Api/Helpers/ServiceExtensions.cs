@@ -8,11 +8,13 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Volterp.Api.Authentication;
+using Volterp.Api.Authorization;
 using Volterp.Api.Configuration;
 using Volterp.Api.Http;
 using Volterp.Api.Workers;
@@ -100,8 +102,17 @@ public static class ServiceExtensions
                     {
                         context.Response.StatusCode = StatusCodes.Status403Forbidden;
                         context.Response.ContentType = "application/json";
+
+                        // The message names the permission the endpoint asked
+                        // for: a caller that does not know which one is
+                        // missing cannot do anything with the refusal.
+                        var required = context.HttpContext.Items[PermissionRequirement.RequiredPermissionItem] as string;
+                        var message = required is null
+                            ? "Forbidden."
+                            : $"You do not have the permission '{required}'.";
+
                         await context.Response.WriteAsync(
-                            JsonSerializer.Serialize(new ErrorResponse("Forbidden."), jsonOptions));
+                            JsonSerializer.Serialize(new ErrorResponse(message), jsonOptions));
                     }
                 };
             })
@@ -110,7 +121,10 @@ public static class ServiceExtensions
                 "API key of a client",
                 _ => { });
 
-        services.AddAuthorization();
+        // One policy per permission of the catalog, and the handler that
+        // resolves the permission of the caller out of the roles of its token.
+        services.AddAuthorization(options => PermissionPolicies.Register(options));
+        services.AddSingleton<IAuthorizationHandler, PermissionRequirementHandler>();
     }
 
     public static void ConfigureApiCredentials(IServiceCollection services)
