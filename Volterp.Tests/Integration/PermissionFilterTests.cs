@@ -97,6 +97,18 @@ public class PermissionFilterTests : IClassFixture<ApiFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task TheTokenWithoutRolesDoesNotOpenTheRoute()
+    {
+        // A token with no role is not a caller with no permissions: it is a
+        // caller the matrix says nothing about, and it gets nothing.
+        SetAuth();
+
+        var response = await _client.GetAsync("/api/Sales");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
     private void SetAuth(params string[] roles)
     {
         var token = JwtTestHelper.MintToken(_factory, Guid7TestValues.CompanyA, Guid7TestValues.UserA, roles);

@@ -393,3 +393,17 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **Tests** ✓: `PermissionServiceTests` (5 ✓: la unión ✓ · sin roles no hay permisos ✓ · los permisos de un rol son los de la matriz ✓ · el admin tiene todo ✓ · la matriz cubre todos los roles ✓) · `PermissionsEndpointTests` (5 ✓: el caller aprende lo que puede ✓ · con dos roles, la unión ✓ · la matriz es de los admins ✓ · un no-admin no la ve (403) ✓ · sin token no se pregunta ✓) → **suite completa 1097/1097** ✓.
 
 **Risk**: item 2 (seguridad) — el endpoint expone los permisos del propio caller (no los de otro ✓) y la matriz completa es de los admins ✓.
+
+### L21 — 2026-11-20 — la verificación independiente de T5 (item 2) y lo que encontró
+
+> (la verificación independiente la pidió el plan: el item 2 de seguridad exige un verificador)
+
+- **Veredicto sobre `296777d` (T5)**: el deny-by-default era **real** ✓ (una ruta sin cobertura responde 403 ✓) · **cero relajaciones** ✓ (**145 diferencias** entre la base y el candidato, **todas endurecimientos** ✓ · Admin/SuperAdmin: 0 diferencias ✓) · los callers con **API key** conservan su acceso ✓ · la suite en verde ✓ → **entregable** ✓.
+- **F1 — lo más grave, y lo出厂 la siguiente unidad**: el commit de T6 dejó la rama `permission is null` abriendo la ruta → **el deny-by-default quedó roto con la suite en verde** (nadie lo veía porque **faltaba el test** ✓). → **arreglado** ✓: la rama vuelve a cerrar la ruta ✓ y ahora hay un test que la pincha (`PermissionFilterUncoveredRouteTests` ✓: la ruta sin cobertura se cierra ✓ · ni el SuperAdmin la abre ✓ · la ruta cubierta la decide la matriz ✓).
+- **F2**: el filtro eximía a quien **no tuviera claim de rol** (en vez de a quien **no es del token**) → un token sin roles se llevaba todas las rutas mapeadas ✓ → ahora la exención es **por esquema** (`ApiKey` ✓) → un token sin roles no abre nada ✓ (y la API alquilada sigue igual ✓).
+- **F3**: el inventario caminaba la reflexión de los controllers (no las rutas reales) → ahora camina el **`EndpointDataSource` real** ✓ → también ve las minimal APIs ✓.
+- **Las 10 entradas muertas del mapa** (rutas que no existen: `ElectronicInvoices:DELETE`, `CompanyCertificates:DELETE`, …) → **sacadas** ✓ + un test que falla si vuelve una ✓.
+- **Corrección a lo que dije**: `facturacion.write` **no** estaba cerrado antes para todos (el **reintento** del comprobante y la **aprobación comercial** estaban abiertos a cualquier autenticado ✓) → el rol `Ventas` los pierde ahora ✓ → es un **endurecimiento** ✓, y el front tiene que dejar de ofrecerlos (T8 ✓).
+- **Tests** ✓: la suite completa **1101/1101** ✓.
+
+**Risk**: item 2 (seguridad) — el agujero estaba **entregado** y la suite no lo veía: por eso el item 2 exige el verificador independiente ✓ (y por eso sus tests van al repo, no a un scratch ✓).

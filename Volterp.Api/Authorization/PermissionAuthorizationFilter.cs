@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Volterp.Api.Authentication;
 using Volterp.Application.DTOs;
 using Volterp.Domain.Authorization;
 using Volterp.Domain.Enums;
@@ -46,18 +47,24 @@ public class PermissionAuthorizationFilter(IHttpContextAccessor httpContextAcces
             context.HttpContext.Request.Method,
             action.ActionName);
 
+        // The route is not in the map: nobody declared what it needs, so it
+        // stays closed.
         if (permission is null)
+        {
+            context.Result = Forbidden(
+                $"The route '{context.HttpContext.Request.Path}' does not declare the permission it needs.");
+
             return Task.CompletedTask;
+        }
 
         var user = httpContextAccessor.HttpContext?.User;
 
         if (user is null || user.Identity?.IsAuthenticated != true)
             return Task.CompletedTask;
 
-        // The callers that enter with an API key are not the user: their
-        // principal carries no role, and the matrix has nothing to say about
-        // them. They keep the access they had.
-        if (!user.FindAll(ClaimTypes.Role).Any())
+        // The callers that enter with an API key are not the user: the matrix
+        // has nothing to say about them. They keep the access they had.
+        if (user.Identity?.AuthenticationType == ApiKeyAuthenticationHandler.SchemeName)
             return Task.CompletedTask;
 
         if (RolePermissions.For(CallerRoles.Of(user)).Contains(permission.Value))

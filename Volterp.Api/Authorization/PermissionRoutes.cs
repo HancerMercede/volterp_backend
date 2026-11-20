@@ -73,7 +73,6 @@ public static class PermissionRoutes
             ["Users:DELETE"] = Permission.AdministrationDelete,
             ["ApiCredentials:GET"] = Permission.AdministrationRead,
             ["ApiCredentials:POST"] = Permission.AdministrationWrite,
-            ["ApiCredentials:PUT"] = Permission.AdministrationWrite,
             ["ApiCredentials:DELETE"] = Permission.AdministrationDelete,
 
             // Facturacion electronica: emisores, rangos, certificados, el modo
@@ -81,29 +80,20 @@ public static class PermissionRoutes
             ["CompanyIssuers:GET"] = Permission.ElectronicInvoicingRead,
             ["CompanyIssuers:POST"] = Permission.ElectronicInvoicingWrite,
             ["CompanyIssuers:PUT"] = Permission.ElectronicInvoicingWrite,
-            ["CompanyIssuers:DELETE"] = Permission.ElectronicInvoicingDelete,
             ["CompanyCertificates:GET"] = Permission.ElectronicInvoicingRead,
             ["CompanyCertificates:POST"] = Permission.ElectronicInvoicingWrite,
-            ["CompanyCertificates:PUT"] = Permission.ElectronicInvoicingWrite,
-            ["CompanyCertificates:DELETE"] = Permission.ElectronicInvoicingDelete,
             ["ElectronicInvoiceSequences:GET"] = Permission.ElectronicInvoicingRead,
             ["ElectronicInvoiceSequences:POST"] = Permission.ElectronicInvoicingWrite,
             ["ElectronicInvoiceSequences:PUT"] = Permission.ElectronicInvoicingWrite,
-            ["ElectronicInvoiceSequences:DELETE"] = Permission.ElectronicInvoicingDelete,
             ["NormalFiscalSequences:GET"] = Permission.ElectronicInvoicingRead,
             ["NormalFiscalSequences:POST"] = Permission.ElectronicInvoicingWrite,
             ["NormalFiscalSequences:PUT"] = Permission.ElectronicInvoicingWrite,
-            ["NormalFiscalSequences:DELETE"] = Permission.ElectronicInvoicingDelete,
             ["ElectronicInvoices:GET"] = Permission.ElectronicInvoicingRead,
             ["ElectronicInvoices:POST"] = Permission.ElectronicInvoicingWrite,
-            ["ElectronicInvoices:PUT"] = Permission.ElectronicInvoicingWrite,
-            ["ElectronicInvoices:DELETE"] = Permission.ElectronicInvoicingDelete,
             ["ElectronicInvoicePrint:GET"] = Permission.ElectronicInvoicingRead,
             ["ElectronicInvoiceReception:POST"] = Permission.ElectronicInvoicingWrite,
             ["CompanyEmissionMode:GET"] = Permission.ElectronicInvoicingRead,
-            ["CompanyEmissionMode:POST"] = Permission.ElectronicInvoicingWrite,
             ["CompanyEmissionMode:PUT"] = Permission.ElectronicInvoicingWrite,
-            ["CompanyEmissionMode:DELETE"] = Permission.ElectronicInvoicingDelete,
 
             // El registro de un usuario (la API alquilada lo usa).
             ["Auth:POST"] = Permission.AdministrationWrite,
@@ -126,6 +116,17 @@ public static class PermissionRoutes
         new Dictionary<string, Permission>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Whether the route only needs a caller with a token.
+    /// </summary>
+    public static bool NeedsOnlyAToken(Type controllerType, string? actionName = null)
+    {
+        if (actionName is null)
+            return false;
+
+        return OnlyAuthenticated.Contains($"{NameOf(controllerType)}.{actionName}");
+    }
+
+    /// <summary>
     /// The permission a route needs, or null when the map does not cover it.
     /// </summary>
     public static Permission? For(Type controllerType, string httpMethod, string? actionName = null)
@@ -145,17 +146,6 @@ public static class PermissionRoutes
         => controllerType.Name.EndsWith("Controller", StringComparison.Ordinal)
             ? controllerType.Name[..^"Controller".Length]
             : controllerType.Name;
-
-    /// <summary>
-    /// Whether the route only needs a caller with a token.
-    /// </summary>
-    public static bool NeedsOnlyAToken(Type controllerType, string? actionName = null)
-    {
-        if (actionName is null)
-            return false;
-
-        return OnlyAuthenticated.Contains($"{NameOf(controllerType)}.{actionName}");
-    }
 
     /// <summary>
     /// Every entry of the map, as "Controller:VERB" or "Controller.Action".
