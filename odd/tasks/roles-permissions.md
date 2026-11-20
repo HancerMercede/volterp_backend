@@ -9,7 +9,7 @@ Objetivo: que el sistema de roles deje de ser un enum único con guards binarios
 
 Conductor: el módulo POS (cajero, turno, caja cuadrada) es lo que hace insuficiente el modelo actual. Un "vendedor" que también opera la caja no cabe en un `User.Role` único, y "el cajero solo accede al POS" es imposible de expresar mientras todo endpoint autenticado lea todo.
 
-**Estado: EN EJECUCIÓN. T11 cerrada; T1-T10 siguen PENDING.**
+**Estado: EN EJECUCIÓN. T1 y T11 cerradas; T2-T10 siguen PENDING.**
 
 ## Specs
 
@@ -141,7 +141,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
-| T1 | S1, S5 | inline (parent) | PENDING | Catálogo `Module` + `Permission` + matriz `RolePermissions` en `Volterp.Domain/Authorization/` + tests |
+| T1 | S1, S5 | inline (parent) | DONE | Catálogo `Module` + `Permission` + matriz `RolePermissions` en `Volterp.Domain/Authorization/` + tests — la matriz es **la del front** (`erp-mvp/src/domain/constants/permisos.ts`) y el vocabulario es el del plan (módulo × acción de dominio) |
 | T2 | S2 | inline (parent) | PENDING | `User.Role` → colección: tabla puente `UserRoles` + migración + backfill + `UserService`/DTOs |
 | T3 | S2 | inline (parent) | PENDING | JWT multi-claim + `LoginResponse.Roles[]` + `UpdateUserRoleDto` (agregar/quitar) + `IsInRole` en `BaseController` y `CurrentUserService` |
 | T4 | S1, S4, S5 | inline (parent) | PENDING | `PermissionRequirement` + handler + policies registradas en `ServiceExtensions` + mensaje de 403 por permiso |
@@ -292,3 +292,20 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **Por qué T11 entra en esta feature y no en la del e-CF**: deny-by-default (T5) le tiene que declarar su permiso ✓ → el endpoint tiene que existir antes de que el barrido le pase por encima ✓. Y desbloquea al agente del front ✓.
 - **Verificación de la unidad**: build limpio ✓ (0 errores ✓) · el test enfocado **4/4** ✓ · la differential check de los endpoints hermanos del mismo controller: **260** de `Volterp.Tests` ✓ + **5** de `Volterp.ElectronicInvoicing.Tests` ✓, sin regresiones ✓.
 - **Hallazgo abierto (no tocado)**: `ElectronicInvoiceDto.MapFrom` copia `VerdictNote` **sin pasar por `RawResponseSanitizer`** ✓ (el `ElectronicInvoiceStateDto` sí lo pasa ✓) → el `retry` ya expone la nota sin redactar ✓ y el `GET` nuevo hereda eso ✓. No se tocó porque `ElectronicInvoiceDto` lo consume el `retry` ✓ (cambiarlo es un cambio de contrato de un endpoint que este pedido no nombró ✓) → **decisión del owner**.
+
+### L13 — 2026-11-19 — T1: el catálogo y la matriz (la matriz es la del front)
+
+> "eso ya existe validalo en el codigo del backend o del frontend que es quien la gestiona por el momento"
+
+> "El plan tambien te da algunas pautas a seguir"
+
+- **La matriz ya existe** ✓ → la gestiona el front ✓ (`erp-mvp/src/domain/constants/permisos.ts` ✓): **12 módulos** × `read/write/delete` × **6 roles** ✓ (los mismos `UserRole` del backend ✓ · los valores 1..6 coinciden ✓).
+- **Lo que se implementó** ✓ (T1 ✓):
+  - `Volterp.Domain/Authorization/Module.cs` → los 13 módulos (los 12 del front ✓ + `PointOfSale` ✓ del plan ✓).
+  - `Volterp.Domain/Authorization/Permission.cs` → **el enum cerrado** ✓ (46 permisos ✓): el `read/write/delete` del front ✓ + `contabilidad.post` ✓ + el set del POS ✓ (`pos.read`…`pos.report.read` ✓ · el del plan ✓).
+  - `Volterp.Domain/Authorization/Permissions.cs` → el módulo y la clave de cada permiso ✓ — **el switch no tiene brazo `default`** ✓ → un permiso nuevo sin catalogar **no compila** ✓.
+  - `Volterp.Domain/Authorization/RolePermissions.cs` → **la matriz** ✓: los mismos módulos, los mismos roles y los mismos grants del front ✓ (`SuperAdmin`/`Admin` = todo ✓ · `Ventas` ✓ · `Inventario` ✓ · `Contabilidad` ✓ · `RRHH` ✓).
+- **Las pautas del plan que se respetaron** ✓: la matriz **en código** y no en la DB ✓ (S1 ✓) · el catálogo **cerrado** ✓ (S5 ✓) · el vocabulario **módulo × acción de dominio** ✓ (S5 ✓) · la unión de los permisos la resuelve el servidor ✓ (S6 ✓ → el front deja su copia en T8 ✓).
+- **Las claves no cambian** ✓: las del front (`ventas.read` ✓ · `contabilidad.read` ✓ · `facturacion.read` ✓ · `rrhh.read` ✓ · `configuracion.read` ✓) → la migración del front (T8) no renombra nada ✓.
+- **Tests** ✓ (`RolePermissionsTests` ✓ · 11 ✓): las claves son únicas ✓ · la clave empieza por la del módulo ✓ · las claves son las del front ✓ · Admin/SuperAdmin tienen todo ✓ · **ningún permiso queda sin rol** ✓ · **la matriz de cada rol es la del front** ✓ (la paridad queda clavada por test ✓).
+- **Dos cosas que quedan anotadas** ✓: (a) el front da `delete` de `facturacion` al rol `Ventas` ✓ → se conserva ✓ aunque **no hay endpoint que borre un e-CF** ✓ → el permiso no abre nada ✓; (b) el front da `write` de `dashboard` a los roles no admin ✓ → se conserva ✓ aunque el `DashboardController` solo lee ✓ → lo define el barrido de T5 ✓.
