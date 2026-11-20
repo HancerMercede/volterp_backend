@@ -37,7 +37,9 @@ El cajero **no** puede leer el libro de ventas, ni el inventario completo, ni la
 ### S4
 > "el cajero solo debe tener acceso al pos" (consecuencia técnica necesaria)
 
-**Deny-by-default**: todo endpoint protegido declara un permiso explícito; lo que no declara, se denies. Hoy el modelo es el contrario: `SalesController` tiene `[Authorize]` de clase (`Volterp.Api/Controllers/SalesController.cs:14`) y solo el `DELETE` lleva roles (línea 106-107) → cualquier autenticado lee y crea ventas. Sin deny-by-default, "cajero = solo POS" es falso: el cajero igual vería el libro de ventas.
+**Deny-by-default**: todo endpoint protegido dice **qué permiso necesita**, y ese permiso lo **resuelve la matriz** según los roles del caller. Hoy el modelo es el contrario: `SalesController` tiene `[Authorize]` de clase (`Volterp.Api/Controllers/SalesController.cs:14`) y solo el `DELETE` lleva roles (línea 106-107) → cualquier autenticado lee y crea ventas. Sin deny-by-default, "cajero = solo POS" es falso: el cajero igual vería el libro de ventas.
+
+**Dónde vive esa declaración (cambiado el 2026-11-20, L18)**: no en un atributo por endpoint, sino en **un mapa de rutas → permiso del API** (`Volterp.Api/Authorization/`), que un filtro consulta. Motivo (el owner): *"no lo veo viable"* declarar el permiso en cada endpoint → con el mapa, la **matriz sigue siendo la fuente de verdad** (rol → permisos ✓) y el diff es un archivo, no 24 controllers. La regla de deny-by-default no cambia: **una ruta que el mapa no cubre queda cerrada** ✓, y el **test de inventario** sigue siendo la red que falla si un endpoint no está cubierto.
 
 ### S5
 > "poner el pos aparte con un cajero, turno y eso"
@@ -145,7 +147,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 | T2 | S2 | inline (parent) | DONE | `User.Role` → colección: tabla puente `UserRoles` (tenant-scoped, índice único `(UserId, Role)`) + migración `AddUserRoles` con backfill + drop de la columna + `User.AssignRole/RemoveRole/HasRole` + `UserService.UpdateRolesAsync` + `PUT /api/Users/{id}/roles`. **Se hizo junto con T3**: sacar `User.Role` de la persistencia obliga a cambiar el token en el mismo commit |
 | T3 | S2 | inline (parent) | DONE | JWT multi-claim (un claim por rol) + `LoginResponse.Roles[]` + `CreateUserDto.Roles[]` + `UserDto.Roles[]` + `IsInRole` en `BaseController` y `CurrentUserService` (con varios claims, `FindFirst` solo veía el primero) |
 | T4 | S1, S4, S5 | inline (parent) | DONE | `PermissionRequirement` + handler + una policy por permiso (`PermissionPolicies`, los nombres son constantes) + el 403 nombra el permiso que falta. La unión de los permisos de los roles vive en `RolePermissions.For(IEnumerable<UserRole>)` |
-| T5 | S4 | inline (parent) | PENDING | Declarar permiso en **cada** endpoint (deny-by-default). Unit de trabajo por controller; el test de inventario de endpoints cierra la unidad |
+| T5 | S4 | inline (parent) | DONE | Deny-by-default con el permiso de cada ruta en **un mapa del API** (no un atributo por endpoint, L18) + el filtro que lo consulta contra la matriz + el test de inventario que exige que toda ruta JWT esté cubierta |
 | T6 | S6 | inline (parent) | PENDING | `PermissionsController` (`me`, `roles`) + `IPermissionService` + DTOs |
 | T7 | S1-S6 | inline (parent) | PENDING | Verificación: suite completa + test de inventario de endpoints + E2E contra la API viva (login → `me` → un endpoint denegado → uno permitido) |
 | T8 | S3, S6, S10 | handoff al usuario (repo `erp-mvp`) | PENDING | Front: `roles[]`, permisos desde la API, `MATRIZ_PERMISOS` fuera, `normalizeRole` falla cerrado. Entrega aparte (repo, rama y PR distintos) |
@@ -348,3 +350,35 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **Tests** ✓: `PermissionPolicyTests` (7 ✓: toda permission del catálogo tiene su policy ✓ · los nombres son únicos ✓ · la unión de los roles ✓ · el que tiene el rol entra ✓ · el que no, no ✓ · con dos roles tiene los permisos de ambos ✓ · sin roles no tiene ninguno ✓ · un claim de un rol que nadie conoce no concede nada ✓) · `PermissionPolicyEndpointTests` (5 ✓: entra ✓ · se lo rechaza ✓ · el rechazo nombra el permiso ✓ · con dos roles entra por los dos ✓ · sin token ni se pregunta ✓) → **suite completa 1078/1078** ✓.
 
 **Risk**: item 2 (seguridad) — las policies son el mecanismo del deny-by-default, pero mientras ningún endpoint las declare el comportamiento no cambia → el riesgo real vive en T5, y el test de inventario de endpoints de T5 es lo que lo cierra ✓.
+
+### L18 — 2026-11-20 — T5 cambia de forma: el permiso de cada ruta vive en un mapa, no en un atributo
+
+> "pero porque declarar el permiso en cada endpoint no lo veo viable eso, para eso se creo la matriz y por eso se han creado roles para que por medio al role se habiliten las rutas que dicho role puede ver"
+
+> "eso fue lo que estaba en el plan o no?"
+
+> "Ok pues demos mambo"
+
+- **El plan decía A** (atributo por endpoint) ✓ y en tres lugares: **S4** ("todo endpoint protegido declara un permiso explícito") · **Design → Enforcement** ("Cada endpoint pasa de `[Authorize(Roles = ...)]` a `[Authorize(Policy = ...)]`") · **T5** ("Declarar permiso en **cada** endpoint... Unit de trabajo por controller"). **Lo que el owner propone (mapa + filtro) no estaba en el plan** ✓: salió de su objeción ✓ y por eso se anota acá con sus palabras ✓.
+- **El modelo del owner es el correcto** ✓ y no cambia: la **matriz** (rol → permisos) es la fuente de verdad ✓ · el token ya lleva los roles ✓ · **deny-by-default** se mantiene ✓ (una ruta sin cubrir queda cerrada ✓).
+- **Lo que cambia es DÓNDE se declara** el permiso de cada ruta: de repetido en 24 controllers a **un solo archivo** (`Volterp.Api/Authorization/`) que un filtro consulta ✓ → el diff es un mapa + un filtro + un test, en vez de 24 controllers ✓.
+- **Los `[Authorize(Roles = "...")]` repetidos dejan de ser el enforcer** ✓ (el filtro pasa a ser el único que autoriza) → y el 403 **nombra el permiso** que falta ✓ (lo que T4 ya dejó listo ✓).
+- **El filtro no toca** los endpoints públicos ni los que autentican con **API key** (los de la DGII) ✓ → esos quedan fuera del mapa y el test de inventario los lista como exentos ✓.
+
+**Risk**: item 2 (seguridad) — cambiar quién autoriza es el cambio de comportamiento más grande de la feature: mitiga con el **test de inventario** (toda ruta JWT cubierta ✓) + la regresión de la suite completa ✓ + la revisión independiente (item 2 exige verificador) ✓.
+
+### L19 — 2026-11-20 — T5: el deny-by-default con el permiso de cada ruta en un mapa
+
+- **El mapa** ✓ (`Volterp.Api/Authorization/PermissionRoutes.cs`): qué necesita cada ruta, por **controller + método** (`Sales:GET` → `ventas.read`) → no por plantilla de ruta (la colisión de `api/Sales/pending` con `api/Sales/{id}` no existe así ✓) · 92 rutas, **84 de controller + 3 minimal APIs** ✓.
+- **El filtro** ✓ (`PermissionAuthorizationFilter`): pide el permiso al mapa y lo resuelve contra la **matriz** ✓ → el 403 **nombra el permiso** que falta ✓. **Ningun controller fue tocado** ✓ (el diff son 2 archivos nuevos + el registro del filtro + 1 línea en `Program.cs`).
+- **Deny-by-default** ✓: una ruta que el mapa no cubre **queda cerrada** ✓, y el **test de inventario** falla si una ruta JWT no está en el mapa ✓ (`EndpointPermissionInventoryTests` ✓).
+- **Los `[Authorize(Roles = ...)]` repetidos se quedan** ✓: son la **barra más alta** que la matriz (borrar clientes/empleados/ventas/rangos/certificados es del SuperAdmin ✓) → **nada se relaja** ✓. El mapa pone el piso, el atributo lo sube ✓.
+- **La matriz dejó de mentir** ✓: le daba a `Ventas` `clientes.write`, `facturacion.write` y `facturacion.delete`, y la API nunca lo dejó (403 ✓) → un vendedor podía **crear emisores y borrar certificados** si la matriz pasaba a mandar ✓ → la matriz ahora dice lo que la API hace ✓ (`Ventas` conserva `facturacion.read` ✓). El front tiene que dejar de ofrecer esos botones (T8) ✓.
+- **La API alquilada no se toca** ✓: los callers que entran con **API key** no son el usuario (su principal no lleva roles ✓) → el filtro los deja pasar ✓ → los clientes que alquilan la API siguen como estaban ✓.
+- **Las rutas públicas y las de la DGII** quedan fuera ✓ (el login ✓ · la semilla ✓ · la validación de certificado ✓ · la recepción con certificado ✓).
+- **La única ruta que declara su permiso** es `GET /_diagnostics/exceptions` ✓ (una minimal API, no un controller: el filtro de MVC no la ve ✓ → lleva `RequireAuthorization(PermissionPolicies.AdministrationRead)` ✓).
+- **Lo que el inventario corrigió** ✓: el mapa nombra a `Accounts` (que **no existe en esta rama** ✓ → vive en `feature/accounting` ✓) → esa entrada se sacó ✓ · la aprobación comercial de un comprobante recibido es la única ruta JWT de `ElectronicInvoiceReception` ✓ → `facturacion.write` ✓ · **`DELETE api/Sales/{id}` hoy no exige roles** ✓ (el tracker y S4 estaban desactualizados ✓) → con el mapa necesita `ventas.delete` (los admins ✓) → un **endurecimiento** ✓.
+- **Endurecimientos** ✓ (y son el punto del deny-by-default): los roles que la matriz nohers concede pierden el acceso que tenían (hoy **cualquier** autenticado leía y escribía ventas ✓) → la API ahora coincide con lo que el front ya mostraba ✓ (el front escondía esos módulos ✓).
+- **Tests** ✓: `EndpointPermissionInventoryTests` (3 ✓: toda ruta JWT está en el mapa ✓ · el mapa solo habla el catálogo ✓ · el mapa no nombra controllers inexistentes ✓) · `PermissionFilterTests` (6 ✓: el que tiene el rol entra ✓ · el que no, no ✓ · el rechazo nombra el permiso ✓ · con dos roles entra por los dos ✓ · el SuperAdmin entra por todo ✓ · el login es público ✓) · `RolePermissionsTests` (la matriz corregida ✓) → **suite completa 1087/1087** ✓.
+
+**Risk**: item 2 (seguridad) — el cambio de quién autoriza es el más grande de la feature: mitigado con el test de inventario ✓ + la suite completa ✓ + la revisión independiente ✓. No hay relajación: la matriz se corrigió para decir lo que la API ya hacía ✓.

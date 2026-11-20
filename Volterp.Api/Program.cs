@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.EntityFrameworkCore;
 using Volterp.Api.Authentication;
+using Volterp.Api.Authorization;
 using Volterp.Api.Configuration;
 using Volterp.Api.Controllers;
 using Volterp.Api.Extensions;
@@ -116,7 +117,7 @@ app.MapGet("health", async (VolterpDbContext db) =>
 }).DisableRateLimiting();
 
 app.MapGet("/_diagnostics/exceptions", (IExceptionLogStore store) =>
-    Results.Ok(store.GetRecent(50))).RequireAuthorization();
+    Results.Ok(store.GetRecent(50))).RequireAuthorization(PermissionPolicies.AdministrationRead);
 
 app.UseStaticFiles();
 app.Run();

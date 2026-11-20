@@ -43,6 +43,11 @@ public static class RolePermissions
             [UserRole.SuperAdmin] = everything,
             [UserRole.Admin] = new HashSet<Permission>(everything),
 
+            // The sales role reads the clients and the fiscal module, but
+            // it does not write them: the API has always reserved the writing
+            // of the clients and of the fiscal configuration (issuers, ranges,
+            // certificates, emission mode, credentials) to the admins. The
+            // matrix says what the API does, not what the front used to offer.
             [UserRole.Ventas] = new HashSet<Permission>
             {
                 Permission.DashboardRead,
@@ -50,12 +55,9 @@ public static class RolePermissions
                 Permission.SalesRead,
                 Permission.SalesWrite,
                 Permission.ClientsRead,
-                Permission.ClientsWrite,
                 Permission.SuppliersRead,
                 Permission.ReportsRead,
-                Permission.ElectronicInvoicingRead,
-                Permission.ElectronicInvoicingWrite,
-                Permission.ElectronicInvoicingDelete
+                Permission.ElectronicInvoicingRead
             },
 
             [UserRole.Inventario] = new HashSet<Permission>

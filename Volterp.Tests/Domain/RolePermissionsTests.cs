@@ -73,8 +73,12 @@ public class RolePermissionsTests
     }
 
     [Fact]
-    public void TheRoleOfVentasGrantsWhatTheFrontGranted()
+    public void TheRoleOfVentasGrantsWhatTheApiDoes()
     {
+        // The matrix says what the API does. The front used to offer the sales
+        // role the writing of the clients and of the fiscal configuration, and
+        // the API refused it with a 403: the buttons were a lie. The matrix
+        // now says the truth, and the front stops offering them (T8).
         Granted(UserRole.Ventas).Should().BeEquivalentTo(new[]
         {
             "dashboard.read",
@@ -82,12 +86,9 @@ public class RolePermissionsTests
             "ventas.read",
             "ventas.write",
             "clientes.read",
-            "clientes.write",
             "proveedores.read",
             "reportes.read",
-            "facturacion.read",
-            "facturacion.write",
-            "facturacion.delete"
+            "facturacion.read"
         });
     }
 
@@ -137,11 +138,11 @@ public class RolePermissionsTests
     [Fact]
     public void TheRolesThatAreNotAdminDoNotDelete()
     {
-        // The front never gave delete to a role that is not an admin, with
-        // one exception that is kept as it is: the front gave the delete of
-        // the invoicing to the role of sales.
+        // The deletion of a document is the admin's: the front used to give
+        // the delete of the invoicing to the role of sales, and the API never
+        // let it happen. Now the matrix says the same as the API.
         Granted(UserRole.Ventas).Where(key => key.EndsWith(".delete"))
-            .Should().BeEquivalentTo(new[] { "facturacion.delete" });
+            .Should().BeEmpty();
 
         Granted(UserRole.Inventario).Where(key => key.EndsWith(".delete"))
             .Should().BeEmpty();

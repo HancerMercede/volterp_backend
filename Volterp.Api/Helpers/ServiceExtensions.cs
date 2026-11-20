@@ -187,7 +187,10 @@ public static class ServiceExtensions
     }
 
     public static void ConfigureControllers(IServiceCollection services)
-        => services.AddControllers()
+        => services.AddControllers(options =>
+                // The permission of every route is asked to the filter, which
+                // resolves it against the matrix of the roles.
+                options.Filters.Add<PermissionAuthorizationFilter>())
             .AddJsonOptions(options =>
                 options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
