@@ -13,6 +13,7 @@ public class UserRepository(VolterpDbContext context)
         => await Set()
             .IgnoreQueryFilters()
             .AsNoTracking()
+            .Include(u => u.Roles)
             .FirstOrDefaultAsync(u => u.Username == username, ct);
 
     // Not tenant-scoped: the unique index on Username is global.
@@ -42,12 +43,16 @@ public class UserRepository(VolterpDbContext context)
     public async Task<User?> GetByUserByEmailAsync(string email, CancellationToken ct = default)
         =>  await GetByCondictionsAsync(u => u.Email.ToLower() == email.ToLowerInvariant(), ct);
 
+    // The roles come with the user: the permission union of the user is
+    // resolved from them, and a change of roles has to see the current ones.
     public async Task<User?> GetUserByIdAsync(Guid id, CancellationToken ct = default)
-        => await GetByIdAsync(id, ct);
+        => await Set()
+            .Include(u => u.Roles)
+            .FirstOrDefaultAsync(u => u.Id == id, ct);
 
     public async Task<PagedResult<User>> GetAllAsync(int pageNumber,
         int pageSize, CancellationToken ct = default)
-        => await GetAllAsync(_=>true,pageNumber, pageSize, ct);
+        => await GetAllAsync(_=>true,pageNumber, pageSize, ct, query => query.Include(u => u.Roles));
 
 
     public async Task<User> AddUserAsync(User user, CancellationToken ct = default)

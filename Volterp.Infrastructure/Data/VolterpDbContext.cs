@@ -13,6 +13,7 @@ public class VolterpDbContext(
     private readonly ITenantContext _tenantContext = tenantContext ?? new NullTenantContext();
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserRoleAssignment> UserRoles => Set<UserRoleAssignment>();
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Category> Categories => Set<Category>();

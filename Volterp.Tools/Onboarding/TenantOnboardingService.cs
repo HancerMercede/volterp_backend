@@ -101,7 +101,7 @@ public sealed class TenantOnboardingService(
                 password,
                 request.AdminEmail,
                 request.AdminFullName,
-                UserRole.SuperAdmin),
+                [UserRole.SuperAdmin]),
             companyId!.Value,
             null,
             ct);

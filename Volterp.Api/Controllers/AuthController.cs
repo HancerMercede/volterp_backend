@@ -1,3 +1,5 @@
+using Volterp.Domain.Enums;
+
 namespace Volterp.Api.Controllers;
 
 [ApiController]
@@ -20,8 +22,8 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
             error => BadRequest(new ErrorResponse(error.Message)),
             user =>
             {
-                var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId, user.Id);
-                var response = new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(), user.CompanyId);
+                var token = jwtService.GenerateToken(user.Username, user.Email, user.Roles, user.CompanyId, user.Id);
+                var response = new LoginResponse(token, user.Username, user.Email, user.FullName, RoleNames(user.Roles), user.CompanyId);
 
                 return Ok(response);
             });
@@ -40,13 +42,19 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
 
     private async Task<IActionResult> HandleValidLogin(
         UserWithPasswordHashDto? user,
-        LoginRequest request, CancellationToken ct)
+        LoginRequest request,
+        CancellationToken ct)
     {
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
             return Unauthorized(new ErrorResponse("Invalid credentials", "Check your credentials."));
 
         if (!user.IsActive)
             return Unauthorized(new ErrorResponse("User is inactive", "Your account is inactive."));
+
+        // A user without roles has no permissions at all: the token would
+        // carry none and the user would be locked out of the system.
+        if (user.Roles.Length == 0)
+            return Unauthorized(new ErrorResponse("User has no roles", "Your account has no role assigned."));
 
         if (!user.PasswordHash.StartsWith("$2"))
         {
@@ -56,7 +64,10 @@ public class AuthController(IServiceManager serviceManager, IJwtService jwtServi
                 return BadRequest(new ErrorResponse("Update failed"));
         }
 
-        var token = jwtService.GenerateToken(user.Username, user.Email, user.Role.ToString(), user.CompanyId, user.Id);
-        return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, user.Role.ToString(), user.CompanyId));
+        var token = jwtService.GenerateToken(user.Username, user.Email, user.Roles, user.CompanyId, user.Id);
+        return Ok(new LoginResponse(token, user.Username, user.Email, user.FullName, RoleNames(user.Roles), user.CompanyId));
     }
+
+    private static string[] RoleNames(IEnumerable<UserRole> roles)
+        => roles.Select(role => role.ToString()).ToArray();
 }

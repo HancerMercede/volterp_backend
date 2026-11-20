@@ -29,7 +29,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", UserRole.Ventas);
+        var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", [UserRole.Ventas]);
 
         // ACT
         var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
@@ -62,7 +62,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas);
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas]);
 
         // ACT
         var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
@@ -94,7 +94,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas);
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas]);
 
         // ACT
         var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
@@ -131,7 +131,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas)
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas])
         {
             Code = "LEGACY-42"
         };
@@ -171,7 +171,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas)
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas])
         {
             Code = "  LEGACY-7  "
         };
@@ -208,7 +208,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", UserRole.Ventas)
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas])
         {
             Code = "DUP-1"
         };
@@ -234,7 +234,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "old@test.com",
-            FullName = "Old Name", Role = UserRole.Ventas,
+            FullName = "Old Name", 
             CompanyId = Guid7TestValues.CompanyA, IsActive = true, Code = "Usu-001"
         };
 
@@ -251,7 +251,7 @@ public class UserServiceTests
         var request = new UserWithPasswordHashDto
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "new@test.com",
-            FullName = "New Name", Role = UserRole.Ventas,
+            FullName = "New Name", 
             IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = user.PasswordHash,
             Code = "LEGACY-9"
         };
@@ -275,7 +275,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "old@test.com",
-            FullName = "Old Name", Role = UserRole.Ventas,
+            FullName = "Old Name", 
             CompanyId = Guid7TestValues.CompanyA, IsActive = true, Code = "Usu-001"
         };
 
@@ -290,7 +290,7 @@ public class UserServiceTests
         var request = new UserWithPasswordHashDto
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "new@test.com",
-            FullName = "New Name", Role = UserRole.Ventas,
+            FullName = "New Name", 
             IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = user.PasswordHash
         };
 
@@ -312,7 +312,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "old@test.com",
-            FullName = "Old Name", Role = UserRole.Ventas,
+            FullName = "Old Name", 
             CompanyId = Guid7TestValues.CompanyA, IsActive = true, Code = "Usu-001"
         };
 
@@ -329,7 +329,7 @@ public class UserServiceTests
         var request = new UserWithPasswordHashDto
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "new@test.com",
-            FullName = "New Name", Role = UserRole.Ventas,
+            FullName = "New Name", 
             IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = user.PasswordHash,
             Code = "DUP-1"
         };
@@ -356,8 +356,8 @@ public class UserServiceTests
         {
             Items = new List<User>
             {
-                new() { Id = Guid7TestValues.UserA, Username = "user1", Email = "user1@test.com", FullName = "User One", Role = UserRole.Ventas, CompanyId = Guid7TestValues.CompanyA, IsActive = true },
-                new() { Id = Guid.NewGuid(), Username = "user2", Email = "user2@test.com", FullName = "User Two", Role = UserRole.Inventario, CompanyId = Guid7TestValues.CompanyA, IsActive = true }
+                new() { Id = Guid7TestValues.UserA, Username = "user1", Email = "user1@test.com", FullName = "User One", CompanyId = Guid7TestValues.CompanyA, IsActive = true },
+                new() { Id = Guid.NewGuid(), Username = "user2", Email = "user2@test.com", FullName = "User Two", CompanyId = Guid7TestValues.CompanyA, IsActive = true }
             },
             PageNumber = 1,
             PageSize = 10,
@@ -389,7 +389,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "test@test.com",
-            FullName = "Test User", Role = UserRole.Ventas,
+            FullName = "Test User", 
             CompanyId = Guid7TestValues.CompanyA, IsActive = true
         };
 
@@ -445,7 +445,7 @@ public class UserServiceTests
         var request = new UserWithPasswordHashDto
         {
             Id = Guid.NewGuid(), Username = "updated", Email = "updated@test.com",
-            FullName = "Updated User", Role = UserRole.Ventas,
+            FullName = "Updated User", 
             IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = "hash"
         };
 
@@ -468,7 +468,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "old@test.com",
-            FullName = "Old Name", Role = UserRole.Ventas,
+            FullName = "Old Name", 
             CompanyId = Guid7TestValues.CompanyA, IsActive = true
         };
 
@@ -483,7 +483,7 @@ public class UserServiceTests
         var request = new UserWithPasswordHashDto
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "new@test.com",
-            FullName = "New Name", Role = UserRole.Admin,
+            FullName = "New Name", 
             IsActive = true, CompanyId = Guid7TestValues.CompanyA, PasswordHash = user.PasswordHash
         };
 
@@ -529,7 +529,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "test@test.com",
-            FullName = "Test User", Role = UserRole.Ventas,
+            FullName = "Test User", 
             CompanyId = Guid7TestValues.CompanyA, IsActive = true
         };
 
@@ -560,7 +560,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "test@test.com",
-            FullName = "Test User", Role = UserRole.Ventas,
+            FullName = "Test User", 
             CompanyId = Guid7TestValues.CompanyA, IsActive = true
         };
 
@@ -611,7 +611,7 @@ public class UserServiceTests
         var user = new User
         {
             Id = Guid7TestValues.UserA, Username = "testuser", Email = "test@test.com",
-            FullName = "Test User", Role = UserRole.Ventas,
+            FullName = "Test User", 
             CompanyId = Guid7TestValues.CompanyA, IsActive = true, PasswordHash = "somehash"
         };
 

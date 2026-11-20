@@ -2,16 +2,16 @@ using System.Security.Claims;
 using Volterp.Api.Exceptions;
 using Volterp.Application.Common;
 using Volterp.Application.Interfaces;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Api.Helpers;
 
 public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICurrentUserService
 {
+    // The user may hold more than one role: the token carries a claim for
+    // each one of them.
     public bool IsSuperAdmin()
-    {
-        var role = httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Role)?.Value?.ToLower();
-        return role == "superadmin";
-    }
+        => httpContextAccessor.HttpContext?.User.IsInRole(nameof(UserRole.SuperAdmin)) == true;
 
     public int GetCompanyId()
     {

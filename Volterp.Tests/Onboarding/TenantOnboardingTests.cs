@@ -44,10 +44,11 @@ public class TenantOnboardingTests
         company.LegalName.Should().Be(Request.LegalName);
         company.Address.Should().Be(Request.Address);
 
-        var admin = await fixture.Context.Users.SingleAsync();
+        var admin = await fixture.Context.Users.Include(candidate => candidate.Roles).SingleAsync();
         admin.Username.Should().Be(Request.AdminUsername);
         admin.Email.Should().Be(Request.AdminEmail);
-        admin.Role.Should().Be(UserRole.SuperAdmin);
+        admin.Roles.Select(assignment => assignment.Role)
+            .Should().ContainSingle().Which.Should().Be(UserRole.SuperAdmin);
         admin.CompanyId.Should().Be(company.Id);
         admin.IsActive.Should().BeTrue();
     }
@@ -96,9 +97,10 @@ public class TenantOnboardingTests
         outcome.AdminPassword.Should().NotBeNullOrEmpty(
             "a company without an administrator is a tenant nobody can administer: the command has to create the first one");
 
-        var admin = await fixture.Context.Users.SingleAsync();
+        var admin = await fixture.Context.Users.Include(candidate => candidate.Roles).SingleAsync();
         admin.Username.Should().Be(Request.AdminUsername);
-        admin.Role.Should().Be(UserRole.SuperAdmin);
+        admin.Roles.Select(assignment => assignment.Role)
+            .Should().ContainSingle().Which.Should().Be(UserRole.SuperAdmin);
         admin.CompanyId.Should().NotBe(Guid.Empty);
 
         (await fixture.Context.Companies.CountAsync()).Should().Be(1);

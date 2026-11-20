@@ -84,10 +84,15 @@ public class MigrationChainAgainstPostgresTests
                 schemaBeforeLast.Tables,
                 "the Down of {0} must restore the tables that existed before its Up",
                 lastMigration);
-            schemaAfterRollback.Columns.Should().Equal(
-                schemaBeforeLast.Columns,
-                "the Down of {0} must restore the columns that existed before its Up",
-                lastMigration);
+            schemaAfterRollback.Columns
+                .Select(column => column with { Position = 0 })
+                .Should().BeEquivalentTo(
+                    schemaBeforeLast.Columns.Select(column => column with { Position = 0 }),
+                    "the Down of {0} must restore the columns that existed before its Up. " +
+                    "The physical position of a column is not part of the shape of the table: " +
+                    "Postgres always appends the column that is added back, so a column that was " +
+                    "dropped from the middle of a table comes back last. The columns have to be the same.",
+                    lastMigration);
             schemaAfterRollback.Indexes.Should().Equal(
                 schemaBeforeLast.Indexes,
                 "the Down of {0} must restore the indexes that existed before its Up",

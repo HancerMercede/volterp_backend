@@ -11,7 +11,9 @@ public record UserWithPasswordHashDto: IMapFrom<User>
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
-    public UserRole Role { get; set; }
+
+    // The roles the user holds.
+    public UserRole[] Roles { get; set; } = [];
     public bool IsActive { get; set; }
     public Guid CompanyId { get; set; }
     public string PasswordHash { get; set; } = string.Empty;
@@ -24,7 +26,7 @@ public record UserWithPasswordHashDto: IMapFrom<User>
         Username = source.Username;
         Email = source.Email;
         FullName = source.FullName;
-        Role = source.Role;
+        Roles = source.Roles.Select(assignment => assignment.Role).ToArray();
         IsActive = source.IsActive;
         CompanyId = source.CompanyId;
         PasswordHash = source.PasswordHash;

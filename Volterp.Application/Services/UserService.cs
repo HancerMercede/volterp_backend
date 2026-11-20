@@ -11,6 +11,7 @@ namespace Volterp.Application.Services;
 public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, ICurrentUserService currentUserService) : IUserService
 {
     private const string CodeAlreadyInUseMessage = "The code is already in use.";
+    private const string AtLeastOneRoleMessage = "A user needs at least one role.";
 
     public async Task<PagedResult<UserDto>> GetAllAsync(int pageNumber, int pageSize, CancellationToken ct = default)
     {
@@ -34,12 +35,14 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
     public async Task<Either<Error,UserDto>> CreateAsync(CreateUserDto request, Guid companyId, Guid? userId, CancellationToken ct = default)
     {
         var requestedCode = request.Code?.Trim() ?? string.Empty;
+        var requestedRoles = request.Roles ?? [];
 
         return await EitherAsync
             .Try(async() => await unitOfWork.Users.ExistsByUsernameAsync(request.Username, ct))
             .MapLeft(ex => new Error(ex.Message))
             .Ensure(exists => !exists, new Error("username already exists"))
-            .Ensure(_ => request.Role != UserRole.SuperAdmin || currentUserService.IsSuperAdmin(),
+            .Ensure(_ => requestedRoles.Length > 0, new Error(AtLeastOneRoleMessage))
+            .Ensure(_ => !requestedRoles.Contains(UserRole.SuperAdmin) || currentUserService.IsSuperAdmin(),
                 _ => new Error("Only SuperAdmin can create SuperAdmin users"))
             .FlatMap(async _ =>
             {
@@ -61,6 +64,12 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
                 user.Code = requestedCode.Length > 0
                     ? requestedCode
                     : await unitOfWork.Codes.NextAsync(companyId, CodeEntityType.User, ct);
+
+                // The roles are assigned once the company is known: the
+                // assignment carries it and the tenant filter reads it.
+                foreach (var role in requestedRoles)
+                    user.AssignRole(role);
+
                 if (userId.HasValue) user.SetCreatedBy(userId.Value);
                 await unitOfWork.Users.AddUserAsync(user, ct);
                 await unitOfWork.CommitAsync(ct);
@@ -97,11 +106,11 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             }, ex => new Error(ex.Message))
             .Map(user =>
             {
+                // The roles are not touched here: they have their own operation.
                 return user.Apply(x =>
                 {
                     x.Email = request.Email;
                     x.FullName = request.FullName;
-                    x.Role = request.Role;
                     x.IsActive = request.IsActive;
                     if (requestedCode.Length > 0) x.Code = requestedCode;
                     x.UpdatedAt = DateTime.UtcNow;
@@ -118,11 +127,42 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Run();
     }
 
+    // The roles of the user become the ones that were asked for: the ones that
+    // are not there anymore are taken away and the new ones are added.
+    public async Task<Either<Error, UserDto>> UpdateRolesAsync(Guid id, UpdateUserRolesDto request, Guid? userId, CancellationToken ct = default)
+    {
+        var requestedRoles = request.Roles ?? [];
+
+        return await EitherAsync<Error, Guid>
+            .FromRight(id)
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => requestedRoles.Length > 0, new Error(AtLeastOneRoleMessage))
+            .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
+                ex => new Error(ex.Message))
+            .Ensure(user => user is not null, new Error("user not found"))
+            .FlatMap(async user =>
+            {
+                var current = user!;
+
+                EnsureSuperAdminIsNotTouched(current, requestedRoles);
+
+                ReconcileRoles(current, requestedRoles);
+
+                if (userId.HasValue) current.SetUpdatedBy(userId.Value);
+
+                await unitOfWork.Users.UpdateUserAsync(current, ct);
+                await unitOfWork.CommitAsync(ct);
+                return current;
+            }, ex => new Error(ex.Message))
+            .Map(user => user.MapTo<User, UserDto>())
+            .Run();
+    }
+
     public async Task<Either<Error, Unit>> DeleteAsync(Guid id, CancellationToken ct = default)
     {
         return await EitherAsync<Error, Guid>
             .FromRight(id)
-            .Ensure(x=> x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(x=> x != Guid.Empty , new Error("id must not be empty."))
             .FlatMap(async userId => await unitOfWork.Users.GetUserByIdAsync(userId, ct),
                 ex => new Error(ex.Message))
             .Ensure(user => user is not null, new Error("user not found"))
@@ -157,5 +197,30 @@ public class UserService(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher,
             .Ensure(user => user is not null, new Error("user not found"))
             .Map(user => user?.MapTo<User, UserWithPasswordHashDto>())
             .Run();
+    }
+
+    // The new roles are added first and the ones that are not asked for are
+    // taken away afterwards: a user is never left without a role on the way.
+    private static void ReconcileRoles(User user, UserRole[] requestedRoles)
+    {
+        var current = user.Roles.Select(assignment => assignment.Role).ToList();
+
+        foreach (var role in requestedRoles.Where(role => !user.HasRole(role)))
+            user.AssignRole(role);
+
+        foreach (var role in current.Where(role => !requestedRoles.Contains(role)))
+            user.RemoveRole(role);
+    }
+
+    // The role that administers the system is granted or taken away only by
+    // somebody who holds it. The domain does not know who is asking, so the
+    // actor decides here.
+    private void EnsureSuperAdminIsNotTouched(User user, UserRole[] requestedRoles)
+    {
+        var touchesSuperAdmin = requestedRoles.Contains(UserRole.SuperAdmin)
+            || user.Roles.Any(assignment => assignment.Role == UserRole.SuperAdmin);
+
+        if (touchesSuperAdmin && !currentUserService.IsSuperAdmin())
+            throw new InvalidOperationException("Only a SuperAdmin can grant or revoke the SuperAdmin role.");
     }
 }

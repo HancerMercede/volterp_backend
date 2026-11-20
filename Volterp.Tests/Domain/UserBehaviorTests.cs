@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
@@ -9,125 +9,131 @@ namespace Volterp.Tests.Domain;
 
 public class UserBehaviorTests
 {
-    // ===== ChangeRole =====
+    // ===== AssignRole =====
 
     [Fact]
-    public void ChangeRole_FromVentasToAdmin_UpdatesRole()
+    public void AssignRole_AddsTheRole()
     {
-        var user = CreateUser(role: UserRole.Ventas);
+        var user = CreateUser();
 
-        user.ChangeRole(UserRole.Admin);
+        user.AssignRole(UserRole.Ventas);
 
-        user.Role.Should().Be(UserRole.Admin);
+        user.Roles.Select(assignment => assignment.Role)
+            .Should().ContainSingle().Which.Should().Be(UserRole.Ventas);
     }
 
     [Fact]
-    public void ChangeRole_FromAdminToVentas_UpdatesRole()
+    public void AssignRole_Twice_KeepsOneAssignmentOfTheRole()
     {
-        var user = CreateUser(role: UserRole.Admin);
+        var user = CreateUser();
 
-        user.ChangeRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Ventas);
 
-        user.Role.Should().Be(UserRole.Ventas);
+        user.Roles.Should().ContainSingle();
     }
 
     [Fact]
-    public void ChangeRole_FromAdminToContabilidad_UpdatesRole()
+    public void AssignRole_KeepsTheRolesTheUserAlreadyHolds()
     {
-        var user = CreateUser(role: UserRole.Admin);
+        var user = CreateUser();
+        user.AssignRole(UserRole.Ventas);
 
-        user.ChangeRole(UserRole.Contabilidad);
+        user.AssignRole(UserRole.Inventario);
 
-        user.Role.Should().Be(UserRole.Contabilidad);
+        user.Roles.Select(assignment => assignment.Role)
+            .Should().BeEquivalentTo([UserRole.Ventas, UserRole.Inventario]);
     }
 
     [Fact]
-    public void ChangeRole_FromVentasToInventario_UpdatesRole()
+    public void AssignRole_CarriesTheCompanyOfTheUser()
     {
-        var user = CreateUser(role: UserRole.Ventas);
+        var user = CreateUser();
 
-        user.ChangeRole(UserRole.Inventario);
+        user.AssignRole(UserRole.Ventas);
 
-        user.Role.Should().Be(UserRole.Inventario);
+        user.Roles.Should().ContainSingle().Which.CompanyId.Should().Be(user.CompanyId,
+            "the assignment carries the company of the user: the tenant filter reads it");
     }
 
     [Fact]
-    public void ChangeRole_FromVentasToRRHH_UpdatesRole()
+    public void AssignRole_WhenUserDeactivated_ThrowsInvalidRoleTransitionException()
     {
-        var user = CreateUser(role: UserRole.Ventas);
-
-        user.ChangeRole(UserRole.RRHH);
-
-        user.Role.Should().Be(UserRole.RRHH);
-    }
-
-    [Fact]
-    public void ChangeRole_FromSuperAdminToLower_ThrowsInvalidRoleTransitionException()
-    {
-        var user = CreateUser(role: UserRole.SuperAdmin);
-
-        var act = () => user.ChangeRole(UserRole.Admin);
-
-        act.Should().Throw<InvalidRoleTransitionException>()
-            .Which.FromRole.Should().Be("SuperAdmin");
-    }
-
-    [Fact]
-    public void ChangeRole_FromSuperAdminToVentas_ThrowsInvalidRoleTransitionException()
-    {
-        var user = CreateUser(role: UserRole.SuperAdmin);
-
-        var act = () => user.ChangeRole(UserRole.Ventas);
-
-        act.Should().Throw<InvalidRoleTransitionException>();
-    }
-
-    [Fact]
-    public void ChangeRole_FromAdminToSuperAdmin_ThrowsInvalidRoleTransitionException()
-    {
-        var user = CreateUser(role: UserRole.Admin);
-
-        var act = () => user.ChangeRole(UserRole.SuperAdmin);
-
-        act.Should().Throw<InvalidRoleTransitionException>()
-            .Which.ToRole.Should().Be("SuperAdmin");
-    }
-
-    [Fact]
-    public void ChangeRole_FromVentasToSuperAdmin_ThrowsInvalidRoleTransitionException()
-    {
-        var user = CreateUser(role: UserRole.Ventas);
-
-        var act = () => user.ChangeRole(UserRole.SuperAdmin);
-
-        act.Should().Throw<InvalidRoleTransitionException>();
-    }
-
-    [Fact]
-    public void ChangeRole_FromSuperAdminToSuperAdmin_IsAllowed()
-    {
-        var user = CreateUser(role: UserRole.SuperAdmin);
-
-        user.ChangeRole(UserRole.SuperAdmin);
-
-        user.Role.Should().Be(UserRole.SuperAdmin);
-    }
-
-    [Fact]
-    public void ChangeRole_WhenUserDeactivated_ThrowsInvalidRoleTransitionException()
-    {
-        var user = CreateUser(role: UserRole.Ventas);
+        var user = CreateUser();
         user.Deactivate();
 
-        var act = () => user.ChangeRole(UserRole.Admin);
+        var act = () => user.AssignRole(UserRole.Admin);
 
         act.Should().Throw<InvalidRoleTransitionException>()
-            .Which.FromRole.Should().Be("Ventas");
+            .Which.FromRole.Should().Be(User.NoRole);
+    }
+
+    // ===== RemoveRole =====
+
+    [Fact]
+    public void RemoveRole_TakesTheRoleAway()
+    {
+        var user = CreateUser();
+        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Inventario);
+
+        user.RemoveRole(UserRole.Ventas);
+
+        user.Roles.Select(assignment => assignment.Role)
+            .Should().ContainSingle().Which.Should().Be(UserRole.Inventario);
+    }
+
+    [Fact]
+    public void RemoveRole_WhenTheRoleIsNotHeld_DoesNothing()
+    {
+        var user = CreateUser();
+        user.AssignRole(UserRole.Ventas);
+
+        user.RemoveRole(UserRole.RRHH);
+
+        user.Roles.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void RemoveRole_WhenItIsTheLastRole_ThrowsInvalidRoleTransitionException()
+    {
+        var user = CreateUser();
+        user.AssignRole(UserRole.Ventas);
+
+        var act = () => user.RemoveRole(UserRole.Ventas);
+
+        act.Should().Throw<InvalidRoleTransitionException>()
+            .Which.ToRole.Should().Be(User.NoRole,
+                "a user without roles has no permissions and would be locked out");
+    }
+
+    [Fact]
+    public void RemoveRole_WhenUserDeactivated_ThrowsInvalidRoleTransitionException()
+    {
+        var user = CreateUser();
+        user.AssignRole(UserRole.Ventas);
+        user.Deactivate();
+
+        var act = () => user.RemoveRole(UserRole.Ventas);
+
+        act.Should().Throw<InvalidRoleTransitionException>();
+    }
+
+    // ===== HasRole =====
+
+    [Fact]
+    public void HasRole_TellsWhetherTheUserHoldsTheRole()
+    {
+        var user = CreateUser();
+        user.AssignRole(UserRole.Ventas);
+
+        user.HasRole(UserRole.Ventas).Should().BeTrue();
+        user.HasRole(UserRole.Admin).Should().BeFalse();
     }
 
     // ===== Helpers =====
 
-    private static User CreateUser(UserRole role = UserRole.Ventas)
+    private static User CreateUser()
     {
         return new User
         {
@@ -135,7 +141,7 @@ public class UserBehaviorTests
             Username = "testuser",
             Email = "test@example.com",
             FullName = "Test User",
-            Role = role,
+            CompanyId = Guid7TestValues.CompanyA,
             IsActive = true
         };
     }

@@ -10,7 +10,10 @@ public record UserDto:IMapFrom<User>
     public string Username  { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string FullName  { get; set; } = string.Empty;
-    public UserRole Role  { get; set; }
+
+    // The roles the user holds. The permissions of the user are the union of
+    // the permissions of these roles.
+    public UserRole[] Roles  { get; set; } = [];
     public bool IsActive  { get; set; }
     public Guid CompanyId  { get; set; }
 
@@ -21,7 +24,7 @@ public record UserDto:IMapFrom<User>
         Username = source.Username;
         Email = source.Email;
         FullName = source.FullName;
-        Role = source.Role;
+        Roles = source.Roles.Select(assignment => assignment.Role).ToArray();
         IsActive = source.IsActive;
         CompanyId = source.CompanyId;
     }

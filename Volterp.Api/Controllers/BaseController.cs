@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Volterp.Api.Exceptions;
 using Volterp.Application.Abstractions;
 using Volterp.Application.Common;
+using Volterp.Domain.Enums;
 
 namespace Volterp.Api.Controllers;
 
@@ -23,12 +24,11 @@ public abstract class BaseController : ControllerBase
         return Guid.TryParseExact(raw, "N", out var id) ? id : null;
     }
 
+    // The token carries one claim per role the user holds, so the roles of the
+    // caller are every claim of the role type and not only the first one.
     protected bool IsAdmin()
-    {
-        var role = User.FindFirst(ClaimTypes.Role)?.Value.ToLower();
-        return role == "admin" || role == "superadmin";
-    }
+        => User.IsInRole(nameof(UserRole.Admin)) || User.IsInRole(nameof(UserRole.SuperAdmin));
 
     protected bool IsSuperAdminOnly()
-        => User.FindFirst(ClaimTypes.Role)?.Value.ToLower() == "superadmin";
+        => User.IsInRole(nameof(UserRole.SuperAdmin));
 }

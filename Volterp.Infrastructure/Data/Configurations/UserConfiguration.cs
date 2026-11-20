@@ -16,7 +16,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
         entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
         entity.Property(e => e.PasswordHash).IsRequired();
-        entity.Property(e => e.Role).IsRequired().HasMaxLength(30);
         entity.Property(e => e.FullName).IsRequired().HasMaxLength(100);
 
         entity.HasOne(e => e.Company)

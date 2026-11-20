@@ -120,9 +120,10 @@ public class UserEmailLookupTests
             Email = email,
             FullName = "Administrador",
             PasswordHash = "$2a$12$hash",
-            Role = UserRole.SuperAdmin,
             CompanyId = companyId
         };
+
+        user.AssignRole(UserRole.SuperAdmin);
 
         await context.Users.AddAsync(user);
         await context.SaveChangesAsync();
