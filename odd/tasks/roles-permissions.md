@@ -1,15 +1,15 @@
 # Sistema de roles y permisos — matriz en la API, roles múltiples, deny-by-default
 
 Feature: `roles-permissions`
-Branch: `feature/roles-permissions` (a crear al abrir la feature; el plan vive en el repo desde el 2026-11-07 y la rama activa hoy es `feature/electronic-invoicing`)
-Delivery: por definir al abrir la feature (estrategia `ask-on-risk`)
+Branch: `feature/roles-permissions` (creada el 2026-11-19 desde `development` @ `7ac20a7`)
+Delivery: `ask-on-risk` (default)
 Test runner: `dotnet test Volterp.Tests/Volterp.Tests.csproj`
 
 Objetivo: que el sistema de roles deje de ser un enum único con guards binarios `Admin/SuperAdmin` sobre endpoints sueltos, y pase a ser tres cosas: **roles múltiples por usuario**, **matriz rol→permisos en código dentro de la API**, y **cada endpoint declarando su permiso (deny-by-default)**.
 
 Conductor: el módulo POS (cajero, turno, caja cuadrada) es lo que hace insuficiente el modelo actual. Un "vendedor" que también opera la caja no cabe en un `User.Role` único, y "el cajero solo accede al POS" es imposible de expresar mientras todo endpoint autenticado lea todo.
 
-**Estado: PLAN. Nada implementado. Todas las tareas están PENDING.**
+**Estado: EN EJECUCIÓN. T1 y T11 cerradas; T2-T10 siguen PENDING.**
 
 ## Specs
 
@@ -141,7 +141,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
-| T1 | S1, S5 | inline (parent) | PENDING | Catálogo `Module` + `Permission` + matriz `RolePermissions` en `Volterp.Domain/Authorization/` + tests |
+| T1 | S1, S5 | inline (parent) | DONE | Catálogo `Module` + `Permission` + matriz `RolePermissions` en `Volterp.Domain/Authorization/` + tests — la matriz es **la del front** (`erp-mvp/src/domain/constants/permisos.ts`) y el vocabulario es el del plan (módulo × acción de dominio) |
 | T2 | S2 | inline (parent) | PENDING | `User.Role` → colección: tabla puente `UserRoles` + migración + backfill + `UserService`/DTOs |
 | T3 | S2 | inline (parent) | PENDING | JWT multi-claim + `LoginResponse.Roles[]` + `UpdateUserRoleDto` (agregar/quitar) + `IsInRole` en `BaseController` y `CurrentUserService` |
 | T4 | S1, S4, S5 | inline (parent) | PENDING | `PermissionRequirement` + handler + policies registradas en `ServiceExtensions` + mensaje de 403 por permiso |
@@ -151,6 +151,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 | T8 | S3, S6, S10 | handoff al usuario (repo `erp-mvp`) | PENDING | Front: `roles[]`, permisos desde la API, `MATRIZ_PERMISOS` fuera, `normalizeRole` falla cerrado. Entrega aparte (repo, rama y PR distintos) |
 | T9 | S10 | inline (parent) | PENDING | Renombre de roles que colisionan con módulos (`Ventas`→`Vendedor`, `Contabilidad`→`Contador`) — en lockstep con T8 |
 | T10 | S7, S8, S9 | inline (parent) | PENDING | **Feature dependiente**: formalizar el POS/caja como documento de feature aparte (ver apéndice). No se implementa dentro de esta feature |
+| T11 | S4 | inline (parent) | DONE | `GET /api/ElectronicInvoices/{id}` — la lectura de un comprobante por id (la ruta que el front daba por existente y no existía). Vive en esta feature porque deny-by-default (T5) le tiene que declarar su permiso |
 
 ## Risks
 
@@ -278,3 +279,40 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **Qué**: el documento estaba **sin commitear** desde el 2026-11-07 → hoy se versiona ✓ (el plan es la especificación que los workers van a leer).
 - **Corrección**: la línea de la rama decía `feature/accounting` (la rama activa en aquel momento) → la rama activa hoy es `feature/electronic-invoicing` ✓ → la feature se abre con su propia rama cuando el owner la active ✓.
 - **Estado**: sigue siendo **PLAN** ✓ → **nada implementado** ✓ → las 10 tareas (T1-T10) siguen **PENDING** ✓ → el bloqueo previo del doble descuento de stock (apéndice) sigue abierto ✓.
+
+### L12 — 2026-11-19 — la feature se abre y el endpoint del front entra primero
+
+> "champ como ya tenemos la facturacion electronica lista ahora debemos verificar para que todo quede alineado la matrix de permisos que dejamos pendientes trae a colacion eso y el plan que tenemos para implementarlo, tengo otro agente hologando el front encontro un hueco cone l endpoint electronic/invoicing/{id} validame eso por favor"
+
+> "y pasemonos a development para crear un feature branch desde ahi para implementar las mejoras"
+
+- **La rama**: `feature/roles-permissions` creada desde `development` @ `7ac20a7` ✓ (el plan vivía en el repo desde el 2026-11-07 sin rama propia ✓). **Ojo**: `feature/electronic-invoicing` conserva **2 commits sin pushear** que **no** están en `development` (`7310a6d` la limpieza de filas legacy que bloqueaba el borrado de la compañía mock ✓ · `fa2a874` el cierre de T52 ✓) → quedan en esa rama ✓ (nada se perdió ✓) → su merge a `development` es decisión del owner ✓.
+- **El endpoint del front (`electronic/invoicing/{id}`)**: **no existe** ✓ — no hay tal ruta en ningún controller ✓ (todos usan `[Route("api/[controller]")]` ✓). Lo más cerca: `GET api/ElectronicInvoicePrint/{id}` (HTML imprimible ✓) · `GET api/ElectronicInvoices/{id}/qr.svg|.png` ✓ · `POST api/ElectronicInvoices/{id}/retry` ✓ · `GET api/ElectronicInvoices/state` ✓. **El hueco real**: **no existía ninguna lectura de un comprobante por id** ✓ → el front no tenía cómo traer el detalle de un comprobante ✓.
+- **T11 (cerrada)**: `GET /api/ElectronicInvoices/{id}` ✓ → `IElectronicInvoiceService.GetByIdAsync` ✓ (`ErrorKind.NotFound` ✓ → 404 ✓) → el DTO `ElectronicInvoiceDto` que ya devolvía el retry ✓ (**sin cambiar el contrato de ese endpoint** ✓). El tenant sale del token ✓ y el documento de otro tenant es **404** ✓ (no 403 ✓). Tests: `ElectronicInvoiceGetByIdEndpointTests` (4 ✓: el documento del tenant ✓ · el de otro tenant es 404 ✓ · el que no existe es 404 ✓ · **la ruta literal `state` no se rompió** ✓ por el `{id}` nuevo ✓).
+- **Por qué T11 entra en esta feature y no en la del e-CF**: deny-by-default (T5) le tiene que declarar su permiso ✓ → el endpoint tiene que existir antes de que el barrido le pase por encima ✓. Y desbloquea al agente del front ✓.
+- **Verificación de la unidad**: build limpio ✓ (0 errores ✓) · el test enfocado **4/4** ✓ · la differential check de los endpoints hermanos del mismo controller: **260** de `Volterp.Tests` ✓ + **5** de `Volterp.ElectronicInvoicing.Tests` ✓, sin regresiones ✓.
+- **Hallazgo abierto (no tocado)**: `ElectronicInvoiceDto.MapFrom` copia `VerdictNote` **sin pasar por `RawResponseSanitizer`** ✓ (el `ElectronicInvoiceStateDto` sí lo pasa ✓) → el `retry` ya expone la nota sin redactar ✓ y el `GET` nuevo hereda eso ✓. No se tocó porque `ElectronicInvoiceDto` lo consume el `retry` ✓ (cambiarlo es un cambio de contrato de un endpoint que este pedido no nombró ✓) → **decisión del owner**.
+
+### L13 — 2026-11-19 — T1: el catálogo y la matriz (la matriz es la del front)
+
+> "eso ya existe validalo en el codigo del backend o del frontend que es quien la gestiona por el momento"
+
+> "El plan tambien te da algunas pautas a seguir"
+
+- **La matriz ya existe** ✓ → la gestiona el front ✓ (`erp-mvp/src/domain/constants/permisos.ts` ✓): **12 módulos** × `read/write/delete` × **6 roles** ✓ (los mismos `UserRole` del backend ✓ · los valores 1..6 coinciden ✓).
+- **Lo que se implementó** ✓ (T1 ✓):
+  - `Volterp.Domain/Authorization/Module.cs` → los 13 módulos (los 12 del front ✓ + `PointOfSale` ✓ del plan ✓).
+  - `Volterp.Domain/Authorization/Permission.cs` → **el enum cerrado** ✓ (46 permisos ✓): el `read/write/delete` del front ✓ + `contabilidad.post` ✓ + el set del POS ✓ (`pos.read`…`pos.report.read` ✓ · el del plan ✓).
+  - `Volterp.Domain/Authorization/Permissions.cs` → el módulo y la clave de cada permiso ✓ — **el switch no tiene brazo `default`** ✓ → un permiso nuevo sin catalogar **no compila** ✓.
+  - `Volterp.Domain/Authorization/RolePermissions.cs` → **la matriz** ✓: los mismos módulos, los mismos roles y los mismos grants del front ✓ (`SuperAdmin`/`Admin` = todo ✓ · `Ventas` ✓ · `Inventario` ✓ · `Contabilidad` ✓ · `RRHH` ✓).
+- **Las pautas del plan que se respetaron** ✓: la matriz **en código** y no en la DB ✓ (S1 ✓) · el catálogo **cerrado** ✓ (S5 ✓) · el vocabulario **módulo × acción de dominio** ✓ (S5 ✓) · la unión de los permisos la resuelve el servidor ✓ (S6 ✓ → el front deja su copia en T8 ✓).
+- **Las claves no cambian** ✓: las del front (`ventas.read` ✓ · `contabilidad.read` ✓ · `facturacion.read` ✓ · `rrhh.read` ✓ · `configuracion.read` ✓) → la migración del front (T8) no renombra nada ✓.
+- **Tests** ✓ (`RolePermissionsTests` ✓ · 11 ✓): las claves son únicas ✓ · la clave empieza por la del módulo ✓ · las claves son las del front ✓ · Admin/SuperAdmin tienen todo ✓ · **ningún permiso queda sin rol** ✓ · **la matriz de cada rol es la del front** ✓ (la paridad queda clavada por test ✓).
+- **Dos cosas que quedan anotadas** ✓: (a) el front da `delete` de `facturacion` al rol `Ventas` ✓ → se conserva ✓ aunque **no hay endpoint que borre un e-CF** ✓ → el permiso no abre nada ✓; (b) el front da `write` de `dashboard` a los roles no admin ✓ → se conserva ✓ aunque el `DashboardController` solo lee ✓ → lo define el barrido de T5 ✓.
+
+### L14 — 2026-11-19 — el veredicto sale redactado (cerrado el hallazgo que quedó abierto)
+
+- **El hallazgo** ✓: `ElectronicInvoiceDto.MapFrom` copiaba `VerdictNote` **sin pasar por `RawResponseSanitizer`** ✓ → el `retry` exponía la nota sin redactar ✓ · y `SaleDto.MapFrom` hacía lo mismo con `FiscalNote` ✓ (la venta lleva el veredicto de su comprobante ✓) → **dos caminos de fuga** ✓ (el `ElectronicInvoiceStateDto` sí redactaba ✓ → la incoherencia estaba en el DTO del comprobante ✓).
+- **El arreglo** ✓: los dos DTO pasan por `RawResponseSanitizer.Redact` ✓ — el mismo sanitizador que ya usaba el DTO del estado ✓. El texto del veredicto **no cambia** ✓ (el operador sigue leyendo el por qué ✓) · lo que sale es `[redacted]` en lo que tiene forma de credencial ✓.
+- **Contrato**: cambian las respuestas de los endpoints que devuelven la nota (el `retry` ✓ · la emisión ✓ · la venta ✓) → **solo cambia el texto que tenía forma de credencial** ✓ → el front sigue leyendo la nota ✓.
+- **Tests** ✓: `ElectronicInvoiceDtoTests` (4 ✓: la nota se conserva ✓ · el bearer de la DGII no sale ✓ · el token de la DGII no sale ✓ · una nota sin credencial no se toca ✓) + `SaleDtoTests` (3 ✓: la nota fiscal se conserva ✓ · el token no sale ✓ · una venta sin comprobante no tiene nota ✓) → **16/16** en los DTOs ✓ y **390** de e-CF + ventas ✓ sin regresiones ✓.

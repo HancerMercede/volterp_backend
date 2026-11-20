@@ -52,6 +52,20 @@ public class ElectronicInvoiceService(
             .Run();
     }
 
+    public async Task<Either<Error, ElectronicInvoiceDto>> GetByIdAsync(
+        Guid invoiceId, Guid companyId, CancellationToken ct = default)
+    {
+        return await EitherAsync<Error, Guid>
+            .FromRight(invoiceId)
+            .Ensure(id => id != Guid.Empty, new Error("invoiceId must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
+            .FlatMap(async id => await unitOfWork.ElectronicInvoices.GetByCompanyAndIdAsync(companyId, id, ct),
+                ex => new Error(ex.Message))
+            .Ensure(invoice => invoice is not null, new Error("The e-CF does not exist.", ErrorKind.NotFound))
+            .Map(invoice => invoice!.MapTo<ElectronicInvoice, ElectronicInvoiceDto>())
+            .Run();
+    }
+
     public async Task<Either<Error, ElectronicInvoiceDto>> RetryAsync(
         Guid invoiceId, Guid companyId, CancellationToken ct = default)
     {

@@ -40,7 +40,10 @@ public record ElectronicInvoiceDto : IMapFrom<ElectronicInvoice>
         TrackId = source.TrackId;
         SecurityCode = source.SecurityCode;
         QrUrl = source.QrUrl;
-        VerdictNote = source.VerdictNote;
+        // The note of a verdict is text that came from outside: it can
+        // carry a credential of the conversation with the DGII, and what
+        // leaves the API never carries a credential.
+        VerdictNote = RawResponseSanitizer.Redact(source.VerdictNote);
         RequiresReview = source.RequiresReview;
         SignedAt = source.SignedAt;
         SentAt = source.SentAt;

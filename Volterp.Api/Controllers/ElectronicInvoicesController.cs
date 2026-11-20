@@ -28,6 +28,22 @@ public class ElectronicInvoicesController(IUnitOfWork unitOfWork, IServiceManage
         );
     }
 
+    // The read of a single document: the company comes from the token and the
+    // document of another tenant is a 404.
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ElectronicInvoiceDto>> GetById(Guid id, CancellationToken ct = default)
+    {
+        var companyId = GetCurrentUserCompanyId();
+        var result = await serviceManager.ElectronicInvoices.GetByIdAsync(id, companyId, ct);
+
+        return result.Match<ActionResult<ElectronicInvoiceDto>>(
+            error => error.Kind == ErrorKind.NotFound
+                ? NotFound(new ErrorResponse(error.Message))
+                : BadRequest(new ErrorResponse(error.Message)),
+            invoice => Ok(invoice)
+        );
+    }
+
     [HttpPost("{id}/retry")]
     public async Task<ActionResult<ElectronicInvoiceDto>> Retry(Guid id, CancellationToken ct = default)
     {
