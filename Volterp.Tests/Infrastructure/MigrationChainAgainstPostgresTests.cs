@@ -115,6 +115,138 @@ public class MigrationChainAgainstPostgresTests
         }
     }
 
+    // The databases of the installations that ran the app before the model
+    // changed still have the tables of the accounts and of the journal. They
+    // are not in the model anymore, but their rows point at the companies with
+    // a restrictive foreign key: the mock company cannot be deleted while
+    // they are there, and the chain stops with a foreign key violation.
+    [PostgresFact]
+    public async Task TheChainAppliesOnADatabaseThatStillHasTheLegacyTables()
+    {
+        var databaseName = PostgresSettings.DisposableDatabaseName();
+
+        await PostgresSettings.CreateDisposableDatabaseAsync(databaseName);
+
+        try
+        {
+            var options = new DbContextOptionsBuilder<VolterpDbContext>()
+                .UseNpgsql(PostgresSettings.ConnectionStringOf(databaseName))
+                .Options;
+
+            await using var context = new VolterpDbContext(options);
+
+            var migrations = context.Database.GetMigrations().ToList();
+            var removeMockIndex = migrations.FindIndex(
+                name => name.EndsWith("RemoveMockSeedData", StringComparison.Ordinal));
+
+            removeMockIndex.Should().BeGreaterThan(
+                0,
+                "the chain must have a migration before the one that takes the mock company away");
+
+            await context.Database.MigrateAsync(migrations[removeMockIndex - 1]);
+
+            await ExecuteAsync(
+                context,
+                """
+                CREATE TABLE "Accounts" (
+                    "Id" uuid NOT NULL DEFAULT gen_random_uuid(),
+                    "CompanyId" uuid NOT NULL,
+                    CONSTRAINT "PK_Accounts" PRIMARY KEY ("Id"),
+                    CONSTRAINT "FK_Accounts_Companies_CompanyId"
+                        FOREIGN KEY ("CompanyId") REFERENCES "Companies" ("Id")
+                );
+                CREATE TABLE "JournalEntries" (
+                    "Id" uuid NOT NULL DEFAULT gen_random_uuid(),
+                    "CompanyId" uuid NOT NULL,
+                    CONSTRAINT "PK_JournalEntries" PRIMARY KEY ("Id"),
+                    CONSTRAINT "FK_JournalEntries_Companies_CompanyId"
+                        FOREIGN KEY ("CompanyId") REFERENCES "Companies" ("Id")
+                );
+                CREATE TABLE "JournalLines" (
+                    "Id" uuid NOT NULL DEFAULT gen_random_uuid(),
+                    "CompanyId" uuid NOT NULL,
+                    CONSTRAINT "PK_JournalLines" PRIMARY KEY ("Id"),
+                    CONSTRAINT "FK_JournalLines_Companies_CompanyId"
+                        FOREIGN KEY ("CompanyId") REFERENCES "Companies" ("Id")
+                );
+                INSERT INTO "Accounts" ("CompanyId")
+                    VALUES ('00000001-0000-0000-0000-000000000001');
+                INSERT INTO "JournalEntries" ("CompanyId")
+                    VALUES ('00000001-0000-0000-0000-000000000001');
+                INSERT INTO "JournalLines" ("CompanyId")
+                    VALUES ('00000001-0000-0000-0000-000000000001');
+                INSERT INTO "Accounts" ("CompanyId")
+                    SELECT "Id" FROM "Companies" WHERE "TaxId" = '101500018';
+                """);
+
+            await context.Database.MigrateAsync();
+
+            context.Database.GetPendingMigrations().Should().BeEmpty(
+                "the chain must apply even on a database that still has the tables of the old model");
+
+            (await CountAsync(
+                context,
+                "SELECT count(*) FROM \"Companies\" WHERE \"Id\" = '00000001-0000-0000-0000-000000000001';"))
+                .Should().Be(
+                    0,
+                    "the mock company must be gone");
+
+            foreach (var legacyTable in new[] { "Accounts", "JournalEntries", "JournalLines" })
+            {
+                (await CountAsync(context, MockCompanyRows(legacyTable))).Should().Be(
+                    0,
+                    "the rows of the mock company must go with it in {0}", legacyTable);
+            }
+
+            (await CountAsync(
+                context,
+                "SELECT count(*) FROM \"Accounts\" WHERE \"CompanyId\" <> '00000001-0000-0000-0000-000000000001';"))
+                .Should().Be(
+                    1,
+                    "the rows of the other tenants must stay where they are");
+
+            (await CountAsync(
+                context,
+                "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Accounts';"))
+                .Should().Be(
+                    1,
+                    "the tables of the old model are not ours to drop");
+        }
+        finally
+        {
+            await PostgresSettings.DropDisposableDatabaseAsync(databaseName);
+        }
+    }
+
+    private static string MockCompanyRows(string table)
+        => $"SELECT count(*) FROM \"{table}\" WHERE \"CompanyId\" = '00000001-0000-0000-0000-000000000001';";
+
+    private static async Task ExecuteAsync(VolterpDbContext context, string sql)
+    {
+        var connection = context.Database.GetDbConnection();
+
+        if (connection.State != ConnectionState.Open)
+            await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private static async Task<long> CountAsync(VolterpDbContext context, string sql)
+    {
+        var connection = context.Database.GetDbConnection();
+
+        if (connection.State != ConnectionState.Open)
+            await connection.OpenAsync();
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+
+        return (long)(await command.ExecuteScalarAsync())!;
+    }
+
     private static async Task AssertEcfSchemaAsync(
         VolterpDbContext context,
         PostgresSchemaSnapshot schema)

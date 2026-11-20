@@ -55,6 +55,29 @@ namespace Volterp.Infrastructure.Migrations
                 DELETE FROM "CodeSequences" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
                 """);
 
+            // The model of this project had accounts and a journal before:
+            // those tables are not in the model anymore, but the databases
+            // created by that version still have them, and their rows point
+            // at the mock company with a restrictive foreign key. The
+            // company cannot be deleted while they are there, so the mock's
+            // rows go with it. The tables themselves are left alone: a
+            // database that never had them does not miss them.
+            migrationBuilder.Sql(
+                """
+                DO $$
+                BEGIN
+                    IF to_regclass('"Accounts"') IS NOT NULL THEN
+                        DELETE FROM "Accounts" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                    END IF;
+                    IF to_regclass('"JournalLines"') IS NOT NULL THEN
+                        DELETE FROM "JournalLines" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                    END IF;
+                    IF to_regclass('"JournalEntries"') IS NOT NULL THEN
+                        DELETE FROM "JournalEntries" WHERE "CompanyId" = '00000001-0000-0000-0000-000000000001';
+                    END IF;
+                END $$;
+                """);
+
             migrationBuilder.DeleteData(
                 table: "Companies",
                 keyColumn: "Id",
