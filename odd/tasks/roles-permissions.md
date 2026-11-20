@@ -149,7 +149,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 | T4 | S1, S4, S5 | inline (parent) | DONE | `PermissionRequirement` + handler + una policy por permiso (`PermissionPolicies`, los nombres son constantes) + el 403 nombra el permiso que falta. La unión de los permisos de los roles vive en `RolePermissions.For(IEnumerable<UserRole>)` |
 | T5 | S4 | inline (parent) | DONE | Deny-by-default con el permiso de cada ruta en **un mapa del API** (no un atributo por endpoint, L18) + el filtro que lo consulta contra la matriz + el test de inventario que exige que toda ruta JWT esté cubierta |
 | T6 | S6 | inline (parent) | DONE | `PermissionsController` (`me`, `roles`) + `IPermissionService` + DTOs |
-| T7 | S1-S6 | inline (parent) | PENDING | Verificación: suite completa + test de inventario de endpoints + E2E contra la API viva (login → `me` → un endpoint denegado → uno permitido) |
+| T7 | S1-S6 | inline (parent) | DONE | Verificación: suite completa + test de inventario de endpoints + E2E contra la API viva (login → `me` → un endpoint denegado → uno permitido) |
 | T8 | S3, S6, S10 | handoff (repo `erp-mvp`, hecho por el owner) | DONE | Front: `roles[]`, permisos desde la API, `MATRIZ_PERMISOS` fuera, `normalizeRole` falla cerrado. Entrega aparte (repo, rama y PR distintos) |
 | T9 | S10 | inline (parent) | PENDING | Renombre de roles que colisionan con módulos (`Ventas`→`Vendedor`, `Contabilidad`→`Contador`) — en lockstep con T8 |
 | T10 | S7, S8, S9 | inline (parent) | PENDING | **Feature dependiente**: formalizar el POS/caja como documento de feature aparte (ver apéndice). No se implementa dentro de esta feature |
@@ -417,3 +417,13 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **La rama de e-CF del front** (`feature/electronic-invoicing`) tiene su propia fila de `Ventas` con `facturacion.write/delete` → **cuando se mergee, hay que quitarle esos permisos** ✓ (si no, el front vuelve a ofrecer botones que la API rechaza ✓).
 
 **Risk**: item 3 (contrato) — el front y el back ahora comparten el vocabulario de permisos ✓; el front tiene que desplegarse con el back (si el front es nuevo y el back viejo, el front no tiene permisos y no ve nada ✓ → es el orden seguro: **primero el back, después el front** ✓).
+
+### L23 — 2026-11-20 — T7: la verificación de punta a punta
+
+- **El E2E corre contra un Postgres de verdad** ✓ (no contra el SQLite en memoria del resto de la suite ✓): una **base descartable** ✓ → se aplican **las migraciones de la API** ✓ → se siembra una empresa y un usuario con el rol `Ventas` ✓ → se **levanta la API** sobre esa base ✓.
+- **El recorrido** ✓: el login responde ✓ con el token y los roles ✓ → `GET /api/permissions/me` responde **la unión de los permisos** ✓ → la ruta que el rol tiene (`GET /api/Sales`) **responde** ✓ → la ruta que el rol no tiene (`GET /api/Users`) **responde 403 nombrando el permiso** (`configuracion.read` ✓).
+- **Por qué importa** ✓: el resto de la suite corre sobre un esquema que `EnsureCreated` arma del modelo → **no prueba que las migraciones dejen el esquema que el código espera** ✓. Esta prueba sí ✓ (y es la que encontró que la API leía la base equivocada ✓).
+- **La base del cliente no se toca** ✓: la prueba crea y borra su propia base ✓.
+- **Tests** ✓: suite completa **1102/1102** ✓ (con la base descartable y las migraciones de verdad ✓).
+
+**Risk**: item 1 (datos) — la prueba de punta a punta aplica las migraciones (incluida la del backfill ✓) en una **base descartable** ✓ → la base del cliente no se toca ✓.
