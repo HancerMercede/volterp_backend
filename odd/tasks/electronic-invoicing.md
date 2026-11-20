@@ -1378,6 +1378,11 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Lo que entró** ✓: `GET /api/ElectronicInvoices/{id}` ✓ → `IElectronicInvoiceService.GetByIdAsync` ✓ → el mismo `ElectronicInvoiceDto` que devuelve el retry ✓ (**sin cambiar ese contrato** ✓) · el tenant sale del token ✓ y el documento de otro tenant es **404** ✓. Commit en la rama `feature/roles-permissions` ✓ (esta feature es la del sistema de roles ✓ → el endpoint tiene que existir antes de que deny-by-default le declare su permiso ✓) — **la línea de código vive en esa rama** ✓ y este plan lo referencia ✓.
   - **Tests** ✓: `Volterp.Tests/Integration/ElectronicInvoiceGetByIdEndpointTests.cs` (4 ✓: el documento del tenant ✓ · el de otro tenant es 404 ✓ · el que no existe es 404 ✓ · la ruta literal `state` sigue respondiendo ✓).
 
+- **L139** (2026-11-19) — **El veredicto sale redactado** ✓.
+  - **El hueco** ✓: `ElectronicInvoiceDto` copiaba el `VerdictNote` **sin redactar** ✓ (el `ElectronicInvoiceStateDto` sí lo redactaba ✓) → el `retry` y la emisión exponían la nota tal cual ✓ · y `SaleDto.FiscalNote` hacía lo mismo ✓ → la conversación con la DGII puede llevar su token ✓ y lo que sale de la API nunca lleva una credencial ✓.
+  - **El arreglo** ✓: los dos DTO pasan por `RawResponseSanitizer` ✓ · el texto del veredicto **no cambia** ✓.
+  - **Tests** ✓: `Volterp.Tests/DTOs/ElectronicInvoiceDtoTests.cs` (4 ✓) + `Volterp.Tests/DTOs/SaleDtoTests.cs` (3 ✓) · **390** de e-CF + ventas en verde ✓.
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)

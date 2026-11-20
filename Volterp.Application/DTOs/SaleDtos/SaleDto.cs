@@ -1,3 +1,4 @@
+using Volterp.Application.DTOs.ElectronicInvoiceDtos;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.ElectronicInvoicing;
@@ -52,7 +53,10 @@ public record SaleDto:IMapFrom<Sale>
 
         ElectronicInvoiceId = invoice?.Id;
         FiscalState = invoice is null ? null : EcfFiscalStateClassifier.Classify(invoice.Status, invoice.RequiresReview);
-        FiscalNote = invoice?.VerdictNote;
+        // The note of the verdict is text that came from outside: the
+        // conversation with the DGII carries its token, and what leaves the
+        // API never carries a credential.
+        FiscalNote = invoice is null ? null : RawResponseSanitizer.Redact(invoice.VerdictNote);
     }
 
     private static List<SaleItemDto> MapToSaleItemDto(List<SaleItem> sources)
