@@ -62,6 +62,7 @@ ServiceExtensions.ConfigureRangeAnnulment(builder.Services);
 ServiceExtensions.ConfigureSeedAuthentication(builder.Services);
 ServiceExtensions.ConfigureExceptionLogStore(builder.Services);
 ServiceExtensions.ConfigureCurrentUser(builder.Services);
+ServiceExtensions.ConfigurePermissions(builder.Services);
 ServiceExtensions.ConfigureTenantContext(builder.Services);
 builder.Services.ConfigureForwardedHeaders();
 builder.Services.ConfigureRateLimiting(builder.Configuration);

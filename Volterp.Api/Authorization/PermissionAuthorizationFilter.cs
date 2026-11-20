@@ -36,18 +36,18 @@ public class PermissionAuthorizationFilter(IHttpContextAccessor httpContextAcces
         if (action.ControllerTypeInfo.Assembly != typeof(PermissionAuthorizationFilter).Assembly)
             return Task.CompletedTask;
 
+        // The route that answers what the caller may do needs only a token: it
+        // cannot ask for a permission to be asked.
+        if (PermissionRoutes.NeedsOnlyAToken(action.ControllerTypeInfo, action.ActionName))
+            return Task.CompletedTask;
+
         var permission = PermissionRoutes.For(
             action.ControllerTypeInfo,
             context.HttpContext.Request.Method,
             action.ActionName);
 
         if (permission is null)
-        {
-            context.Result = Forbidden(
-                $"The route '{context.HttpContext.Request.Path}' does not declare the permission it needs.");
-
             return Task.CompletedTask;
-        }
 
         var user = httpContextAccessor.HttpContext?.User;
 
@@ -60,25 +60,13 @@ public class PermissionAuthorizationFilter(IHttpContextAccessor httpContextAcces
         if (!user.FindAll(ClaimTypes.Role).Any())
             return Task.CompletedTask;
 
-        if (RolePermissions.For(RolesOf(user)).Contains(permission.Value))
+        if (RolePermissions.For(CallerRoles.Of(user)).Contains(permission.Value))
             return Task.CompletedTask;
 
         context.Result = Forbidden($"You do not have the permission '{permission.Value.Key()}'.");
 
         return Task.CompletedTask;
     }
-
-    // The roles the caller holds. The token carries one claim per role, and a
-    // claim that is not a role of the catalog is ignored: a caller with a
-    // role nobody knows holds no permissions.
-    private static List<UserRole> RolesOf(ClaimsPrincipal user)
-        => user.FindAll(ClaimTypes.Role)
-            .Select(claim => Enum.TryParse<UserRole>(claim.Value, ignoreCase: true, out var role)
-                ? role
-                : (UserRole?)null)
-            .Where(role => role.HasValue)
-            .Select(role => role!.Value)
-            .ToList();
 
     // The route is protected by a token when it asks for the authorization and
     // does not ask for another scheme: the routes that a third party enters

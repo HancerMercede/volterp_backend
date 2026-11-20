@@ -106,7 +106,18 @@ public static class PermissionRoutes
             ["CompanyEmissionMode:DELETE"] = Permission.ElectronicInvoicingDelete,
 
             // El registro de un usuario (la API alquilada lo usa).
-            ["Auth:POST"] = Permission.AdministrationWrite
+            ["Auth:POST"] = Permission.AdministrationWrite,
+
+            // La matriz de los roles (la lista de permisos de cada rol).
+            ["Permissions:GET"] = Permission.AdministrationRead
+        };
+
+    // The routes that only need a caller with a token: the route that answers
+    // what the caller may do cannot ask for a permission to be asked.
+    private static readonly IReadOnlySet<string> OnlyAuthenticated =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Permissions.GetMe"
         };
 
     // The permission of a route that needs something else, by the name of its
@@ -119,9 +130,7 @@ public static class PermissionRoutes
     /// </summary>
     public static Permission? For(Type controllerType, string httpMethod, string? actionName = null)
     {
-        var controller = controllerType.Name.EndsWith("Controller", StringComparison.Ordinal)
-            ? controllerType.Name[..^"Controller".Length]
-            : controllerType.Name;
+        var controller = NameOf(controllerType);
 
         if (actionName is not null
             && ByControllerAndAction.TryGetValue($"{controller}.{actionName}", out var byAction))
@@ -130,6 +139,22 @@ public static class PermissionRoutes
         return ByControllerAndMethod.TryGetValue($"{controller}:{httpMethod.ToUpperInvariant()}", out var byMethod)
             ? byMethod
             : null;
+    }
+
+    private static string NameOf(Type controllerType)
+        => controllerType.Name.EndsWith("Controller", StringComparison.Ordinal)
+            ? controllerType.Name[..^"Controller".Length]
+            : controllerType.Name;
+
+    /// <summary>
+    /// Whether the route only needs a caller with a token.
+    /// </summary>
+    public static bool NeedsOnlyAToken(Type controllerType, string? actionName = null)
+    {
+        if (actionName is null)
+            return false;
+
+        return OnlyAuthenticated.Contains($"{NameOf(controllerType)}.{actionName}");
     }
 
     /// <summary>

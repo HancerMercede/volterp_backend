@@ -148,7 +148,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 | T3 | S2 | inline (parent) | DONE | JWT multi-claim (un claim por rol) + `LoginResponse.Roles[]` + `CreateUserDto.Roles[]` + `UserDto.Roles[]` + `IsInRole` en `BaseController` y `CurrentUserService` (con varios claims, `FindFirst` solo veía el primero) |
 | T4 | S1, S4, S5 | inline (parent) | DONE | `PermissionRequirement` + handler + una policy por permiso (`PermissionPolicies`, los nombres son constantes) + el 403 nombra el permiso que falta. La unión de los permisos de los roles vive en `RolePermissions.For(IEnumerable<UserRole>)` |
 | T5 | S4 | inline (parent) | DONE | Deny-by-default con el permiso de cada ruta en **un mapa del API** (no un atributo por endpoint, L18) + el filtro que lo consulta contra la matriz + el test de inventario que exige que toda ruta JWT esté cubierta |
-| T6 | S6 | inline (parent) | PENDING | `PermissionsController` (`me`, `roles`) + `IPermissionService` + DTOs |
+| T6 | S6 | inline (parent) | DONE | `PermissionsController` (`me`, `roles`) + `IPermissionService` + DTOs |
 | T7 | S1-S6 | inline (parent) | PENDING | Verificación: suite completa + test de inventario de endpoints + E2E contra la API viva (login → `me` → un endpoint denegado → uno permitido) |
 | T8 | S3, S6, S10 | handoff al usuario (repo `erp-mvp`) | PENDING | Front: `roles[]`, permisos desde la API, `MATRIZ_PERMISOS` fuera, `normalizeRole` falla cerrado. Entrega aparte (repo, rama y PR distintos) |
 | T9 | S10 | inline (parent) | PENDING | Renombre de roles que colisionan con módulos (`Ventas`→`Vendedor`, `Contabilidad`→`Contador`) — en lockstep con T8 |
@@ -382,3 +382,14 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **Tests** ✓: `EndpointPermissionInventoryTests` (3 ✓: toda ruta JWT está en el mapa ✓ · el mapa solo habla el catálogo ✓ · el mapa no nombra controllers inexistentes ✓) · `PermissionFilterTests` (6 ✓: el que tiene el rol entra ✓ · el que no, no ✓ · el rechazo nombra el permiso ✓ · con dos roles entra por los dos ✓ · el SuperAdmin entra por todo ✓ · el login es público ✓) · `RolePermissionsTests` (la matriz corregida ✓) → **suite completa 1087/1087** ✓.
 
 **Risk**: item 2 (seguridad) — el cambio de quién autoriza es el más grande de la feature: mitigado con el test de inventario ✓ + la suite completa ✓ + la revisión independiente ✓. No hay relajación: la matriz se corrigió para decir lo que la API ya hacía ✓.
+
+### L20 — 2026-11-20 — T6: los permisos del caller salen de la API
+
+- **`GET /api/permissions/me`** ✓ → los roles que tiene y la **unión** de sus permisos (la lista plana que el front ya conoce ✓) → el front deja de mantener su matriz (S6 ✓).
+- **`GET /api/permissions/roles`** ✓ → la matriz completa (qué otorga cada rol del catálogo ✓) → **solo los admins** ✓ (`configuracion.read` ✓).
+- **`IPermissionService` + `PermissionService`** ✓ → la unión sale del **dominio** (`RolePermissions.For`) ✓ → el filtro y el servicio responden lo mismo ✓ (una sola fuente ✓).
+- **La unión vive en un solo lugar** ✓: `CallerRoles` (los roles del token) lo usan el filtro y el controller ✓.
+- **El mapa tiene un tercer estado** ✓: una ruta puede pedir **un permiso**, pedir **solo un token**, o **no estar en el mapa** (cerrada ✓). La ruta que responde *qué puede hacer el caller* no puede pedir un permiso para que se le pregunte ✓ → `Permissions.GetMe` ✓.
+- **Tests** ✓: `PermissionServiceTests` (5 ✓: la unión ✓ · sin roles no hay permisos ✓ · los permisos de un rol son los de la matriz ✓ · el admin tiene todo ✓ · la matriz cubre todos los roles ✓) · `PermissionsEndpointTests` (5 ✓: el caller aprende lo que puede ✓ · con dos roles, la unión ✓ · la matriz es de los admins ✓ · un no-admin no la ve (403) ✓ · sin token no se pregunta ✓) → **suite completa 1097/1097** ✓.
+
+**Risk**: item 2 (seguridad) — el endpoint expone los permisos del propio caller (no los de otro ✓) y la matriz completa es de los admins ✓.

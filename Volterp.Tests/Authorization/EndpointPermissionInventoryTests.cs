@@ -53,7 +53,7 @@ public class EndpointPermissionInventoryTests
                 {
                     var permission = PermissionRoutes.For(controller, verb, action.Name);
 
-                    if (permission is null)
+                    if (permission is null && !PermissionRoutes.NeedsOnlyAToken(controller, action.Name))
                         missing.Add($"{controller.Name}.{action.Name} ({verb})");
                 }
             }
