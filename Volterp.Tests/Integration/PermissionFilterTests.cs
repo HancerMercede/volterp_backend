@@ -27,7 +27,7 @@ public class PermissionFilterTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task TheCallerThatHoldsTheRoleOfTheRouteGetsIn()
     {
-        SetAuth(nameof(UserRole.Ventas));
+        SetAuth(nameof(UserRole.Vendedor));
 
         var response = await _client.GetAsync("/api/Sales");
 
@@ -61,7 +61,7 @@ public class PermissionFilterTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task TheCallerWithTwoRolesHasThePermissionsOfBoth()
     {
-        SetAuth(nameof(UserRole.Ventas), nameof(UserRole.Inventario));
+        SetAuth(nameof(UserRole.Vendedor), nameof(UserRole.Inventario));
 
         var sales = await _client.GetAsync("/api/Sales");
         var products = await _client.GetAsync("/api/Products");

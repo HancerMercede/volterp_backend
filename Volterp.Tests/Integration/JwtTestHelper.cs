@@ -31,7 +31,7 @@ public static class JwtTestHelper
     // becomes the seller role, which is enough for the probes that only need
     // a caller that is not an admin.
     private static UserRole RoleOf(string role)
-        => Enum.TryParse<UserRole>(role, ignoreCase: true, out var parsed) ? parsed : UserRole.Ventas;
+        => Enum.TryParse<UserRole>(role, ignoreCase: true, out var parsed) ? parsed : UserRole.Vendedor;
 
     // A token of a user that does not belong to a company: the surface of
     // the tenant takes the company from the token, so this one has none.

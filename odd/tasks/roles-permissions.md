@@ -151,7 +151,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 | T6 | S6 | inline (parent) | DONE | `PermissionsController` (`me`, `roles`) + `IPermissionService` + DTOs |
 | T7 | S1-S6 | inline (parent) | DONE | Verificación: suite completa + test de inventario de endpoints + E2E contra la API viva (login → `me` → un endpoint denegado → uno permitido) |
 | T8 | S3, S6, S10 | handoff (repo `erp-mvp`, hecho por el owner) | DONE | Front: `roles[]`, permisos desde la API, `MATRIZ_PERMISOS` fuera, `normalizeRole` falla cerrado. Entrega aparte (repo, rama y PR distintos) |
-| T9 | S10 | inline (parent) | PENDING | Renombre de roles que colisionan con módulos (`Ventas`→`Vendedor`, `Contabilidad`→`Contador`) — en lockstep con T8 |
+| T9 | S10 | inline (parent) | DONE | Renombre de roles que colisionan con módulos (`Ventas`→`Vendedor`, `Contabilidad`→`Contador`) — en lockstep con T8 |
 | T10 | S7, S8, S9 | inline (parent) | PENDING | **Feature dependiente**: formalizar el POS/caja como documento de feature aparte (ver apéndice). No se implementa dentro de esta feature |
 | T11 | S4 | inline (parent) | DONE | `GET /api/ElectronicInvoices/{id}` — la lectura de un comprobante por id (la ruta que el front daba por existente y no existía). Vive en esta feature porque deny-by-default (T5) le tiene que declarar su permiso |
 
@@ -427,3 +427,14 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **Tests** ✓: suite completa **1102/1102** ✓ (con la base descartable y las migraciones de verdad ✓).
 
 **Risk**: item 1 (datos) — la prueba de punta a punta aplica las migraciones (incluida la del backfill ✓) en una **base descartable** ✓ → la base del cliente no se toca ✓.
+
+### L24 — 2026-11-20 — T9: los roles son funciones de las personas, no módulos
+
+> (T9 era el último de la feature: el renombre de los roles que colisionaban con los módulos)
+
+- **`Ventas` → `Vendedor`** y **`Contabilidad` → `Contador`** ✓ (los números del enum **no cambian** ✓ → **no hay migración de datos** ✓ → la tabla `UserRoles` sigue hablando el mismo ints ✓).
+- **Las claves de los permisos NO cambian** ✓ (`ventas.read` sigue siendo `ventas.read` ✓): lo que se renombra es el **rol** (la función de la persona), no el **módulo** (el área de trabajo) ✓ → el catálogo de la API y el del front siguen igual ✓.
+- **El front, en el mismo paso** ✓: las constantes `Rol` (`"ventas"` → `"vendedor"`, `"contabilidad"` → `"contador"` ✓) · las etiquetas que ve el usuario (`"Ventas"` → `"Vendedor"` ✓) · el nombre que viaja en el cable (`ROL_TO_BACKEND` ✓ → `"Vendedor"`/`"Contador"` ✓) · y **el `normalizeRole` viejo (el que degradaba en silencio a Ventas) desapareció** ✓ → lo que no es un rol del catálogo se descarta ✓.
+- **Las sesiones vivas se caen** ✓ (el claim del token lleva el nombre viejo ✓) → el front **cierra la sesión** al leerla ✓ (si el rol persistido no es del catálogo ✓ → login de nuevo ✓) y el token vive 60 minutos ✓ → el impacto es de una sesión, no de datos ✓.
+
+**Risk**: item 3 (contrato) — el nombre del rol viaja en el token y en el body del login ✓ → el back y el front tienen que subir **juntos** ✓ (si el front nuevo habla con el back viejo, el rol no se reconoce y la sesión se cae ✓ → login de nuevo ✓, sin datos perdidos ✓).

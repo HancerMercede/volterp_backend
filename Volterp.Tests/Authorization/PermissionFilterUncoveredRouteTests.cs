@@ -36,7 +36,7 @@ public class PermissionFilterUncoveredRouteTests
     {
         // The dashboard is covered and the role of the caller has the
         // permission: the filter does not refuse it.
-        var (filter, context) = Build("GET", "Ventas");
+        var (filter, context) = Build("GET", "Vendedor");
 
         await filter.OnAuthorizationAsync(context);
 

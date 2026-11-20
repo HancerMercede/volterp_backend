@@ -49,26 +49,26 @@ public class UserRolesEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task TheRolesOfTheUserBecomeTheOnesThatWereAskedFor()
     {
-        await ResetRolesAsync(UserRole.Ventas);
+        await ResetRolesAsync(UserRole.Vendedor);
         SetAuth(nameof(UserRole.SuperAdmin));
 
         var response = await _client.PutAsJsonAsync($"/api/Users/{_userId}/roles",
-            new { roles = new[] { "Ventas", "Inventario" } });
+            new { roles = new[] { "Vendedor", "Inventario" } });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         (await RolesInTheDatabaseAsync())
-            .Should().BeEquivalentTo([UserRole.Ventas, UserRole.Inventario]);
+            .Should().BeEquivalentTo([UserRole.Vendedor, UserRole.Inventario]);
     }
 
     [Fact]
     public async Task TheRoleTheUserAlreadyHoldsIsNotDuplicated()
     {
-        await ResetRolesAsync(UserRole.Ventas);
+        await ResetRolesAsync(UserRole.Vendedor);
         SetAuth(nameof(UserRole.SuperAdmin));
 
         var response = await _client.PutAsJsonAsync($"/api/Users/{_userId}/roles",
-            new { roles = new[] { "Ventas" } });
+            new { roles = new[] { "Vendedor" } });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -78,15 +78,15 @@ public class UserRolesEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task AnAdminCannotGrantTheSuperAdminRole()
     {
-        await ResetRolesAsync(UserRole.Ventas);
+        await ResetRolesAsync(UserRole.Vendedor);
         SetAuth(nameof(UserRole.Admin));
 
         var response = await _client.PutAsJsonAsync($"/api/Users/{_userId}/roles",
-            new { roles = new[] { "Ventas", "SuperAdmin" } });
+            new { roles = new[] { "Vendedor", "SuperAdmin" } });
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
-        (await RolesInTheDatabaseAsync()).Should().BeEquivalentTo([UserRole.Ventas]);
+        (await RolesInTheDatabaseAsync()).Should().BeEquivalentTo([UserRole.Vendedor]);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class UserRolesEndpointTests : IClassFixture<ApiFactory>
         SetAuth(nameof(UserRole.Admin));
 
         var response = await _client.PutAsJsonAsync($"/api/Users/{_userId}/roles",
-            new { roles = new[] { "Ventas" } });
+            new { roles = new[] { "Vendedor" } });
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
@@ -106,21 +106,21 @@ public class UserRolesEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task AUserThatIsNotAnAdminCannotChangeTheRoles()
     {
-        await ResetRolesAsync(UserRole.Ventas);
-        SetAuth(nameof(UserRole.Ventas));
+        await ResetRolesAsync(UserRole.Vendedor);
+        SetAuth(nameof(UserRole.Vendedor));
 
         var response = await _client.PutAsJsonAsync($"/api/Users/{_userId}/roles",
-            new { roles = new[] { "Ventas", "RRHH" } });
+            new { roles = new[] { "Vendedor", "RRHH" } });
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
-        (await RolesInTheDatabaseAsync()).Should().BeEquivalentTo([UserRole.Ventas]);
+        (await RolesInTheDatabaseAsync()).Should().BeEquivalentTo([UserRole.Vendedor]);
     }
 
     [Fact]
     public async Task TheRolesOfAUserCannotBeEmpty()
     {
-        await ResetRolesAsync(UserRole.Ventas);
+        await ResetRolesAsync(UserRole.Vendedor);
         SetAuth(nameof(UserRole.SuperAdmin));
 
         var response = await _client.PutAsJsonAsync($"/api/Users/{_userId}/roles",
@@ -128,13 +128,13 @@ public class UserRolesEndpointTests : IClassFixture<ApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        (await RolesInTheDatabaseAsync()).Should().BeEquivalentTo([UserRole.Ventas]);
+        (await RolesInTheDatabaseAsync()).Should().BeEquivalentTo([UserRole.Vendedor]);
     }
 
     [Fact]
     public async Task TheLoginCarriesEveryRoleOfTheUser()
     {
-        await ResetRolesAsync(UserRole.Ventas, UserRole.Inventario);
+        await ResetRolesAsync(UserRole.Vendedor, UserRole.Inventario);
 
         var response = await _client.PostAsJsonAsync("/api/Auth/login",
             new { username = "roles-user", password = Password });
@@ -145,14 +145,14 @@ public class UserRolesEndpointTests : IClassFixture<ApiFactory>
         var root = document.RootElement;
 
         root.GetProperty("roles").EnumerateArray().Select(role => role.GetString())
-            .Should().BeEquivalentTo(["Ventas", "Inventario"],
+            .Should().BeEquivalentTo(["Vendedor", "Inventario"],
                 "the front reads the roles of the user from the answer of the login");
 
         var token = new JwtSecurityTokenHandler().ReadJwtToken(root.GetProperty("token").GetString()!);
         var claims = token.Claims.Where(claim => claim.Type == "role" || claim.Type == ClaimTypes.Role)
             .Select(claim => claim.Value).ToList();
 
-        claims.Should().BeEquivalentTo(["Ventas", "Inventario"],
+        claims.Should().BeEquivalentTo(["Vendedor", "Inventario"],
             "the token carries one claim per role: the permissions of the user are their union");
     }
 
@@ -233,7 +233,7 @@ public class UserRolesEndpointTests : IClassFixture<ApiFactory>
             IsActive = true
         };
 
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
 
         db.Users.Add(user);
 

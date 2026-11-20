@@ -16,10 +16,10 @@ public class UserBehaviorTests
     {
         var user = CreateUser();
 
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
 
         user.Roles.Select(assignment => assignment.Role)
-            .Should().ContainSingle().Which.Should().Be(UserRole.Ventas);
+            .Should().ContainSingle().Which.Should().Be(UserRole.Vendedor);
     }
 
     [Fact]
@@ -27,8 +27,8 @@ public class UserBehaviorTests
     {
         var user = CreateUser();
 
-        user.AssignRole(UserRole.Ventas);
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
+        user.AssignRole(UserRole.Vendedor);
 
         user.Roles.Should().ContainSingle();
     }
@@ -37,12 +37,12 @@ public class UserBehaviorTests
     public void AssignRole_KeepsTheRolesTheUserAlreadyHolds()
     {
         var user = CreateUser();
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
 
         user.AssignRole(UserRole.Inventario);
 
         user.Roles.Select(assignment => assignment.Role)
-            .Should().BeEquivalentTo([UserRole.Ventas, UserRole.Inventario]);
+            .Should().BeEquivalentTo([UserRole.Vendedor, UserRole.Inventario]);
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class UserBehaviorTests
     {
         var user = CreateUser();
 
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
 
         user.Roles.Should().ContainSingle().Which.CompanyId.Should().Be(user.CompanyId,
             "the assignment carries the company of the user: the tenant filter reads it");
@@ -74,10 +74,10 @@ public class UserBehaviorTests
     public void RemoveRole_TakesTheRoleAway()
     {
         var user = CreateUser();
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
         user.AssignRole(UserRole.Inventario);
 
-        user.RemoveRole(UserRole.Ventas);
+        user.RemoveRole(UserRole.Vendedor);
 
         user.Roles.Select(assignment => assignment.Role)
             .Should().ContainSingle().Which.Should().Be(UserRole.Inventario);
@@ -87,7 +87,7 @@ public class UserBehaviorTests
     public void RemoveRole_WhenTheRoleIsNotHeld_DoesNothing()
     {
         var user = CreateUser();
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
 
         user.RemoveRole(UserRole.RRHH);
 
@@ -98,9 +98,9 @@ public class UserBehaviorTests
     public void RemoveRole_WhenItIsTheLastRole_ThrowsInvalidRoleTransitionException()
     {
         var user = CreateUser();
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
 
-        var act = () => user.RemoveRole(UserRole.Ventas);
+        var act = () => user.RemoveRole(UserRole.Vendedor);
 
         act.Should().Throw<InvalidRoleTransitionException>()
             .Which.ToRole.Should().Be(User.NoRole,
@@ -111,10 +111,10 @@ public class UserBehaviorTests
     public void RemoveRole_WhenUserDeactivated_ThrowsInvalidRoleTransitionException()
     {
         var user = CreateUser();
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
         user.Deactivate();
 
-        var act = () => user.RemoveRole(UserRole.Ventas);
+        var act = () => user.RemoveRole(UserRole.Vendedor);
 
         act.Should().Throw<InvalidRoleTransitionException>();
     }
@@ -125,9 +125,9 @@ public class UserBehaviorTests
     public void HasRole_TellsWhetherTheUserHoldsTheRole()
     {
         var user = CreateUser();
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
 
-        user.HasRole(UserRole.Ventas).Should().BeTrue();
+        user.HasRole(UserRole.Vendedor).Should().BeTrue();
         user.HasRole(UserRole.Admin).Should().BeFalse();
     }
 

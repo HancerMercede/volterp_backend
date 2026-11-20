@@ -79,7 +79,7 @@ public class RolePermissionsTests
         // role the writing of the clients and of the fiscal configuration, and
         // the API refused it with a 403: the buttons were a lie. The matrix
         // now says the truth, and the front stops offering them (T8).
-        Granted(UserRole.Ventas).Should().BeEquivalentTo(new[]
+        Granted(UserRole.Vendedor).Should().BeEquivalentTo(new[]
         {
             "dashboard.read",
             "dashboard.write",
@@ -112,7 +112,7 @@ public class RolePermissionsTests
     [Fact]
     public void TheRoleOfContabilidadGrantsWhatTheFrontGranted()
     {
-        Granted(UserRole.Contabilidad).Should().BeEquivalentTo(new[]
+        Granted(UserRole.Contador).Should().BeEquivalentTo(new[]
         {
             "dashboard.read",
             "dashboard.write",
@@ -141,12 +141,12 @@ public class RolePermissionsTests
         // The deletion of a document is the admin's: the front used to give
         // the delete of the invoicing to the role of sales, and the API never
         // let it happen. Now the matrix says the same as the API.
-        Granted(UserRole.Ventas).Where(key => key.EndsWith(".delete"))
+        Granted(UserRole.Vendedor).Where(key => key.EndsWith(".delete"))
             .Should().BeEmpty();
 
         Granted(UserRole.Inventario).Where(key => key.EndsWith(".delete"))
             .Should().BeEmpty();
-        Granted(UserRole.Contabilidad).Where(key => key.EndsWith(".delete"))
+        Granted(UserRole.Contador).Where(key => key.EndsWith(".delete"))
             .Should().BeEmpty();
         Granted(UserRole.RRHH).Where(key => key.EndsWith(".delete"))
             .Should().BeEmpty();

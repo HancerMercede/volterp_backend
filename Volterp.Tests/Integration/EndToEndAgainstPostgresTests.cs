@@ -76,7 +76,7 @@ public class EndToEndAgainstPostgresTests
             var loginRoot = loginDocument.RootElement;
 
             loginRoot.GetProperty("roles").EnumerateArray().Select(role => role.GetString())
-                .Should().BeEquivalentTo([nameof(UserRole.Ventas)]);
+                .Should().BeEquivalentTo([nameof(UserRole.Vendedor)]);
 
             var token = loginRoot.GetProperty("token").GetString()!;
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -152,7 +152,7 @@ public class EndToEndAgainstPostgresTests
             IsActive = true
         };
 
-        user.AssignRole(UserRole.Ventas);
+        user.AssignRole(UserRole.Vendedor);
 
         context.Users.Add(user);
 
@@ -165,7 +165,7 @@ public class EndToEndAgainstPostgresTests
             .SingleAsync(candidate => candidate.Username == "e2e-user");
 
         saved.Roles.Select(assignment => assignment.Role)
-            .Should().BeEquivalentTo([UserRole.Ventas]);
+            .Should().BeEquivalentTo([UserRole.Vendedor]);
 
         new PasswordHasher().Verify(Password, saved.PasswordHash).Should().BeTrue(
             "the password the test logs in with is the one the user has");

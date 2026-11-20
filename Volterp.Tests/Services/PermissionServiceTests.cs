@@ -15,7 +15,7 @@ public class PermissionServiceTests
     [Fact]
     public void ThePermissionsOfACallerAreTheUnionOfTheRoles()
     {
-        var permissions = _sut.EffectivePermissions([UserRole.Ventas, UserRole.Inventario]);
+        var permissions = _sut.EffectivePermissions([UserRole.Vendedor, UserRole.Inventario]);
 
         permissions.Should().Contain("ventas.read");
         permissions.Should().Contain("inventario.read");
@@ -31,9 +31,9 @@ public class PermissionServiceTests
     [Fact]
     public void ThePermissionsOfARoleAreTheOnesOfTheMatrix()
     {
-        _sut.PermissionsOf(UserRole.Ventas).Should().Contain("ventas.read").And.Contain("facturacion.read");
+        _sut.PermissionsOf(UserRole.Vendedor).Should().Contain("ventas.read").And.Contain("facturacion.read");
 
-        _sut.PermissionsOf(UserRole.Ventas).Should().NotContain("ventas.delete",
+        _sut.PermissionsOf(UserRole.Vendedor).Should().NotContain("ventas.delete",
             "the matrix says what the API does: the sales role does not delete");
     }
 

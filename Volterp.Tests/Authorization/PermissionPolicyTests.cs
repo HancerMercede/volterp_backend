@@ -32,7 +32,7 @@ public class PermissionPolicyTests
     [Fact]
     public void ThePermissionsOfTheRolesAreTheUnionOfThem()
     {
-        var permissions = RolePermissions.For([UserRole.Ventas, UserRole.Inventario]);
+        var permissions = RolePermissions.For([UserRole.Vendedor, UserRole.Inventario]);
 
         permissions.Should().Contain(Permission.SalesRead);
         permissions.Should().Contain(Permission.InventoryRead);
@@ -45,7 +45,7 @@ public class PermissionPolicyTests
         var authorization = BuildAuthorization();
 
         var result = await authorization.AuthorizeAsync(
-            PrincipalOf(UserRole.Ventas), null, PermissionPolicies.SalesRead);
+            PrincipalOf(UserRole.Vendedor), null, PermissionPolicies.SalesRead);
 
         result.Succeeded.Should().BeTrue();
     }
@@ -56,7 +56,7 @@ public class PermissionPolicyTests
         var authorization = BuildAuthorization();
 
         var result = await authorization.AuthorizeAsync(
-            PrincipalOf(UserRole.Ventas), null, PermissionPolicies.InventoryRead);
+            PrincipalOf(UserRole.Vendedor), null, PermissionPolicies.InventoryRead);
 
         result.Succeeded.Should().BeFalse();
     }
@@ -67,7 +67,7 @@ public class PermissionPolicyTests
         var authorization = BuildAuthorization();
 
         var result = await authorization.AuthorizeAsync(
-            PrincipalOf(UserRole.Ventas, UserRole.Inventario), null, PermissionPolicies.InventoryRead);
+            PrincipalOf(UserRole.Vendedor, UserRole.Inventario), null, PermissionPolicies.InventoryRead);
 
         result.Succeeded.Should().BeTrue();
     }

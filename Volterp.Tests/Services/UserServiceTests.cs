@@ -29,7 +29,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.Users).Returns(mockUsersRepo.Object);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", [UserRole.Ventas]);
+        var request = new CreateUserDto("existinguser", "password123", "test@example.com", "Test User", [UserRole.Vendedor]);
 
         // ACT
         var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
@@ -62,7 +62,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas]);
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Vendedor]);
 
         // ACT
         var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
@@ -94,7 +94,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas]);
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Vendedor]);
 
         // ACT
         var result = await service.CreateAsync(request, companyId: Guid7TestValues.CompanyA, userId: Guid7TestValues.UserA);
@@ -131,7 +131,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas])
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Vendedor])
         {
             Code = "LEGACY-42"
         };
@@ -171,7 +171,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas])
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Vendedor])
         {
             Code = "  LEGACY-7  "
         };
@@ -208,7 +208,7 @@ public class UserServiceTests
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new UserService(mockUnitOfWork.Object, mockPasswordHasher.Object, Mock.Of<ICurrentUserService>());
-        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Ventas])
+        var request = new CreateUserDto("newuser", "plainpassword", "test@example.com", "Test User", [UserRole.Vendedor])
         {
             Code = "DUP-1"
         };

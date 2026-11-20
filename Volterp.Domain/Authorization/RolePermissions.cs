@@ -48,7 +48,7 @@ public static class RolePermissions
             // of the clients and of the fiscal configuration (issuers, ranges,
             // certificates, emission mode, credentials) to the admins. The
             // matrix says what the API does, not what the front used to offer.
-            [UserRole.Ventas] = new HashSet<Permission>
+            [UserRole.Vendedor] = new HashSet<Permission>
             {
                 Permission.DashboardRead,
                 Permission.DashboardWrite,
@@ -73,7 +73,7 @@ public static class RolePermissions
                 Permission.ReportsRead
             },
 
-            [UserRole.Contabilidad] = new HashSet<Permission>
+            [UserRole.Contador] = new HashSet<Permission>
             {
                 Permission.DashboardRead,
                 Permission.DashboardWrite,

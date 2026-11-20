@@ -26,7 +26,7 @@ public class PermissionsEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task TheCallerLearnsWhatItMayDo()
     {
-        SetAuth(nameof(UserRole.Ventas));
+        SetAuth(nameof(UserRole.Vendedor));
 
         var response = await _client.GetAsync("/api/permissions/me");
 
@@ -36,7 +36,7 @@ public class PermissionsEndpointTests : IClassFixture<ApiFactory>
         var root = document.RootElement;
 
         root.GetProperty("roles").EnumerateArray().Select(role => role.GetString())
-            .Should().BeEquivalentTo(["Ventas"]);
+            .Should().BeEquivalentTo(["Vendedor"]);
 
         var permissions = root.GetProperty("permissions").EnumerateArray()
             .Select(permission => permission.GetString())
@@ -50,7 +50,7 @@ public class PermissionsEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task ThePermissionsOfTwoRolesAreTheUnionOfBoth()
     {
-        SetAuth(nameof(UserRole.Ventas), nameof(UserRole.Inventario));
+        SetAuth(nameof(UserRole.Vendedor), nameof(UserRole.Inventario));
 
         var response = await _client.GetAsync("/api/permissions/me");
 
@@ -80,7 +80,7 @@ public class PermissionsEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task TheCallerThatIsNotAnAdminDoesNotSeeTheMatrix()
     {
-        SetAuth(nameof(UserRole.Ventas));
+        SetAuth(nameof(UserRole.Vendedor));
 
         var response = await _client.GetAsync("/api/permissions/roles");
 

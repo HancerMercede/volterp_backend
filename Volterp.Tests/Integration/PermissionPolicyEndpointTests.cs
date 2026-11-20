@@ -25,7 +25,7 @@ public class PermissionPolicyEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task TheCallerThatHoldsTheRoleIsLetIn()
     {
-        SetAuth("Ventas");
+        SetAuth("Vendedor");
 
         var response = await _client.GetAsync("/api/test/permissions/sales-read");
 
@@ -35,7 +35,7 @@ public class PermissionPolicyEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task TheCallerThatDoesNotHoldTheRoleIsRefused()
     {
-        SetAuth("Ventas");
+        SetAuth("Vendedor");
 
         var response = await _client.GetAsync("/api/test/permissions/inventory-read");
 
@@ -45,7 +45,7 @@ public class PermissionPolicyEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task TheRefusalNamesThePermissionThatIsMissing()
     {
-        SetAuth("Ventas");
+        SetAuth("Vendedor");
 
         var response = await _client.GetAsync("/api/test/permissions/inventory-read");
 
@@ -59,7 +59,7 @@ public class PermissionPolicyEndpointTests : IClassFixture<ApiFactory>
     [Fact]
     public async Task TheCallerWithTwoRolesHasThePermissionsOfBoth()
     {
-        SetAuth("Ventas", "Inventario");
+        SetAuth("Vendedor", "Inventario");
 
         var sales = await _client.GetAsync("/api/test/permissions/sales-read");
         var inventory = await _client.GetAsync("/api/test/permissions/inventory-read");
