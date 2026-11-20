@@ -1373,6 +1373,11 @@ El trabajo que le da valor al producto aunque la integración se demore: Volterp
   - **Lo que encontró el circuito** ✓: **dos bugs nuestros** ✓ (el código del veredicto que llega como texto ✓ `48f5128` · el `IndicadorMontoGravado` que el esquema deja opcional y la DGII exige ✓ `d5c09bc`) · y un dato que **la spec no tiene** ✓ (el **`1209`** ✓ → el ambiente de pruebas **quema el e-NCF** ✓) · y la regla de la DGII sobre el **comprador** ✓ (el RNC del comprador tiene que existir en su registro ✓ aunque la spec solo pida "validar estructura" ✓).
   - **T48 → cerrado** ✓ → **el plan ya no tiene ninguna fila de código abierta** ✓ (T52 queda con su parte de Postgres ✓ — *prueba no disponible* en esta máquina ✓ — y T8 está fuera de alcance ✓).
 
+- **L138** (2026-11-19) — **La superficie de e-CF gana la lectura de un comprobante por id** ✓.
+  - **El hueco** ✓: el front del repo `erp-mvp` llama `electronic/invoicing/{id}` ✓ — **esa ruta no existe** ✓ (todos los controllers usan `[Route("api/[controller]")]` ✓) → y el hueco de fondo era peor ✓: **no había ninguna lectura de un comprobante por id** ✓ (solo la lista `state` ✓ · el HTML de impresión ✓ · los QR ✓ · el retry ✓).
+  - **Lo que entró** ✓: `GET /api/ElectronicInvoices/{id}` ✓ → `IElectronicInvoiceService.GetByIdAsync` ✓ → el mismo `ElectronicInvoiceDto` que devuelve el retry ✓ (**sin cambiar ese contrato** ✓) · el tenant sale del token ✓ y el documento de otro tenant es **404** ✓. Commit en la rama `feature/roles-permissions` ✓ (esta feature es la del sistema de roles ✓ → el endpoint tiene que existir antes de que deny-by-default le declare su permiso ✓) — **la línea de código vive en esa rama** ✓ y este plan lo referencia ✓.
+  - **Tests** ✓: `Volterp.Tests/Integration/ElectronicInvoiceGetByIdEndpointTests.cs` (4 ✓: el documento del tenant ✓ · el de otro tenant es 404 ✓ · el que no existe es 404 ✓ · la ruta literal `state` sigue respondiendo ✓).
+
 ## Relevant Files
 
 - `Volterp.Domain/Entities/{Client,Company,Product,Sale}.cs` — modelo fiscal a construir (Fase 0)

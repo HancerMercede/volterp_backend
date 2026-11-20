@@ -1,15 +1,15 @@
 # Sistema de roles y permisos — matriz en la API, roles múltiples, deny-by-default
 
 Feature: `roles-permissions`
-Branch: `feature/roles-permissions` (a crear al abrir la feature; el plan vive en el repo desde el 2026-11-07 y la rama activa hoy es `feature/electronic-invoicing`)
-Delivery: por definir al abrir la feature (estrategia `ask-on-risk`)
+Branch: `feature/roles-permissions` (creada el 2026-11-19 desde `development` @ `7ac20a7`)
+Delivery: `ask-on-risk` (default)
 Test runner: `dotnet test Volterp.Tests/Volterp.Tests.csproj`
 
 Objetivo: que el sistema de roles deje de ser un enum único con guards binarios `Admin/SuperAdmin` sobre endpoints sueltos, y pase a ser tres cosas: **roles múltiples por usuario**, **matriz rol→permisos en código dentro de la API**, y **cada endpoint declarando su permiso (deny-by-default)**.
 
 Conductor: el módulo POS (cajero, turno, caja cuadrada) es lo que hace insuficiente el modelo actual. Un "vendedor" que también opera la caja no cabe en un `User.Role` único, y "el cajero solo accede al POS" es imposible de expresar mientras todo endpoint autenticado lea todo.
 
-**Estado: PLAN. Nada implementado. Todas las tareas están PENDING.**
+**Estado: EN EJECUCIÓN. T11 cerrada; T1-T10 siguen PENDING.**
 
 ## Specs
 
@@ -151,6 +151,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 | T8 | S3, S6, S10 | handoff al usuario (repo `erp-mvp`) | PENDING | Front: `roles[]`, permisos desde la API, `MATRIZ_PERMISOS` fuera, `normalizeRole` falla cerrado. Entrega aparte (repo, rama y PR distintos) |
 | T9 | S10 | inline (parent) | PENDING | Renombre de roles que colisionan con módulos (`Ventas`→`Vendedor`, `Contabilidad`→`Contador`) — en lockstep con T8 |
 | T10 | S7, S8, S9 | inline (parent) | PENDING | **Feature dependiente**: formalizar el POS/caja como documento de feature aparte (ver apéndice). No se implementa dentro de esta feature |
+| T11 | S4 | inline (parent) | DONE | `GET /api/ElectronicInvoices/{id}` — la lectura de un comprobante por id (la ruta que el front daba por existente y no existía). Vive en esta feature porque deny-by-default (T5) le tiene que declarar su permiso |
 
 ## Risks
 
@@ -278,3 +279,16 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **Qué**: el documento estaba **sin commitear** desde el 2026-11-07 → hoy se versiona ✓ (el plan es la especificación que los workers van a leer).
 - **Corrección**: la línea de la rama decía `feature/accounting` (la rama activa en aquel momento) → la rama activa hoy es `feature/electronic-invoicing` ✓ → la feature se abre con su propia rama cuando el owner la active ✓.
 - **Estado**: sigue siendo **PLAN** ✓ → **nada implementado** ✓ → las 10 tareas (T1-T10) siguen **PENDING** ✓ → el bloqueo previo del doble descuento de stock (apéndice) sigue abierto ✓.
+
+### L12 — 2026-11-19 — la feature se abre y el endpoint del front entra primero
+
+> "champ como ya tenemos la facturacion electronica lista ahora debemos verificar para que todo quede alineado la matrix de permisos que dejamos pendientes trae a colacion eso y el plan que tenemos para implementarlo, tengo otro agente hologando el front encontro un hueco cone l endpoint electronic/invoicing/{id} validame eso por favor"
+
+> "y pasemonos a development para crear un feature branch desde ahi para implementar las mejoras"
+
+- **La rama**: `feature/roles-permissions` creada desde `development` @ `7ac20a7` ✓ (el plan vivía en el repo desde el 2026-11-07 sin rama propia ✓). **Ojo**: `feature/electronic-invoicing` conserva **2 commits sin pushear** que **no** están en `development` (`7310a6d` la limpieza de filas legacy que bloqueaba el borrado de la compañía mock ✓ · `fa2a874` el cierre de T52 ✓) → quedan en esa rama ✓ (nada se perdió ✓) → su merge a `development` es decisión del owner ✓.
+- **El endpoint del front (`electronic/invoicing/{id}`)**: **no existe** ✓ — no hay tal ruta en ningún controller ✓ (todos usan `[Route("api/[controller]")]` ✓). Lo más cerca: `GET api/ElectronicInvoicePrint/{id}` (HTML imprimible ✓) · `GET api/ElectronicInvoices/{id}/qr.svg|.png` ✓ · `POST api/ElectronicInvoices/{id}/retry` ✓ · `GET api/ElectronicInvoices/state` ✓. **El hueco real**: **no existía ninguna lectura de un comprobante por id** ✓ → el front no tenía cómo traer el detalle de un comprobante ✓.
+- **T11 (cerrada)**: `GET /api/ElectronicInvoices/{id}` ✓ → `IElectronicInvoiceService.GetByIdAsync` ✓ (`ErrorKind.NotFound` ✓ → 404 ✓) → el DTO `ElectronicInvoiceDto` que ya devolvía el retry ✓ (**sin cambiar el contrato de ese endpoint** ✓). El tenant sale del token ✓ y el documento de otro tenant es **404** ✓ (no 403 ✓). Tests: `ElectronicInvoiceGetByIdEndpointTests` (4 ✓: el documento del tenant ✓ · el de otro tenant es 404 ✓ · el que no existe es 404 ✓ · **la ruta literal `state` no se rompió** ✓ por el `{id}` nuevo ✓).
+- **Por qué T11 entra en esta feature y no en la del e-CF**: deny-by-default (T5) le tiene que declarar su permiso ✓ → el endpoint tiene que existir antes de que el barrido le pase por encima ✓. Y desbloquea al agente del front ✓.
+- **Verificación de la unidad**: build limpio ✓ (0 errores ✓) · el test enfocado **4/4** ✓ · la differential check de los endpoints hermanos del mismo controller: **260** de `Volterp.Tests` ✓ + **5** de `Volterp.ElectronicInvoicing.Tests` ✓, sin regresiones ✓.
+- **Hallazgo abierto (no tocado)**: `ElectronicInvoiceDto.MapFrom` copia `VerdictNote` **sin pasar por `RawResponseSanitizer`** ✓ (el `ElectronicInvoiceStateDto` sí lo pasa ✓) → el `retry` ya expone la nota sin redactar ✓ y el `GET` nuevo hereda eso ✓. No se tocó porque `ElectronicInvoiceDto` lo consume el `retry` ✓ (cambiarlo es un cambio de contrato de un endpoint que este pedido no nombró ✓) → **decisión del owner**.
