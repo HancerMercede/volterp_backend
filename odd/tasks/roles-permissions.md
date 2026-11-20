@@ -150,7 +150,7 @@ Cada endpoint pasa de `[Authorize(Roles = "Admin,SuperAdmin")]` a `[Authorize(Po
 | T5 | S4 | inline (parent) | DONE | Deny-by-default con el permiso de cada ruta en **un mapa del API** (no un atributo por endpoint, L18) + el filtro que lo consulta contra la matriz + el test de inventario que exige que toda ruta JWT esté cubierta |
 | T6 | S6 | inline (parent) | DONE | `PermissionsController` (`me`, `roles`) + `IPermissionService` + DTOs |
 | T7 | S1-S6 | inline (parent) | PENDING | Verificación: suite completa + test de inventario de endpoints + E2E contra la API viva (login → `me` → un endpoint denegado → uno permitido) |
-| T8 | S3, S6, S10 | handoff al usuario (repo `erp-mvp`) | PENDING | Front: `roles[]`, permisos desde la API, `MATRIZ_PERMISOS` fuera, `normalizeRole` falla cerrado. Entrega aparte (repo, rama y PR distintos) |
+| T8 | S3, S6, S10 | handoff (repo `erp-mvp`, hecho por el owner) | DONE | Front: `roles[]`, permisos desde la API, `MATRIZ_PERMISOS` fuera, `normalizeRole` falla cerrado. Entrega aparte (repo, rama y PR distintos) |
 | T9 | S10 | inline (parent) | PENDING | Renombre de roles que colisionan con módulos (`Ventas`→`Vendedor`, `Contabilidad`→`Contador`) — en lockstep con T8 |
 | T10 | S7, S8, S9 | inline (parent) | PENDING | **Feature dependiente**: formalizar el POS/caja como documento de feature aparte (ver apéndice). No se implementa dentro de esta feature |
 | T11 | S4 | inline (parent) | DONE | `GET /api/ElectronicInvoices/{id}` — la lectura de un comprobante por id (la ruta que el front daba por existente y no existía). Vive en esta feature porque deny-by-default (T5) le tiene que declarar su permiso |
@@ -407,3 +407,13 @@ Plan creado. **Nada implementado**: todas las tareas PENDING. El repositorio que
 - **Tests** ✓: la suite completa **1101/1101** ✓.
 
 **Risk**: item 2 (seguridad) — el agujero estaba **entregado** y la suite no lo veía: por eso el item 2 exige el verificador independiente ✓ (y por eso sus tests van al repo, no a un scratch ✓).
+
+### L22 — 2026-11-20 — T8: el front homologado (contrato, matriz y permisos de la API)
+
+- **El front ya habla el contrato nuevo** ✓: el login devuelve `roles[]` ✓ · el alta de usuario manda `roles[]` y va al endpoint real (`POST /api/users` con contraseña ✓) · el rol se cambia por `PUT /api/Users/{id}/roles` ✓ · la sesión persistida antes del cambio (con `role`) se migra al leerla ✓.
+- **La matriz local del front desapareció** ✓: el front **pregunta a la API** qué puede hacer el caller (`GET /api/permissions/me` ✓) → el servidor resuelve la unión ✓ → **una sola verdad** ✓ (S6 ✓). Hasta que los permisos llegan, el gate **falla cerrado** ✓.
+- **La matriz del back y la del front ahora dicen lo mismo** ✓: el rol `Ventas` perdió `clientes.write`, `facturacion.write` y `facturacion.delete` ✓ (la API nunca lo dejó ✓ → los botones del front eran una mentira ✓ → ahora desaparecen ✓).
+- **Tests** ✓: front **415/415** ✓ · back **1101/1101** ✓.
+- **La rama de e-CF del front** (`feature/electronic-invoicing`) tiene su propia fila de `Ventas` con `facturacion.write/delete` → **cuando se mergee, hay que quitarle esos permisos** ✓ (si no, el front vuelve a ofrecer botones que la API rechaza ✓).
+
+**Risk**: item 3 (contrato) — el front y el back ahora comparten el vocabulario de permisos ✓; el front tiene que desplegarse con el back (si el front es nuevo y el back viejo, el front no tiene permisos y no ve nada ✓ → es el orden seguro: **primero el back, después el front** ✓).
