@@ -178,6 +178,7 @@ public class ElectronicInvoiceReadinessTests
         readiness!.IsReady.Should().BeFalse();
         readiness.Blockers.Should().ContainSingle(blocker => blocker.Code == "range-missing");
         readiness.Blockers[0].Message.Should().Contain("NCF").And.Contain("B02");
+        readiness.Blockers[0].DocumentTypeCode.Should().Be("B02");
     }
 
     [Fact]

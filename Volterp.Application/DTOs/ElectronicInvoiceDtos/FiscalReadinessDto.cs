@@ -84,4 +84,9 @@ public record FiscalBlockerDto
     public string Code { get; init; } = string.Empty;
 
     public string Message { get; init; } = string.Empty;
+
+    // The code of the type the blocker speaks of ("B02"), when it speaks of
+    // one. The front matches it with the types of the answer and does not
+    // have to read the message to know which type it is.
+    public string? DocumentTypeCode { get; init; }
 }

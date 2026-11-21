@@ -201,7 +201,8 @@ public class ElectronicInvoiceService(
             blockers.Add(new FiscalBlockerDto
             {
                 Code = consumption.BlockerCode,
-                Message = consumption.Blocker ?? string.Empty
+                Message = consumption.Blocker ?? string.Empty,
+                DocumentTypeCode = consumption.Code
             });
 
         return new FiscalReadinessDto
