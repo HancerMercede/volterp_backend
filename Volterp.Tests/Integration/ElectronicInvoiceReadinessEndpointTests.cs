@@ -46,7 +46,7 @@ public class ElectronicInvoiceReadinessEndpointTests : IClassFixture<ApiFactory>
     {
         SetAuth(Guid7TestValues.CompanyA);
 
-        var response = await _client.GetAsync("/api/ElectronicInvoices/readiness");
+        var response = await _client.GetAsync("/api/Sales/readiness");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -70,7 +70,7 @@ public class ElectronicInvoiceReadinessEndpointTests : IClassFixture<ApiFactory>
     {
         SetAuth(Guid7TestValues.CompanyA);
 
-        var response = await _client.GetAsync("/api/ElectronicInvoices/readiness");
+        var response = await _client.GetAsync("/api/Sales/readiness");
         var body = await response.Content.ReadAsStringAsync();
 
         body.Should().NotContain(TaxIdOfB,
@@ -82,7 +82,7 @@ public class ElectronicInvoiceReadinessEndpointTests : IClassFixture<ApiFactory>
     {
         SetAuth(Guid7TestValues.CompanyB);
 
-        var response = await _client.GetAsync("/api/ElectronicInvoices/readiness");
+        var response = await _client.GetAsync("/api/Sales/readiness");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 

@@ -28,21 +28,6 @@ public class ElectronicInvoicesController(IUnitOfWork unitOfWork, IServiceManage
         );
     }
 
-    // The readiness of the taxpayer: the mode it declared, the certificate
-    // that signs, the room the ranges have left and the contingency it is
-    // inside. The company comes from the token.
-    [HttpGet("readiness")]
-    public async Task<ActionResult<FiscalReadinessDto>> GetReadiness(CancellationToken ct = default)
-    {
-        var companyId = GetCurrentUserCompanyId();
-        var result = await serviceManager.ElectronicInvoices.GetReadinessAsync(companyId, ct);
-
-        return result.Match<ActionResult<FiscalReadinessDto>>(
-            error => BadRequest(new ErrorResponse(error.Message)),
-            readiness => Ok(readiness)
-        );
-    }
-
     // The read of a single document: the company comes from the token and the
     // document of another tenant is a 404.
     [HttpGet("{id}")]

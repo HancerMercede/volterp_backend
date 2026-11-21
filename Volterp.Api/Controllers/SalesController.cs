@@ -2,6 +2,7 @@ using EitherWay;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Volterp.Api.Helpers;
+using Volterp.Application.DTOs.ElectronicInvoiceDtos;
 using Volterp.Application.DTOs.SaleDtos;
 using Volterp.Application.Exceptions.AppErrors;
 using Volterp.Application.Helpers;
@@ -53,6 +54,21 @@ public class SalesController(IServiceManager serviceManager) : BaseController
             .GetSalesByStatusAsync(SaleStatus.Pending, pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
+    }
+
+    // Whether the taxpayer can bill right now: the path the sale takes, the
+    // certificate that signs it and the room the ranges have left. The
+    // seller asks it before charging, so it lives with the sales.
+    [HttpGet("readiness")]
+    public async Task<ActionResult<FiscalReadinessDto>> GetReadiness(CancellationToken ct = default)
+    {
+        var companyId = GetCurrentUserCompanyId();
+        var result = await serviceManager.ElectronicInvoices.GetReadinessAsync(companyId, ct);
+
+        return result.Match<ActionResult<FiscalReadinessDto>>(
+            error => BadRequest(new ErrorResponse(error.Message)),
+            readiness => Ok(readiness)
+        );
     }
 
     [HttpGet("{id}")]
