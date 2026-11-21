@@ -131,9 +131,9 @@ E32 (consumo) por debajo de RD$250,000 puede ser en papel continuo; **desde RD$2
 |---|---|---|---|---|
 | UX0 | S6, F10 | inline (parent) | DONE | **Bloqueo previo**: el stock se descuenta dos veces (create + complete). Hoy el POS no completa y por eso no se nota; en cuanto UX1 conecte el complete, toda venta del POS descuenta el doble. Bugfix aislado con sus tests en `SaleServiceTests` |
 | UX1 | S6, F4, F5 | handoff al front (`erp-mvp`) | PENDING | El botón "Completar Venta" completa la venta: se llama `PUT /api/sales/{id}/complete` y el `<select>` de estado sale de la caja (o pasa a ser el tipo de documento) |
-| UX2 | S5, F2, F3 | handoff al front (`erp-mvp`) | PENDING | La elección del documento en la caja: **Consumo (E32)** / **Crédito fiscal (E31)** / **Comercial** (solo si el modo de la empresa es normal; el back rechaza el resto). Default por tipo de cliente |
-| UX3 | S7, S8, F7 | handoff al front (`erp-mvp`) | PENDING | El estado fiscal de la venta con el vocabulario de la DGII, con color, **separado del estado de pago**, con el veredicto y el QR de la venta |
-| UX4 | S7, F7 | handoff al front (`erp-mvp`) | PENDING | Un comprobante pendiente o rechazado se resuelve **desde la venta** (reintentar), sin el desvío de 5 clics a Contabilidad |
+| UX2 | S5, F2, F3 | handoff al front (`erp-mvp`) | DONE | La elección del documento en la caja: **Consumo (E32)** / **Crédito fiscal (E31)** / **Comercial** (solo si el modo de la empresa es normal; el back rechaza el resto). Default por tipo de cliente |
+| UX3 | S7, S8, F7 | handoff al front (`erp-mvp`) | DONE | El estado fiscal de la venta con el vocabulario de la DGII, con color, **separado del estado de pago**, con el veredicto y el QR de la venta |
+| UX4 | S7, F7 | handoff al front (`erp-mvp`) | DONE | Un comprobante pendiente o rechazado se resuelve **desde la venta** (reintentar), sin el desvío de 5 clics a Contabilidad |
 | UX5 | S9, F8 | handoff al front (`erp-mvp`) | PENDING | "Listo para facturar": checklist de certificado válido, rango con cupo, modo declarado y contingencia activa, en Configuración y en el punto de venta |
 | UX6 | S5, S9 | inline (parent) | PENDING | El back expone el estado de Readiness (modo, certificado, rango con cupo, contingencia) para que el front no lo tenga que deducir de tres pantallas |
 | UX7 | S10, F9 | handoff al front (`erp-mvp`) | PENDING | Los permisos vienen de la API (depende de T6/T8 de `roles-permissions`): disappears el botón que se ve y el back responde 403 |
@@ -179,3 +179,19 @@ La validación (S2) y el mapa del front se hicieron con dos exploradores de solo
 **Lo que falta del ciclo**: **liberar** la reserva de una venta pendiente que el cliente nunca se lleva (hoy no hay endpoint de cancelar ✓ → el POS necesita el botón de "descartar" ✓, que va con UX1) y la **expiración** de las ventas pendientes que quedan abiertas (eso pertenece al cierre del turno ✓ → T10 / la feature del POS).
 
 **Risk**: item 1 (datos) — el cambio afecta el stock de las ventas **que se completen** a partir de ahora ✓; las ventas ya completadas con el doble descuento **no se corrigen solas** (9 pendientes y 36 completadas con el doble ✓ → la migración de datos es una decisión aparte ✓).
+
+### L4 — 2026-11-20 — UX2, UX3 y UX4: el documento en la caja y el estado fiscal con las palabras de la DGII
+
+> (el dueño: *"el default te lo dicen los documentos, consumidor final creo"*)
+
+- **El default del comprobante es el de CONSUMO (E32)** ✓ → y no es una opinion: los documentos de la DGII (`docs/Representacion-Impresa-Modelos.txt`, §2) dicen que la **Factura de Consumo Electrónica es una "factura sin valor fiscal"** y dan **dos modelos ilustrativos**: una con total **igual o mayor a DOP 250 mil** (2.1) y otra **menor a DOP$ 250 mil** (2.2) → **es válida a cualquier monto** ✓ → el default es el de Consumidor Final ✓ y el que decide por el monto es el backend (RFCE bajo los 250 mil ✓, `RfceDocument.MaximumAmount` ✓).
+- **El crédito fiscal (E31) es para el cliente que lo necesita** ✓ y **exige su RNC** ✓ → si el vendedor lo elige y el cliente no tiene RNC, la caja lo avisa y no completa ✓ (el backend también lo rechaza ✓).
+- **La factura comercial** (sin comprobante) es para quien factura en modo normal ✓ (el backend la rechaza en modo electrónico ✓).
+- **UX3** ✓: la venta tiene **columna propia** para el estado fiscal (con el vocabulario de la DGII y su color ✓), **aparte del estado de pago** ✓; el detalle trae el **veredicto**, el e-NCF, el track id y el **QR** (descargado con el token y revocado al cerrar ✓).
+- **UX4** ✓: el **reintento** aparece solo con el comprobante rechazado o que requiere revisión ✓ y llama al `retry` de la API ✓ (el desvío de 5 clics a Contabilidad desaparece ✓).
+- **Un hueco del back que encontró el trabajo** ✓: el estado grueso de la venta (`fiscalState`) es **nulo para los veredictos cerrados** (a propósito: es "lo que está abierto" ✓) → la lista no mostraría "Aceptado" ✓ → **la venta responde ahora también `fiscalStatus`** (el estado del comprobante ✓) y el estado grueso **no cambia** ✓ (el filtro de los comprobantes abiertos usa la lista de estados cerrados ✓) → commit `2066c22` ✓.
+- **Tests** ✓: front **434/434** ✓ · back **1104/1104** ✓.
+
+**Lo que queda de esta tanda**: los estilos del chip y de la tarjeta fiscal quedaron **en línea** (los CSS de los screens no estaban entre las superficies permitidas ✓) → se pueden mover a los módulos ✓.
+
+**Riesgo**: item 3 (contrato) — la venta responde un campo nuevo (`fiscalStatus` ✓) y el front lo consume ✓ → **el back primero** ✓. Y el merge de la rama de e-CF del front va a pedir resolución manual en `VentasList.tsx` y `VentaDetail.tsx` (las dos ramas tocaron el estado fiscal de la venta ✓).
