@@ -27,6 +27,13 @@ public record SaleDto:IMapFrom<Sale>
     // The caller needs the document to show its state and to ask for it to
     // be signed again.
     public Guid? ElectronicInvoiceId { get; set; }
+
+    // The state of the document, with the words of the DGII. The coarse
+    // state below only says what is still open, and a document that the DGII
+    // already accepted has nothing open: without this the caller would not
+    // know that the document was accepted at all.
+    public EcfStatus? FiscalStatus { get; set; }
+
     public EcfFiscalState? FiscalState { get; set; }
     public string? FiscalNote { get; set; }
 
@@ -52,6 +59,7 @@ public record SaleDto:IMapFrom<Sale>
         var invoice = source.ElectronicInvoices.FirstOrDefault();
 
         ElectronicInvoiceId = invoice?.Id;
+        FiscalStatus = invoice?.Status;
         FiscalState = invoice is null ? null : EcfFiscalStateClassifier.Classify(invoice.Status, invoice.RequiresReview);
         // The note of the verdict is text that came from outside: the
         // conversation with the DGII carries its token, and what leaves the

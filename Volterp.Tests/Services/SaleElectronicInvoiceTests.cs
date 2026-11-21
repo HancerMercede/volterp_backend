@@ -206,6 +206,40 @@ public class SaleElectronicInvoiceTests
         dto.FiscalState.Should().Be(EcfFiscalState.PendingEmission);
     }
 
+
+    [Fact]
+    public void TheDtoOfASaleWithADocumentCarriesTheStateOfTheDocument()
+    {
+        var invoice = new ElectronicInvoice
+        {
+            Id = Guid.CreateVersion7(),
+            CompanyId = CompanyId,
+            SaleId = SaleId,
+            ENCF = "E320000000001",
+            DocumentType = EcfDocumentType.Consumer,
+            IssuerTaxId = "130862346",
+            Total = 100,
+            Status = EcfStatus.Accepted
+        };
+
+        var sale = new Sale
+        {
+            Id = SaleId,
+            CompanyId = CompanyId,
+            Code = "V-0001",
+            Status = SaleStatus.Completed
+        };
+
+        sale.ElectronicInvoices.Add(invoice);
+
+        var dto = sale.MapTo<Sale, SaleDto>();
+
+        dto.FiscalStatus.Should().Be(EcfStatus.Accepted,
+            "the caller has to know that the DGII accepted the document: the coarse state only says what is still open");
+        dto.FiscalState.Should().BeNull(
+            "the coarse state is null for a document that is already closed");
+    }
+
     private void Given()
     {
         _sale = new Sale
