@@ -186,6 +186,18 @@ public static class ServiceExtensions
         services.AddHostedService<ElectronicInvoiceQueueWorker>();
     }
 
+    // How long a pending sale waits for the customer, and how often the
+    // sweep looks for the ones nobody decided.
+    public static void ConfigurePendingSales(this IServiceCollection services, IConfiguration configuration)
+    {
+        var pendingSales = new PendingSalesOptions();
+        configuration.GetSection(PendingSalesOptions.SectionName).Bind(pendingSales);
+        Validator.ValidateObject(pendingSales, new ValidationContext(pendingSales), validateAllProperties: true);
+
+        services.AddSingleton(pendingSales);
+        services.AddHostedService<PendingSalesExpiryWorker>();
+    }
+
     public static void ConfigureControllers(IServiceCollection services)
         => services.AddControllers(options =>
                 // The permission of every route is asked to the filter, which

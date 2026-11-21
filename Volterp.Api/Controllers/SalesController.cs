@@ -128,6 +128,22 @@ public class SalesController(IServiceManager serviceManager) : BaseController
         );
     }
 
+    // The cashier closes the sale: it stays on record as cancelled and the
+    // stock it reserved comes back.
+    [HttpPut("{id}/cancel")]
+    public async Task<ActionResult<SaleDto>> CancelSale(Guid id, CancellationToken ct = default)
+    {
+        var companyId = GetCurrentUserCompanyId();
+        var userId = GetCurrentUserId();
+        var result = await serviceManager.Sales.CancelSaleAsync(id, companyId, userId, ct);
+        return result.Match<ActionResult<SaleDto>>(
+            error => error.Kind == ErrorKind.NotFound
+                ? NotFound(new ErrorResponse(error.Message))
+                : BadRequest(new ErrorResponse(error.Message)),
+            sale => Ok(sale)
+        );
+    }
+
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteSale(Guid id, CancellationToken ct = default)
     {

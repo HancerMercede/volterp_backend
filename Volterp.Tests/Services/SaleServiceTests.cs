@@ -1858,4 +1858,202 @@ public class  SaleServiceTests
         error.Message.Should().Contain("exhausted");
         mockUnitOfWork.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task CancelSaleAsync_WhenTheSaleIsPending_RestoresTheStockAndKeepsTheSaleOnRecord()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 5, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+
+        var sale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
+            Items = new List<SaleItem>
+            {
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
+            }
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sale);
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
+
+        // ACT
+        var result = await service.CancelSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT - the sale stays on record as cancelled and the stock comes back
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
+        var dto = ((Either<Error, SaleDto>.Right)result).Value;
+        dto.Status.Should().Be(SaleStatus.Cancelled);
+        product.Stock.Should().Be(15);
+        mockSalesRepo.Verify(r => r.UpdateSaleAsync(sale, It.IsAny<CancellationToken>()), Times.Once);
+        mockSalesRepo.Verify(r => r.DeleteSaleAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CancelSaleAsync_WhenTheSaleIsCompleted_FailsWithTheErrorOfTheState()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 5, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+
+        var sale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Completed, Total = 500,
+            Items = new List<SaleItem>
+            {
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
+            }
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sale);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
+
+        // ACT
+        var result = await service.CancelSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT - the domain has the last word about the state of the sale
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Message.Should().Be("Invalid sale state transition: 'Completed' → 'Cancelled'");
+        product.Stock.Should().Be(5, "the stock of a completed sale was sold: it does not come back");
+        mockSalesRepo.Verify(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CancelSaleAsync_WhenTheSaleIsOfAnotherCompany_IsNotFound()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 5, CompanyId = Guid7TestValues.CompanyB, Name = "Test Product" };
+
+        var sale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyB, Status = SaleStatus.Pending, Total = 500,
+            Items = new List<SaleItem>
+            {
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
+            }
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sale);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
+
+        // ACT
+        var result = await service.CancelSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA);
+
+        // ASSERT - the sale of another company is a sale that does not exist
+        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
+        var error = ((Either<Error, SaleDto>.Left)result).Value;
+        error.Kind.Should().Be(ErrorKind.NotFound);
+        error.Message.Should().Be("Sale not found.");
+        sale.Status.Should().Be(SaleStatus.Pending, "the sale of another company was not touched");
+        product.Stock.Should().Be(5);
+        mockSalesRepo.Verify(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ExpirePendingSalesAsync_ClosesThePendingSalesNobodyDecidedAndLeavesTheOthersAlone()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var now = new DateTimeOffset(2026, 11, 16, 12, 0, 0, TimeSpan.Zero);
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 5, CompanyId = Guid7TestValues.CompanyA, Name = "Test Product" };
+
+        var expired = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending,
+            CreatedAt = now.AddHours(-30).UtcDateTime,
+            Items = new List<SaleItem>
+            {
+                new() { ProductId = Guid7TestValues.ProductA, ProductName = "Test Product", Quantity = 10, UnitPrice = 50, Subtotal = 500 }
+            }
+        };
+
+        var recent = new Sale
+        {
+            Id = Guid.NewGuid(), CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending,
+            CreatedAt = now.AddHours(-2).UtcDateTime,
+            Items = new List<SaleItem>()
+        };
+
+        var completed = new Sale
+        {
+            Id = Guid.NewGuid(), CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Completed,
+            CreatedAt = now.AddHours(-30).UtcDateTime,
+            Items = new List<SaleItem>()
+        };
+
+        // The repository answers with the pending sales that are older than
+        // the cutoff: the sweep asks for them with the lifetime it carries.
+        mockSalesRepo.Setup(r => r.GetPendingOlderThanAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((DateTime cutoff, CancellationToken _) =>
+                new List<Sale> { expired, recent, completed }
+                    .Where(sale => sale.Status == SaleStatus.Pending && sale.CreatedAt <= cutoff)
+                    .ToList());
+        mockSalesRepo.Setup(r => r.GetReservedProductsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(
+            mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object, new FixedTimeProvider(now));
+
+        // ACT
+        var result = await service.ExpirePendingSalesAsync(TimeSpan.FromHours(24));
+
+        // ASSERT
+        result.Should().BeOfType<Either<Error, int>.Right>();
+        ((Either<Error, int>.Right)result).Value.Should().Be(1);
+        expired.Status.Should().Be(SaleStatus.Cancelled);
+        recent.Status.Should().Be(SaleStatus.Pending, "the customer still has time to decide");
+        completed.Status.Should().Be(SaleStatus.Completed, "a completed sale was not pending and nobody has to close it");
+        product.Stock.Should().Be(15, "the stock the expired sale reserved comes back");
+        mockSalesRepo.Verify(r => r.GetPendingOlderThanAsync(
+            now.AddHours(-24).UtcDateTime, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // The clock of the sweep: the lifetime of a pending sale is measured
+    // against it.
+    private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
 }

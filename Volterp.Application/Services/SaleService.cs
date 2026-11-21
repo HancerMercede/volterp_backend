@@ -301,6 +301,56 @@ public class SaleService(
         return (string.Empty, invoice.Id, EcfFiscalStateClassifier.Classify(invoice.Status, invoice.RequiresReview));
     }
 
+    public async Task<Either<Error, SaleDto>> CancelSaleAsync(Guid id, Guid companyId, Guid? userId, CancellationToken ct = default)
+    {
+        return await EitherAsync<Error, Guid>
+            .FromRight(id)
+            .Ensure(x => x != Guid.Empty, new Error("id must not be empty."))
+            .Ensure(_ => companyId != Guid.Empty, new Error("companyId must not be empty."))
+            .FlatMap(async saleId => await unitOfWork.Sales.GetSaleByIdAsync(saleId, ct),
+                ex => new Error(ex.Message))
+            // The sale of another company is a sale that does not exist for
+            // the caller: the answer does not tell what the other tenant
+            // has.
+            .Ensure(sale => sale is not null && sale.CompanyId == companyId,
+                new Error("Sale not found.", ErrorKind.NotFound))
+            .FlatMap(async sale =>
+            {
+                var pending = sale!;
+
+                // The domain has the last word: a sale that is not pending
+                // cannot be cancelled.
+                pending.Cancel();
+
+                // The sale stays on record: it is the trail of what the
+                // cashier closed, and the stock it reserved comes back.
+                var products = await TheProductsOfTheTenantAsync(pending, ct);
+                RestoreTheReservedStock(pending, products);
+
+                pending.Apply(s =>
+                {
+                    s.UpdatedAt = DateTime.UtcNow;
+                    if (userId.HasValue) s.SetUpdatedBy(userId.Value);
+                });
+
+                await unitOfWork.Sales.UpdateSaleAsync(pending, ct);
+                await unitOfWork.CommitAsync(ct);
+                return pending;
+            }, ex => new Error(ex.Message))
+            .Map(sale => sale.MapTo<Sale, SaleDto>())
+            .Run();
+    }
+
+    public async Task<Either<Error, int>> ExpirePendingSalesAsync(TimeSpan lifetime, CancellationToken ct = default)
+    {
+        return await EitherAsync<Error, TimeSpan>
+            .FromRight(lifetime)
+            .Ensure(window => window > TimeSpan.Zero,
+                new Error("The lifetime of a pending sale must be greater than zero."))
+            .FlatMap(async window => await ExpireThePendingSalesAsync(window, ct), ex => new Error(ex.Message))
+            .Run();
+    }
+
     public async Task<Either<Error, Unit>> DeleteSaleAsync(Guid id, Guid companyId, CancellationToken ct = default)
     {
         return await EitherAsync<Error, Guid>
@@ -311,25 +361,83 @@ public class SaleService(
             .Ensure(sale => sale is not null, new Error("Sale not found.", ErrorKind.NotFound))
             .FlatMap(async sale =>
             {
-                // Only restore stock if there are items with product IDs
-                var productIds = sale.Items.Select(i => i.ProductId).ToHashSet();
-                if (productIds.Count > 0)
-                {
-                    var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
-                    var productMap = products.ToDictionary(p => p.Id);
-
-                    foreach (var item in sale.Items)
-                    {
-                        if (productMap.TryGetValue(item.ProductId, out var product))
-                            product.IncrementStock(item.Quantity);
-                    }
-                }
+                var products = await TheProductsOfTheTenantAsync(sale!, ct);
+                RestoreTheReservedStock(sale!, products);
 
                 await unitOfWork.Sales.DeleteSaleAsync(id, ct);
                 await unitOfWork.CommitAsync(ct);
                 return new Unit();
             }, ex => new Error(ex.Message))
             .Run();
+    }
+
+    // The pending sales nobody decided expire: the sale stays on record as
+    // cancelled and the stock it reserved comes back.
+    private async Task<int> ExpireThePendingSalesAsync(TimeSpan lifetime, CancellationToken ct)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var cutoff = now - lifetime;
+
+        var expired = await unitOfWork.Sales.GetPendingOlderThanAsync(cutoff, ct);
+
+        if (expired.Count == 0)
+            return 0;
+
+        // The products come in one query: the sweep may close many sales at
+        // once and the stock of each one comes back.
+        var products = await TheProductsOfTheSweepAsync(expired, ct);
+
+        foreach (var sale in expired)
+        {
+            sale.Cancel();
+
+            RestoreTheReservedStock(sale, products);
+
+            sale.Apply(s => s.UpdatedAt = now);
+
+            await unitOfWork.Sales.UpdateSaleAsync(sale, ct);
+        }
+
+        await unitOfWork.CommitAsync(ct);
+        return expired.Count;
+    }
+
+    // The stock that a sale reserved comes back to the inventory: it was
+    // deducted when the sale was created, and the sale leaves the pending
+    // state without becoming a sale.
+    private static void RestoreTheReservedStock(Sale sale, IReadOnlyDictionary<Guid, Product> products)
+    {
+        foreach (var item in sale.Items)
+        {
+            if (products.TryGetValue(item.ProductId, out var product))
+                product.IncrementStock(item.Quantity);
+        }
+    }
+
+    // The products of the sale, as the tenant of the request sees them.
+    private async Task<IReadOnlyDictionary<Guid, Product>> TheProductsOfTheTenantAsync(Sale sale, CancellationToken ct)
+    {
+        var productIds = sale.Items.Select(item => item.ProductId).ToHashSet();
+
+        if (productIds.Count == 0)
+            return new Dictionary<Guid, Product>();
+
+        var products = await unitOfWork.Products.GetProductsByIdsAsync(productIds, ct);
+        return products.ToDictionary(product => product.Id);
+    }
+
+    // The products of the expired sales. The sweep runs without an HTTP
+    // request: the filter of the tenant would hide them, and the stock they
+    // reserved would never come back.
+    private async Task<IReadOnlyDictionary<Guid, Product>> TheProductsOfTheSweepAsync(IEnumerable<Sale> sales, CancellationToken ct)
+    {
+        var productIds = sales.SelectMany(sale => sale.Items).Select(item => item.ProductId).ToHashSet();
+
+        if (productIds.Count == 0)
+            return new Dictionary<Guid, Product>();
+
+        var products = await unitOfWork.Sales.GetReservedProductsAsync(productIds, ct);
+        return products.ToDictionary(product => product.Id);
     }
 
     // The RNC that issues the sale. It has to be one of the issuers of the

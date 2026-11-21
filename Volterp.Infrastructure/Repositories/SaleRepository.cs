@@ -51,4 +51,43 @@ public class SaleRepository(VolterpDbContext context) : RepositoryBase<Sale>(con
 
         return await ExistsAsync(s => s.CompanyId == companyId && s.Code == code, ct);
     }
+
+    // The sweep runs without an HTTP request: the filter of the tenant
+    // would hide the sales of every company, so the query goes without it.
+    // The sale carries its company.
+    public async Task<IReadOnlyList<Sale>> GetPendingOlderThanAsync(DateTime cutoff, CancellationToken ct = default)
+    {
+        var sales = await Set()
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(sale => sale.Status == SaleStatus.Pending && sale.CreatedAt <= cutoff)
+            .ToListAsync(ct);
+
+        if (sales.Count == 0)
+            return sales;
+
+        // The items are read apart: the filter of the tenant would hide
+        // them too, and the stock they reserved has to come back.
+        var saleIds = sales.Select(sale => sale.Id).ToList();
+
+        var items = await context.Set<SaleItem>()
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(item => saleIds.Contains(item.SaleId))
+            .ToListAsync(ct);
+
+        foreach (var sale in sales)
+            sale.Items = items.Where(item => item.SaleId == sale.Id).ToList();
+
+        return sales;
+    }
+
+    // The products that the pending sales reserved. The sweep runs without
+    // an HTTP request too: the filter of the tenant would hide them, and
+    // the stock they hold would never come back.
+    public async Task<IReadOnlyList<Product>> GetReservedProductsAsync(IEnumerable<Guid> productIds, CancellationToken ct = default)
+        => await context.Set<Product>()
+            .IgnoreQueryFilters()
+            .Where(product => productIds.Contains(product.Id))
+            .ToListAsync(ct);
 }
