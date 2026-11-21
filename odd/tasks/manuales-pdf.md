@@ -63,3 +63,11 @@ El trabajo de esos dos PDF es **renderizar los templates y completar lo que falt
 > "mira al final vamos a crear varios pdf: primero 2 para el programador como construimos el frontend que modulos como esta el codigo, detalle absoluto esto servira de guia para los nuevos dev que se sumen al proyecto de como se trabaja, tambien el backend tendra el suyo con la misma esencia, y uno para el usuario del sistema detalle absoluto de cada cosa de como se hacen cada cosa."
 
 **Lo que se Armando**: tres PDF al final ✓ → dos de programador (front y back ✓) y uno de usuario ✓ → el de front y el de back **se renderizan desde los templates que ya existen** ✓ (esa es la parte que sale gratis ✓) → el **manual del usuario es el que se escribe** ✓.
+
+### L2 — 2026-11-21 — los templates son la fuente única y van par a par
+
+> (el dueño: *"exacto la fuente unica de verdad son los templates ya que van agregando lo nuevo o mejorando lo que esta"* y *"van par a par con del desarrollo"*)
+
+**Regla** ✓: el template se actualiza **con el desarrollo**, no al final ✓ → un patrón nuevo que aterrice en el código entra al template en la misma tanda ✓ → el PDF se **renderiza** desde el template ✓ (si el template está viejo, el PDF miente ✓).
+
+**El hueco que ya se ve** ✓: el template del **back** (`NET-API-SKELETON-TEMPLATE.md` ✓) **no documenta el mapa de permisos** ✓ (el `PermissionRoutes` ✓ —un permiso por controller+verb ✓— ni el test de inventario que avisa de las rutas sin declarar ✓) → el patrón nació con la feature de roles-permissions ✓ y quedó afuera ✓ → entra con la actualización ✓ (tarea T8 ✓ en `odd/tasks/dotnet-api-skeleton-template.md` ✓).

@@ -69,6 +69,18 @@ Después de que el usuario apruebe el MD:
 2. Crear un script `new-dotnet-api.sh` que genere la estructura a partir del template
 3. Empezar a usar la skill en el próximo proyecto API .NET que pida el usuario
 
+## Log
+
+### L1 — 2026-11-21 — el template quedo escrito, pero se quedo viejo
+
+**Estado real**: `NET-API-SKELETON-TEMPLATE.md` **existe** (2434 líneas ✓ · PARTE 1 SKELETON ✓ · PARTE 2 TEMPLATE ✓ · PARTE 3 WORKFLOW ✓ · PARTE 4 CONVENCIONES ✓) → las tareas T5/T6/T7 de arriba quedaron sin marcar ✓ (el entregable se escribió en la práctica ✓).
+
+**El hueco** (2026-11-21 ✓): el template **no documenta el mapa de permisos** ✓ → el patrón que nació con la feature `roles-permissions` ✓ (`Volterp.Api/Authorization/PermissionRoutes.cs` ✓: un permiso por controller+verb ✓ · `PermissionAuthorizationFilter.cs` ✓: el deny-by-default ✓ · `Volterp.Tests/Authorization/EndpointPermissionInventoryTests.cs` ✓: el test que avisa de las rutas sin declarar ✓ y de las entradas muertas ✓) → es un patrón que cualquier API .NET de este estilo necesita ✓ → **entra al template** ✓.
+
+**La regla** (del dueño ✓): *"la fuente unica de verdad son los templates ya que van agregando lo nuevo o mejorando lo que esta"* ✓ → el template se actualiza **par a par con el desarrollo** ✓ → los PDF del final (ver `odd/tasks/manuales-pdf.md` ✓) se renderizan desde acá ✓.
+
+**Tarea**: T8 — documentar el mapa de permisos en el template (con su snippet ✓ y su test ✓) y cerrar T5/T6/T7 con el estado real ✓.
+
 ## Relevant Files
 - `D:\source\my_projects\Volterp\NET-API-SKELETON-TEMPLATE.md` — deliverable principal (a crear)
 - `D:\source\my_projects\Volterp\odd\tasks\dotnet-api-skeleton-template.md` — este feature doc
