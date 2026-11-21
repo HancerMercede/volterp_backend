@@ -91,7 +91,7 @@ Lo que **no** está documentado (y hay que confirmar con la DGII o con el contad
 
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
-| RD0 | S1, S4, S5 | decisión del dueño | PENDING | Qué reportes entra al sistema: la 607 de ventas (B01 + B02), el resumen de consumo, la 606 de compras, la 608 de anulados, el RFCE. **El dueño decide el alcance** (la 606 es la más grande: falta el RNC del proveedor y la tasa de la compra) |
+| RD0 | S1, S4, S5 | decisión del dueño | DONE | **La 607 de ventas entra primero**: el detalle de los B01 ✓ + el de los B02 ≥ RD$250,000 ✓ + el resumen agregado de las de consumo menores ✓ → después la **608** de anulados ✓ → después la **606** de compras ✓ (la grande: el proveedor no tiene RNC ✓) → el **RFCE** se conecta con T29 del plan de e-CF ✓. Decisión del dueño del 2026-11-21 (log L3) |
 | RD1 | S4, S5 | inline (parent) | PENDING | El **período fiscal**: entidad con el mes que se cierra, su estado (abierto/cerrado) y el número de la 607/606/608 que se generó. Sin esto no hay archivo que remitir |
 | RD2 | S5 | inline (parent) | PENDING | La **fila de la 607**: el lector de las ventas del período con NCF, comprador, fecha, montos e ITBIS, en el orden y con el formato de las 23 columnas del instructivo |
 | RD3 | S5, S2 | inline (parent) | PENDING | El **TXT de la 607** y el **agregado del resumen de consumo** (los B02 menores a RD$250,000): el archivo que se sube a la OFV |
@@ -125,3 +125,11 @@ Lo que **no** está documentado (y hay que confirmar con la DGII o con el contad
 **Lo que se descubrió**: B01 y B02 **no son formularios**, son los tipos de NCF ✓ → lo que al dueño le preocupa es el **reporte** de esos NCF ✓ → esta feature ✓.
 
 **Lo que falta decidir** (RD0): qué formularios entra al sistema primero ✓.
+
+### L3 — 2026-11-21 — RD0: los reportes que entran primero
+
+> (el dueño: *"la recomendacion en el 1"*)
+
+**Decisión**: la **607 de ventas** entra primero ✓ → el detalle de los **B01** ✓ + el detalle de los **B02 ≥ RD$250,000** ✓ + el **resumen agregado** de las facturas de consumo menores ✓ → después la **608** de los comprobantes anulados ✓ → después la **606** de las compras ✓ (que es la grande ✓ porque hoy el proveedor no tiene RNC ✓ ni los ítems de compra tienen tasa de ITBIS ✓) → y el **RFCE** se conecta con la T29 del plan de e-CF ✓.
+
+**Lo que esta feature tiene que dejar listo**: el **período fiscal** (RD1 ✓) es la base de las dos cosas ✓ → sin el, el archivo que se sube a la OFV no tiene de dónde salir ✓.

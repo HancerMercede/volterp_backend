@@ -155,7 +155,7 @@ E32 (consumo) por debajo de RD$250,000 puede ser en papel continuo; **desde RD$2
 | UX6 | S5, S9, S11 | inline (parent) | DONE | El back expone el estado de Readiness del **camino que la venta toma hoy**: modo, certificado, rango con cupo (e-NCF en modo electrónico, NCF en modo normal o en contingencia), contingencia, `IsReady` + bloqueos → `GET /api/ElectronicInvoices/readiness` — commit `a0e6507` |
 | UX7 | S10, F9 | handoff al front (`erp-mvp`) | DONE | Los permisos vienen de la API (depende de T6/T8 de `roles-permissions`): desaparece el botón que se ve y el back responde 403 — commit `erp-mvp 3907340` (`permissionStore` lee `/api/permissions`; `usePermission`) + el back ya expone el contrato (`286dd00`, `296777d`) |
 | UX8 | S1, F12 | handoff al front (`erp-mvp`) | PENDING | El test de claves i18n cubre `ventas.*` también, y las claves nuevas de UX1-UX5 se agregan en `es` y `en` |
-| UX9 | S1, F1 | handoff al front (`erp-mvp`) | PENDING | `src/pages/POS/` está vacío: se llena con la ruta del POS o se borra (hoy es código muerto que promete una pantalla que no existe) |
+| UX9 | S1, F1 | handoff al front (`erp-mvp`) | PENDING | La ruta `/pos` y su lugar en el menú: el POS **vive dentro de Ventas** (se abre con "Nueva venta") **pero tiene su propia ruta** y aparece como **ítem de menú del grupo "Ventas"** → el sidebar pasa de lista plana a **grupos con submenú** (la estructura del HTML de referencia; el estilo es el de la app) → `src/pages/POS/` se llena con la pantalla del POS |
 | UX10 | S1, F6 | handoff al front (`erp-mvp`) | PENDING | El total que muestra la caja es el que el back recalcula (con ITBIS): la pantalla deja de mostrar un número y enviar otro |
 
 ## Riesgos
@@ -239,3 +239,12 @@ La validación (S2) y el mapa del front se hicieron con dos exploradores de solo
 - **Los bloqueos, con su motivo** ✓: sin certificado ✓ · sin rango ✓ · rango expirado ✓ · rango agotado ✓ · rango anulado ✓ · sin fecha de expiración cuando el tipo la exige ✓ → los mismos motivos que dice la asignación de números ✓ (`ElectronicInvoiceSequenceRepository.NoRangeAsync` ✓).
 - **Tests** ✓: 10 de servicio ✓ + 3 de endpoint ✓ (la empresa sale del token ✓ y la respuesta de un tenant nunca menciona a otro ✓) → suite **1108/1108** ✓.
 - **Riesgo** ✓: item 3 (contrato) — la API responde un endpoint nuevo ✓ → **el back primero** ✓ → el front lo consume en UX5 ✓.
+
+### L8 — 2026-11-21 — las decisiones del dueño: los reportes que entran y el lugar del POS
+
+> (el dueño: *"la recomendacion en el 1, en la 2 basicamente el POS vive dentro de ventas y se llama a traves del nueva venta, pero me gustaria tener la ruta POS pero como si fuera un menu items para ventas, Ejemplo: Ventas: POS"* y *"eso es solo una referencia no es que tal cual va asi"*)
+
+- **RD0 — los reportes** ✓: se acepta la recomendación ✓ → **la 607 de ventas entra primero** ✓ (el detalle de los B01 ✓ + el de los B02 ≥ RD$250,000 ✓ + el resumen de las de consumo menores ✓) → después la **608** ✓ → después la **606** ✓ (la grande ✓) → el **RFCE** con la T29 del plan de e-CF ✓ → feature `reportes-dgii` ✓.
+- **UX9 — el lugar del POS** ✓: el POS **vive dentro de Ventas** ✓ (se abre con "Nueva venta" ✓) **pero tiene su propia ruta** (`/pos` ✓) **y aparece como ítem de menú del grupo "Ventas"** ✓ → el sidebar deja de ser una lista plana y pasa a **grupos con submenú** ✓ → la estructura del HTML que pasó el dueño ✓ → **es referencia de estructura, no de estilo** ✓ (los colores y las formas son los de la app ✓).
+- **Lo que el front ya tenía preparado** ✓: el tipo `Modulo` ya declara `'pos'` ✓ (`permisos.ts:19` ✓) aunque `MODULOS` no lo tenía ✓ → el submenú lo agrega ✓ → y el sidebar arma la ruta con la clave del módulo ✓ (`Sidebar.tsx:90` ✓) → `/pos` sale de la clave ✓.
+- **Lo que sigue esperando** ✓: las **ventas pendientes** (la otra mitad de UX9 ✓) → sin respuesta todavía ✓.
