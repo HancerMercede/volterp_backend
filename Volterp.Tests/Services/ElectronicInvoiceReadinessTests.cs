@@ -88,7 +88,7 @@ public class ElectronicInvoiceReadinessTests
         readiness!.IsReady.Should().BeFalse();
         readiness.HasValidCertificate.Should().BeFalse();
         readiness.CertificateExpiresAt.Should().BeNull();
-        readiness.Blockers.Should().ContainSingle(blocker => blocker.Contains("certificate", StringComparison.OrdinalIgnoreCase));
+        readiness.Blockers.Should().ContainSingle(blocker => blocker.Code == "certificate-missing");
     }
 
     [Fact]
@@ -107,6 +107,7 @@ public class ElectronicInvoiceReadinessTests
         consumer.IsIssuable.Should().BeFalse();
         consumer.Remaining.Should().Be(0);
         consumer.Blocker.Should().Contain("exhausted");
+        consumer.BlockerCode.Should().Be("range-exhausted");
     }
 
     [Fact]
@@ -124,6 +125,7 @@ public class ElectronicInvoiceReadinessTests
         var credit = readiness!.DocumentTypes.Single(x => x.Code == "E31");
         credit.IsIssuable.Should().BeFalse();
         credit.Blocker.Should().Contain("expired on");
+        credit.BlockerCode.Should().Be("range-expired");
     }
 
     [Fact]
@@ -174,9 +176,8 @@ public class ElectronicInvoiceReadinessTests
 
         readiness.Should().NotBeNull();
         readiness!.IsReady.Should().BeFalse();
-        readiness.Blockers.Should().ContainSingle(blocker =>
-            blocker.Contains("NCF", StringComparison.OrdinalIgnoreCase)
-            && blocker.Contains("B02", StringComparison.OrdinalIgnoreCase));
+        readiness.Blockers.Should().ContainSingle(blocker => blocker.Code == "range-missing");
+        readiness.Blockers[0].Message.Should().Contain("NCF").And.Contain("B02");
     }
 
     [Fact]

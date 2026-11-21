@@ -36,7 +36,7 @@ public record FiscalReadinessDto
     // What is missing, in the words of the user: the reason the taxpayer is
     // not ready is the first thing the front has to show. The mode is not a
     // blocker: billing normally is a right, not a fault.
-    public IReadOnlyList<string> Blockers { get; init; } = [];
+    public IReadOnlyList<FiscalBlockerDto> Blockers { get; init; } = [];
 
     // The types the taxpayer can issue on the path it takes: the e-NCF ones
     // (E31, E32, E33, E34) or the NCF ones (B01, B02, B03, B04).
@@ -67,6 +67,21 @@ public record FiscalReadinessDocumentTypeDto
 
     public DateTime? RangeExpiresAt { get; init; }
 
-    // Why the type cannot be issued, when it cannot.
+    // Why the type cannot be issued, when it cannot: the code the front
+    // translates and the message for whoever reads the API.
+    public string? BlockerCode { get; init; }
+
     public string? Blocker { get; init; }
+}
+
+// A reason the taxpayer cannot bill right now. The code is what the front
+// translates: the message of the backend is in English and the screen of
+// the cashier is not.
+public record FiscalBlockerDto
+{
+    // "certificate-missing", "range-missing", "range-expired",
+    // "range-exhausted", "range-annulled", "range-without-expiry".
+    public string Code { get; init; } = string.Empty;
+
+    public string Message { get; init; } = string.Empty;
 }

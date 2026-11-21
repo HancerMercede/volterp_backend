@@ -182,19 +182,27 @@ public class ElectronicInvoiceService(
             ? await TheElectronicTypesAsync(company, now, ct)
             : await ThePaperTypesAsync(company, now, ct);
 
-        var blockers = new List<string>();
+        var blockers = new List<FiscalBlockerDto>();
 
         // A taxpayer that issues on paper does not need a certificate: the
         // blocker would be noise.
         if (electronic && certificate is null)
-            blockers.Add($"There is no valid signing certificate for the issuer {company.TaxId}.");
+            blockers.Add(new FiscalBlockerDto
+            {
+                Code = "certificate-missing",
+                Message = $"There is no valid signing certificate for the issuer {company.TaxId}."
+            });
 
         // The consumption is the document every sale can issue, so it is the
         // one that decides whether the taxpayer can bill at all.
         var consumption = documentTypes.Single(x => x.Code == (electronic ? "E32" : "B02"));
 
-        if (!consumption.IsIssuable)
-            blockers.Add(consumption.Blocker!);
+        if (!consumption.IsIssuable && consumption.BlockerCode is not null)
+            blockers.Add(new FiscalBlockerDto
+            {
+                Code = consumption.BlockerCode,
+                Message = consumption.Blocker ?? string.Empty
+            });
 
         return new FiscalReadinessDto
         {
@@ -265,6 +273,8 @@ public class ElectronicInvoiceService(
             };
         }
 
+        var blocker = BlockerOfElectronicType(documentType, ofType, now);
+
         return new FiscalReadinessDocumentTypeDto
         {
             Code = $"E{(int)documentType:D2}",
@@ -273,7 +283,8 @@ public class ElectronicInvoiceService(
             IsIssuable = false,
             Remaining = 0,
             RangeExpiresAt = ofType.Count == 1 ? ofType[0].ExpiresAt : null,
-            Blocker = BlockerOfElectronicType(documentType, ofType, now)
+            BlockerCode = blocker.Code,
+            Blocker = blocker.Message
         };
     }
 
@@ -311,6 +322,8 @@ public class ElectronicInvoiceService(
             };
         }
 
+        var blocker = BlockerOfNormalType(documentType, ofType, now);
+
         return new FiscalReadinessDocumentTypeDto
         {
             Code = $"B{(int)documentType:D2}",
@@ -319,59 +332,97 @@ public class ElectronicInvoiceService(
             IsIssuable = false,
             Remaining = 0,
             RangeExpiresAt = ofType.Count == 1 ? ofType[0].ExpiresAt : null,
-            Blocker = BlockerOfNormalType(documentType, ofType, now)
+            BlockerCode = blocker.Code,
+            Blocker = blocker.Message
         };
     }
 
     // The reason the type cannot be issued, in the words of the taxpayer:
-    // the code it knows (E32, B02) and not the number of the enum.
-    private static string BlockerOfElectronicType(
+    // the code it knows (E32, B02) and not the number of the enum. The code
+    // of the blocker travels with the message: the front translates it.
+    private static FiscalBlockerDto BlockerOfElectronicType(
         EcfDocumentType documentType,
         List<ElectronicInvoiceSequence> ofType,
         DateTime now)
     {
-        var code = $"E{(int)documentType:D2}";
+        var typeCode = $"E{(int)documentType:D2}";
 
         if (ofType.Count == 0)
-            return $"There is no authorized range of e-NCF for the type {code}.";
+            return new FiscalBlockerDto
+            {
+                Code = "range-missing",
+                Message = $"There is no authorized range of e-NCF for the type {typeCode}."
+            };
 
         if (ofType.All(range => range.IsAnnulled))
-            return $"The authorized range of e-NCF for the type {code} was annulled.";
+            return new FiscalBlockerDto
+            {
+                Code = "range-annulled",
+                Message = $"The authorized range of e-NCF for the type {typeCode} was annulled."
+            };
 
         var expired = ofType.Where(range => range.IsExpired(now)).ToList();
 
         if (expired.Count == ofType.Count)
-            return $"The authorized range of e-NCF for the type {code} expired on {expired.Max(range => range.ExpiresAt!.Value):yyyy-MM-dd}.";
+            return new FiscalBlockerDto
+            {
+                Code = "range-expired",
+                Message = $"The authorized range of e-NCF for the type {typeCode} expired on {expired.Max(range => range.ExpiresAt!.Value):yyyy-MM-dd}."
+            };
 
         var expiryApplies = EcfTypeProfiles.For(documentType).RequiresSequenceExpiry;
 
         if (ofType.Any(range => range.HasRoom && !range.IsExpired(now) && expiryApplies && range.ExpiresAt is null))
-            return $"The authorized range of e-NCF for the type {code} has no expiry date.";
+            return new FiscalBlockerDto
+            {
+                Code = "range-without-expiry",
+                Message = $"The authorized range of e-NCF for the type {typeCode} has no expiry date."
+            };
 
-        return $"The authorized range of e-NCF for the type {code} is exhausted.";
+        return new FiscalBlockerDto
+        {
+            Code = "range-exhausted",
+            Message = $"The authorized range of e-NCF for the type {typeCode} is exhausted."
+        };
     }
 
-    private static string BlockerOfNormalType(
+    private static FiscalBlockerDto BlockerOfNormalType(
         NormalFiscalDocumentType documentType,
         List<NormalFiscalSequence> ofType,
         DateTime now)
     {
-        var code = $"B{(int)documentType:D2}";
+        var typeCode = $"B{(int)documentType:D2}";
 
         if (ofType.Count == 0)
-            return $"There is no authorized range of NCF for the type {code}.";
+            return new FiscalBlockerDto
+            {
+                Code = "range-missing",
+                Message = $"There is no authorized range of NCF for the type {typeCode}."
+            };
 
         var expired = ofType.Where(range => range.IsExpired(now)).ToList();
 
         if (expired.Count == ofType.Count)
-            return $"The authorized range of NCF for the type {code} expired on {expired.Max(range => range.ExpiresAt!.Value):yyyy-MM-dd}.";
+            return new FiscalBlockerDto
+            {
+                Code = "range-expired",
+                Message = $"The authorized range of NCF for the type {typeCode} expired on {expired.Max(range => range.ExpiresAt!.Value):yyyy-MM-dd}."
+            };
 
         var expiryApplies = NormalFiscalDocumentTypes.RequiresExpiry(documentType);
 
         if (ofType.Any(range => range.HasRoom && !range.IsExpired(now) && expiryApplies && range.ExpiresAt is null))
-            return $"The authorized range of NCF for the type {code} has no expiry date.";
+            return new FiscalBlockerDto
+            {
+                Code = "range-without-expiry",
+                Message = $"The authorized range of NCF for the type {typeCode} has no expiry date."
+            };
 
-        return $"The authorized range of NCF for the type {code} is exhausted.";
+        return new FiscalBlockerDto
+        {
+            Code = "range-exhausted",
+            Message = $"The authorized range of NCF for the type {typeCode} is exhausted."
+        };
     }
 
     private async Task<ElectronicInvoiceStateSurfaceDto> BuildTheStateSurfaceAsync(
