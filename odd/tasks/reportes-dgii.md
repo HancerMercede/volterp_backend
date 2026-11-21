@@ -87,6 +87,30 @@ Lo que **no** está documentado (y hay que confirmar con la DGII o con el contad
 | **Sin razón de anulación** | `NormalFiscalDocument` no tiene estado ni bandera de anulado; `Sale.Cancel()` solo funciona desde `Pending` (`Sale.cs:74-79`) | 608 |
 | **El RFCE no está conectado** | `RfceXmlWriter` solo se usa dentro de `Volterp.ElectronicInvoicing` y en el QR (`ElectronicInvoiceService.cs:940`): no hay mapeo de la venta al documento RFCE ni llamada al web service | RFCE (T29 del plan de e-CF) |
 
+## Propuesta: el período fiscal (RD1) — a la espera del OK
+
+El período fiscal es la base de las dos cosas: el archivo que se sube a la OFV sale de un período, y el RFCE se numera dentro de un período.
+
+**La entidad** (`FiscalPeriod`, tenant-scoped):
+
+| Campo | Para qué |
+|---|---|
+| `Id`, `CompanyId` | el período es de una empresa |
+| `Year`, `Month` | el mes (el período fiscaltitel es el mes) |
+| `Status` | `Open` / `Closed` |
+| `RfceSequence` | el consecutivo del **RFCE** del período: cada factura de consumo menor de RD$250,000 reporta una por una (la norma lo dice: “a través del Formulario de Resumen Factura de Consumo Electrónica”), y cada una lleva su número dentro del período |
+| `ClosedAt`, `ClosedBy` | quién lo cerró y cuándo |
+
+**Las reglas**:
+1. **Un período abierto por empresa.** El que se abre al empezar el mes nuevo.
+2. **Cerrado es cerrado**: las ventas de un período cerrado no se tocan (ni se editan ni se anulan) → los números que ya se reportaron a la DGII no pueden cambiar por debajo.
+3. **El RFCE se manda por venta** (no agregado): cada factura de consumo menor de RD$250,000 es un XML con su número de secuencia dentro del período.
+4. La **anulación** de un comprobante va a la **608 del período en que se anula**, no al de la venta → la 608 cuenta anulaciones, no ventas.
+
+**Lo que hay que decidir** (del dueño):
+- ¿El período lo **cierra el usuario** (con un botón que además genera los archivos) o se cierra solo al cambiar de mes? Mi recomendación: **lo cierra el usuario**, porque el cierre es el momento en que se genera lo que se manda.
+- ¿Puede un negocio tener **más de un período abierto** (por ejemplo, cuando se atrasa en reportar)? Mi recomendación: **no** — un solo período abierto, y el anterior se cierra al abrir el nuevo.
+
 ## Tasks
 
 | ID | S# linked | Route | Status | Commit |
