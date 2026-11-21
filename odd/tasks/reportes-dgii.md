@@ -111,12 +111,47 @@ El período fiscal es la base de las dos cosas: el archivo que se sube a la OFV 
 - ¿El período lo **cierra el usuario** (con un botón que además genera los archivos) o se cierra solo al cambiar de mes? Mi recomendación: **lo cierra el usuario**, porque el cierre es el momento en que se genera lo que se manda.
 - ¿Puede un negocio tener **más de un período abierto** (por ejemplo, cuando se atrasa en reportar)? Mi recomendación: **no** — un solo período abierto, y el anterior se cierra al abrir el nuevo.
 
+## L4 — 2026-11-21 — la norma NO habla de "período fiscal": era invención nuestra
+
+> (el dueno: *"lo del periodo fiscal la doc no lo especifica?"*)
+
+Se fue a los documentos de la DGII que ya están en `docs/` a buscar qué dice la norma (no lo que opino el agente ✓). El resultado corrige el plan en tres puntos:
+
+**1. No existe el concepto de "período fiscal"** ✓ → en `docs/` no hay definición, ni plazo, ni cierre, ni consecutividad por período ✓ → **la entidad `FiscalPeriod` que había propuesto era una invención nuestra** ✓ → **no se construye** ✓.
+
+**2. El RFCE es un XML POR FACTURA, no un agregado del período** ✓:
+- *"Los contribuyentes que emitan facturas de consumo electrónicas menores a DOP$250 mil ... deberán enviar ... las ventas realizadas mediante este tipo de e-CF, en el formato XML que se establece en este documento"* (`docs/Formato-Resumen-Factura-Consumo-Electronica-v1.0.txt:13-15` ✓).
+- El resumen lleva **el e-NCF de esa factura** (`:69-70` ✓) y la consulta a la DGII es por RNC + e-NCF + código de seguridad (`docs/DescTec-Servicios-DGII.txt:675-678` ✓) → **no hay contador por período** ✓ → el campo `RfceSequence` que había propuesto **no tiene respaldo** ✓ → no va.
+- El `MontoPeriodo` es un **monto** derivado de la propia factura (`= Monto Total + Monto No Facturable` ✓), no un rango de fechas ✓.
+
+**3. Las 72 horas y los quince días son de la CONTINGENCIA**, no de un período ✓ (`docs/Informe-Tecnico-eCF-v1.0.txt:1524-1525` ✓ y `:1556-1557` ✓).
+
+**Y lo que la norma sí resuelve (lo que yo quería inventar con el período congelado)** ✓: *"Las correcciones de un e-CF serán realizadas únicamente mediante el uso de notas de crédito o débito electrónicas"* (`docs/Informe-Tecnico-eCF-v1.0.txt:575-576` ✓) y la anulación por el web service **solo si el documento todavía no se envió** (`:583-586` ✓) → la trazabilidad la da la norma, no un estado nuestro ✓.
+
+**Lo que queda de RD1**: nada como entidad de período ✓ → el trabajo real es **el RFCE por factura** (que ya es la T29 del plan de e-CF ✓) y, más adelante, **los 606/607/608 generados para un mes** (un filtro sobre las ventas de ese mes, no un período congelado ✓).
+
+**Lo que hay que confirmar con la DGII** (no está en `docs/` ✓): la cadencia y el plazo de los 606/607/608 (la tabla de "mensual, día 15" de la S5 viene de guías externas, no de los documentos del repo ✓) → lo consulta tu esposa, que es de la accounting ✓.
+
+## Propuesta: el RFCE por factura (RD1bis) — a la espera del OK
+
+La norma es clara acá (ver el log L4 ✓): **cada factura de consumo electrónica menor de RD$250,000 manda su propio XML de resumen**, identificado por el e-NCF de esa factura, y se consulta a la DGII por RNC + e-NCF + código de seguridad ✓.
+
+**Lo que hay que construir**:
+1. El mapeo de la venta al XML del RFCE (el `RfceXmlWriter` ya existe en la library ✓ → falta el **mapeo desde la venta** ✓ y la **llamada al web service** de recepción ✓, que es la T29 del plan de e-CF ✓).
+2. El **código de seguridad** del e-CF viaja en el resumen ✓ (`ElectronicInvoice.SecurityCode` ✓ ya existe ✓).
+3. La cola: el resumen se manda **después** de que el e-CF esté firmado ✓ → si el e-CF falla, no hay resumen ✓ → y si el resumen es rechazado, se corrige y se reenvía ✓ (la norma lo dice ✓).
+4. El **monto del período** se calcula de la propia factura ✓ (`Monto Total + Monto No Facturable` ✓) → no hay que acumular nada ✓.
+
+**Lo que NO hace falta** (y por eso el trabajo es mucho más chico de lo que parecía): la entidad de período ✓, el contador por período ✓, el congelamiento de ventas ✓ (la norma ya resuelve las correcciones con notas de crédito/débito ✓).
+
+**Lo que hay que confirmar con la DGII** (no está en los documentos del repo ✓): la cadencia y el plazo de los 606/607/608 ✓ → lo consulta tu esposa ✓.
+
 ## Tasks
 
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
 | RD0 | S1, S4, S5 | decisión del dueño | DONE | **La 607 de ventas entra primero**: el detalle de los B01 ✓ + el de los B02 ≥ RD$250,000 ✓ + el resumen agregado de las de consumo menores ✓ → después la **608** de anulados ✓ → después la **606** de compras ✓ (la grande: el proveedor no tiene RNC ✓) → el **RFCE** se conecta con T29 del plan de e-CF ✓. Decisión del dueño del 2026-11-21 (log L3) |
-| RD1 | S4, S5 | inline (parent) | PENDING | El **período fiscal**: entidad con el mes que se cierra, su estado (abierto/cerrado) y el número de la 607/606/608 que se generó. Sin esto no hay archivo que remitir |
+| RD1 | S4, S5 | inline (parent) | CANCELADO | El **período fiscal** como entidad (mes que se cierra, estado, consecutivo por período): **la norma no lo define** ✓ → era una invención nuestra ✓ → **no se construye** ✓ (ver el log L4 ✓). Lo que hace falta es el **RFCE por factura** (que ya es la T29 del plan de e-CF ✓) |
 | RD2 | S5 | inline (parent) | PENDING | La **fila de la 607**: el lector de las ventas del período con NCF, comprador, fecha, montos e ITBIS, en el orden y con el formato de las 23 columnas del instructivo |
 | RD3 | S5, S2 | inline (parent) | PENDING | El **TXT de la 607** y el **agregado del resumen de consumo** (los B02 menores a RD$250,000): el archivo que se sube a la OFV |
 | RD4 | S5 | inline (parent) | PENDING | La **606 de compras**: el RNC del proveedor, el NCF de la compra, la tasa de ITBIS del ítem y la fecha/forma de pago. Hoy `Purchase` no tiene nada de eso |
