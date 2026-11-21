@@ -95,6 +95,15 @@ public class ElectronicInvoiceSequenceRepository(VolterpDbContext context)
     public Task<int> NextSequenceAsync(Guid companyId, string issuerTaxId, EcfDocumentType documentType, CancellationToken ct = default)
         => AllocateAsync(companyId, issuerTaxId, documentType, ct);
 
+    public async Task<IReadOnlyList<ElectronicInvoiceSequence>> GetRangesAsync(
+        Guid companyId, string issuerTaxId, CancellationToken ct = default)
+        => await Set()
+            .AsNoTracking()
+            .Where(range => range.CompanyId == companyId && range.IssuerTaxId == issuerTaxId)
+            .OrderBy(range => range.From)
+            .ThenBy(range => range.Id)
+            .ToListAsync(ct);
+
     private async Task<int> AllocateAsync(
         Guid companyId,
         string issuerTaxId,

@@ -13,4 +13,10 @@ public interface INormalFiscalSequenceRepository : IRepositoryBase<NormalFiscalS
         string issuerTaxId,
         NormalFiscalDocumentType documentType,
         CancellationToken ct = default);
+
+    // The ranges of the issuer: the ones with room and the ones that cannot
+    // be used anymore. The readiness of the taxpayer is read from them, so
+    // it needs to see the expired ones as well.
+    Task<IReadOnlyList<NormalFiscalSequence>> GetRangesAsync(
+        Guid companyId, string issuerTaxId, CancellationToken ct = default);
 }

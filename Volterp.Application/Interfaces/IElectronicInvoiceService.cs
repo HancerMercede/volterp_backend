@@ -43,4 +43,11 @@ public interface IElectronicInvoiceService
     // classification, so they cannot disagree.
     Task<Either<Error, ElectronicInvoiceStateSurfaceDto>> GetStateAsync(
         Guid companyId, int limit, CancellationToken ct = default);
+
+    // The readiness of the taxpayer to issue right now: the mode it declared,
+    // the certificate that signs, the room the ranges have left and the
+    // contingency it is inside. The front does not have to deduce it from
+    // three screens.
+    Task<Either<Error, FiscalReadinessDto>> GetReadinessAsync(
+        Guid companyId, CancellationToken ct = default);
 }

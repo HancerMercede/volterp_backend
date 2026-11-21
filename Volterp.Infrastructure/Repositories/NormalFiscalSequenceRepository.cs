@@ -130,6 +130,15 @@ public class NormalFiscalSequenceRepository(VolterpDbContext context)
         throw await NoRangeAsync(companyId, issuerTaxId, documentType, now, expiryApplies, ct);
     }
 
+    public async Task<IReadOnlyList<NormalFiscalSequence>> GetRangesAsync(
+        Guid companyId, string issuerTaxId, CancellationToken ct = default)
+        => await Set()
+            .AsNoTracking()
+            .Where(range => range.CompanyId == companyId && range.IssuerTaxId == issuerTaxId)
+            .OrderBy(range => range.From)
+            .ThenBy(range => range.Id)
+            .ToListAsync(ct);
+
     private async Task<InvalidOperationException> NoRangeAsync(
         Guid companyId,
         string issuerTaxId,

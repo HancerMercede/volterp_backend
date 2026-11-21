@@ -32,6 +32,28 @@ public class ElectronicInvoiceService(
     private const int EmissionBatchSize = 50;
     private static readonly TimeSpan LeaseDuration = TimeSpan.FromMinutes(5);
 
+    // The types a sale issues: the consumption one, the fiscal credit when
+    // the customer has a RNC, and the two notes when the sale corrects
+    // another document. The readiness of the taxpayer is about these four:
+    // the other six are issued by the provider, not from a sale.
+    private static readonly EcfDocumentType[] IssuableDocumentTypes =
+    [
+        EcfDocumentType.Consumer,
+        EcfDocumentType.FiscalCredit,
+        EcfDocumentType.DebitNote,
+        EcfDocumentType.CreditNote
+    ];
+
+    // The types a sale issues on paper: the credit fiscal invoice (B01),
+    // the consumption invoice (B02) and the two notes.
+    private static readonly NormalFiscalDocumentType[] IssuableNormalDocumentTypes =
+    [
+        NormalFiscalDocumentType.FiscalCredit,
+        NormalFiscalDocumentType.Consumer,
+        NormalFiscalDocumentType.DebitNote,
+        NormalFiscalDocumentType.CreditNote
+    ];
+
     private readonly VerdictCheckBackoff _backoff = backoff ?? VerdictCheckBackoff.Default();
     private readonly EmissionRetryBackoff _retryBackoff = retryBackoff ?? EmissionRetryBackoff.Default();
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
@@ -123,6 +145,233 @@ public class ElectronicInvoiceService(
             .Ensure(_ => limit > 0, new Error("limit must be greater than zero."))
             .FlatMap(async id => await BuildTheStateSurfaceAsync(id, limit, ct), ex => new Error(ex.Message))
             .Run();
+    }
+
+    public async Task<Either<Error, FiscalReadinessDto>> GetReadinessAsync(
+        Guid companyId, CancellationToken ct = default)
+    {
+        return await EitherAsync<Error, Guid>
+            .FromRight(companyId)
+            .Ensure(id => id != Guid.Empty, new Error("companyId must not be empty."))
+            .FlatMap(async id => await BuildTheReadinessAsync(id, ct), ex => new Error(ex.Message))
+            .Run();
+    }
+
+    private async Task<FiscalReadinessDto> BuildTheReadinessAsync(Guid companyId, CancellationToken ct)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+
+        var company = await unitOfWork.Companies.GetCompanyByIdAsync(companyId, ct);
+
+        if (company is null)
+            throw new InvalidOperationException("The company does not exist.");
+
+        // The path the sale takes: the mode the taxpayer declared and the
+        // contingency it is inside decide it, and the domain says it once.
+        var inContingency = CompanyEmissionPolicy.IsInContingency(company, now);
+        var electronic = CompanyEmissionPolicy.UsesElectronicEmission(company, now);
+
+        // The certificate belongs to the RNC that issues, and the company
+        // issues with its own RNC when the sale does not name another one.
+        var certificate = await unitOfWork.CompanyCertificates.GetActiveByTaxIdAsync(company.TaxId, ct);
+
+        // The types of the path the taxpayer takes right now: the electronic
+        // ones when it declared the electronic mode and it is not inside a
+        // contingency, the ones on paper otherwise.
+        var documentTypes = electronic
+            ? await TheElectronicTypesAsync(company, now, ct)
+            : await ThePaperTypesAsync(company, now, ct);
+
+        var blockers = new List<string>();
+
+        // A taxpayer that issues on paper does not need a certificate: the
+        // blocker would be noise.
+        if (electronic && certificate is null)
+            blockers.Add($"There is no valid signing certificate for the issuer {company.TaxId}.");
+
+        // The consumption is the document every sale can issue, so it is the
+        // one that decides whether the taxpayer can bill at all.
+        var consumption = documentTypes.Single(x => x.Code == (electronic ? "E32" : "B02"));
+
+        if (!consumption.IsIssuable)
+            blockers.Add(consumption.Blocker!);
+
+        return new FiscalReadinessDto
+        {
+            EmissionMode = company.EmissionMode.ToString(),
+            UsesElectronicEmission = electronic,
+            IsInContingency = inContingency,
+            HasValidCertificate = certificate is not null,
+            CertificateExpiresAt = certificate?.ExpiresAt,
+            IsReady = blockers.Count == 0,
+            Blockers = blockers,
+            DocumentTypes = documentTypes
+        };
+    }
+
+    private async Task<IReadOnlyList<FiscalReadinessDocumentTypeDto>> TheElectronicTypesAsync(
+        Company company, DateTime now, CancellationToken ct)
+    {
+        var ranges = await unitOfWork.ElectronicInvoiceSequences.GetRangesAsync(company.Id, company.TaxId, ct);
+
+        return IssuableDocumentTypes
+            .Select(documentType => ReadinessOfElectronicType(documentType, ranges, now))
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<FiscalReadinessDocumentTypeDto>> ThePaperTypesAsync(
+        Company company, DateTime now, CancellationToken ct)
+    {
+        var ranges = await unitOfWork.NormalFiscalSequences.GetRangesAsync(company.Id, company.TaxId, ct);
+
+        return IssuableNormalDocumentTypes
+            .Select(documentType => ReadinessOfNormalType(documentType, ranges, now))
+            .ToList();
+    }
+
+    private static FiscalReadinessDocumentTypeDto ReadinessOfElectronicType(
+        EcfDocumentType documentType,
+        IReadOnlyList<ElectronicInvoiceSequence> ranges,
+        DateTime now)
+    {
+        var ofType = ranges.Where(range => range.DocumentType == documentType).ToList();
+
+        // The same rule the allocation follows: the range has to be alive,
+        // it cannot be annulled and it has to carry the expiry the type
+        // needs.
+        var expiryApplies = EcfTypeProfiles.For(documentType).RequiresSequenceExpiry;
+
+        var usable = ofType
+            .Where(range => range.HasRoom
+                && !range.IsAnnulled
+                && !range.IsExpired(now)
+                && (!expiryApplies || range.ExpiresAt is not null))
+            .OrderBy(range => range.From)
+            .ThenBy(range => range.Id)
+            .FirstOrDefault();
+
+        if (usable is not null)
+        {
+            return new FiscalReadinessDocumentTypeDto
+            {
+                Code = $"E{(int)documentType:D2}",
+                DocumentType = (int)documentType,
+                Name = documentType.ToString(),
+                IsIssuable = true,
+                // The numbers the range has left: the first one is the start
+                // of the range when it was never used.
+                Remaining = usable.To - Math.Max(usable.CurrentSequence, usable.From - 1),
+                RangeExpiresAt = usable.ExpiresAt
+            };
+        }
+
+        return new FiscalReadinessDocumentTypeDto
+        {
+            Code = $"E{(int)documentType:D2}",
+            DocumentType = (int)documentType,
+            Name = documentType.ToString(),
+            IsIssuable = false,
+            Remaining = 0,
+            RangeExpiresAt = ofType.Count == 1 ? ofType[0].ExpiresAt : null,
+            Blocker = BlockerOfElectronicType(documentType, ofType, now)
+        };
+    }
+
+    private static FiscalReadinessDocumentTypeDto ReadinessOfNormalType(
+        NormalFiscalDocumentType documentType,
+        IReadOnlyList<NormalFiscalSequence> ranges,
+        DateTime now)
+    {
+        var ofType = ranges.Where(range => range.DocumentType == documentType).ToList();
+
+        // The same rule the allocation follows: the range has to be alive,
+        // it has to fit the eight digits of the number and it has to carry
+        // the expiry the type needs.
+        var expiryApplies = NormalFiscalDocumentTypes.RequiresExpiry(documentType);
+
+        var usable = ofType
+            .Where(range => range.HasValidBounds
+                && range.HasRoom
+                && !range.IsExpired(now)
+                && (!expiryApplies || range.ExpiresAt is not null))
+            .OrderBy(range => range.From)
+            .ThenBy(range => range.Id)
+            .FirstOrDefault();
+
+        if (usable is not null)
+        {
+            return new FiscalReadinessDocumentTypeDto
+            {
+                Code = $"B{(int)documentType:D2}",
+                DocumentType = (int)documentType,
+                Name = documentType.ToString(),
+                IsIssuable = true,
+                Remaining = usable.To - Math.Max(usable.CurrentSequence, usable.From - 1),
+                RangeExpiresAt = usable.ExpiresAt
+            };
+        }
+
+        return new FiscalReadinessDocumentTypeDto
+        {
+            Code = $"B{(int)documentType:D2}",
+            DocumentType = (int)documentType,
+            Name = documentType.ToString(),
+            IsIssuable = false,
+            Remaining = 0,
+            RangeExpiresAt = ofType.Count == 1 ? ofType[0].ExpiresAt : null,
+            Blocker = BlockerOfNormalType(documentType, ofType, now)
+        };
+    }
+
+    // The reason the type cannot be issued, in the words of the taxpayer:
+    // the code it knows (E32, B02) and not the number of the enum.
+    private static string BlockerOfElectronicType(
+        EcfDocumentType documentType,
+        List<ElectronicInvoiceSequence> ofType,
+        DateTime now)
+    {
+        var code = $"E{(int)documentType:D2}";
+
+        if (ofType.Count == 0)
+            return $"There is no authorized range of e-NCF for the type {code}.";
+
+        if (ofType.All(range => range.IsAnnulled))
+            return $"The authorized range of e-NCF for the type {code} was annulled.";
+
+        var expired = ofType.Where(range => range.IsExpired(now)).ToList();
+
+        if (expired.Count == ofType.Count)
+            return $"The authorized range of e-NCF for the type {code} expired on {expired.Max(range => range.ExpiresAt!.Value):yyyy-MM-dd}.";
+
+        var expiryApplies = EcfTypeProfiles.For(documentType).RequiresSequenceExpiry;
+
+        if (ofType.Any(range => range.HasRoom && !range.IsExpired(now) && expiryApplies && range.ExpiresAt is null))
+            return $"The authorized range of e-NCF for the type {code} has no expiry date.";
+
+        return $"The authorized range of e-NCF for the type {code} is exhausted.";
+    }
+
+    private static string BlockerOfNormalType(
+        NormalFiscalDocumentType documentType,
+        List<NormalFiscalSequence> ofType,
+        DateTime now)
+    {
+        var code = $"B{(int)documentType:D2}";
+
+        if (ofType.Count == 0)
+            return $"There is no authorized range of NCF for the type {code}.";
+
+        var expired = ofType.Where(range => range.IsExpired(now)).ToList();
+
+        if (expired.Count == ofType.Count)
+            return $"The authorized range of NCF for the type {code} expired on {expired.Max(range => range.ExpiresAt!.Value):yyyy-MM-dd}.";
+
+        var expiryApplies = NormalFiscalDocumentTypes.RequiresExpiry(documentType);
+
+        if (ofType.Any(range => range.HasRoom && !range.IsExpired(now) && expiryApplies && range.ExpiresAt is null))
+            return $"The authorized range of NCF for the type {code} has no expiry date.";
+
+        return $"The authorized range of NCF for the type {code} is exhausted.";
     }
 
     private async Task<ElectronicInvoiceStateSurfaceDto> BuildTheStateSurfaceAsync(
