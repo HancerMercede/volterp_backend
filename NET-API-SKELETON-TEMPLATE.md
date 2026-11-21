@@ -15,6 +15,7 @@
 | Architecture | Clean Architecture (4 capas + Tests) |
 | Persistence | PostgreSQL + EF Core 10 (Npgsql) |
 | Auth | JWT Bearer + BCrypt |
+| Authorization | Mapa de rutas por controller+verb (deny-by-default) |
 | Functional | EitherWay (`Either<Error, T>`) |
 | Mapping | MapFlow (`IMapFrom<T>`, `IMapTo<T>`) |
 | API docs | Swashbuckle.AspNetCore |
@@ -1831,6 +1832,170 @@ public class CategoriesController(IServiceManager serviceManager) : BaseControll
 }
 ```
 
+### Permisos por ruta (mapa de rutas + deny-by-default)
+
+**Ubicación**: `MyApp.Domain/Authorization/Permissions.cs`, `MyApp.Api/Authorization/PermissionRoutes.cs`, `MyApp.Api/Authorization/PermissionAuthorizationFilter.cs`, `MyApp.Tests/Authorization/EndpointPermissionInventoryTests.cs`
+
+**Cuándo aplicarlo**: cuando la API tiene más de un rol y las acciones no son iguales para todos (un vendedor no escribe la configuración fiscal, un administrador sí). Es el patrón que evita el botón visible que contesta 403.
+
+**El patrón, en tres piezas**:
+
+1. **El catálogo** vive en el Domain: el enum de permisos, el módulo al que pertenece cada uno y la **clave que viaja al front** (`ventas.read`, `facturacion.write`).
+2. **El mapa de rutas** dice qué necesita cada ruta, en **un solo lugar**: la clave es el controller y el método (`"Sales:GET"`), y las rutas que necesitan otra cosa llevan su propia entrada por acción (`"Sales.Completar"`).
+3. **El filtro** aplica el mapa y **cierra por defecto** lo que el mapa no cubre.
+
+**1. El catálogo** (`MyApp.Domain/Authorization/Permissions.cs`):
+
+```csharp
+namespace MyApp.Domain.Authorization;
+
+public enum Permission
+{
+    DashboardRead, DashboardWrite, DashboardDelete,
+    SalesRead, SalesWrite, SalesDelete,
+    PurchasesRead, PurchasesWrite, PurchasesDelete
+}
+
+public enum Module
+{
+    Dashboard, Sales, Purchases
+}
+
+// What every permission of the catalog is: the module it belongs to and the
+// key that travels to the front.
+//
+// The switches have no default arm on purpose: a permission that is added to
+// the enum and forgotten here does not compile.
+public static class Permissions
+{
+    public static (Module Module, string Key) Describe(this Permission permission) => permission switch
+    {
+        Permission.DashboardRead => (Module.Dashboard, "dashboard.read"),
+        Permission.SalesRead => (Module.Sales, "ventas.read"),
+        Permission.SalesWrite => (Module.Sales, "ventas.write")
+    };
+
+    // The key of a permission: it is what travels to the front and what the
+    // policies of the API are named after.
+    public static string Key(this Permission permission) => Describe(permission).Key;
+
+    // Every permission of the catalog. The enum is the catalog, so the list
+    // cannot fall behind it.
+    public static IReadOnlyList<Permission> All { get; } = Enum.GetValues<Permission>();
+}
+```
+
+**2. El mapa** (`MyApp.Api/Authorization/PermissionRoutes.cs`):
+
+```csharp
+namespace MyApp.Api.Authorization;
+
+// What every route of the API needs.
+//
+// The permission of a route is not written in the route: it is here, in one
+// place, and the matrix (the roles and what they grant) is what decides who
+// gets in. A route that this map does not cover is closed.
+//
+// The key is the controller and the method of the route. The routes that need
+// something else carry their own entry, by the name of their action.
+public static class PermissionRoutes
+{
+    private static readonly IReadOnlyDictionary<string, Permission> ByControllerAndMethod =
+        new Dictionary<string, Permission>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Dashboard:GET"] = Permission.DashboardRead,
+            ["Sales:GET"] = Permission.SalesRead,
+            ["Sales:POST"] = Permission.SalesWrite,
+            ["Sales:PUT"] = Permission.SalesWrite,
+            ["Sales:DELETE"] = Permission.SalesDelete
+        };
+
+    private static readonly IReadOnlyDictionary<string, Permission> ByControllerAndAction =
+        new Dictionary<string, Permission>(StringComparer.OrdinalIgnoreCase)
+        {
+            // A route that needs another permission than its method.
+            ["Sales.Completar"] = Permission.SalesWrite
+        };
+
+    /// <summary>
+    /// The permission a route needs, or null when the map does not cover it.
+    /// </summary>
+    public static Permission? For(Type controllerType, string httpMethod, string? actionName = null)
+    {
+        var controller = NameOf(controllerType);
+
+        if (actionName is not null
+            && ByControllerAndAction.TryGetValue($"{controller}.{actionName}", out var byAction))
+            return byAction;
+
+        return ByControllerAndMethod.TryGetValue($"{controller}:{httpMethod.ToUpperInvariant()}", out var byMethod)
+            ? byMethod
+            : null;
+    }
+}
+```
+
+**3. El filtro** (`MyApp.Api/Authorization/PermissionAuthorizationFilter.cs`), que aplica el mapa y cierra lo que no está:
+
+```csharp
+// The authorization of every route: the route says what it needs (the map of
+// the routes) and the matrix (the roles and what they grant) says who gets
+// in.
+//
+// A route that the map does not cover is closed. That is the deny-by-default:
+// a route that nobody declared is a route that anybody authenticated could
+// call, and the inventory test fails when one is missing from the map.
+public class PermissionAuthorizationFilter(IHttpContextAccessor httpContextAccessor)
+    : IAsyncAuthorizationFilter
+{
+    public Task OnAuthorizationAsync(AuthorizationFilterContext context)
+    {
+        // The route is not in the map: nobody declared what it needs, so it
+        // stays closed.
+        var permission = PermissionRoutes.For(
+            action.ControllerTypeInfo,
+            context.HttpContext.Request.Method,
+            action.ActionName);
+
+        if (permission is null)
+        {
+            context.Result = Forbidden(
+                $"The route '{context.HttpContext.Request.Path}' does not declare the permission it needs.");
+
+            return Task.CompletedTask;
+        }
+
+        // ... la matriz decide si el caller lo tiene.
+    }
+}
+```
+
+**4. El inventario** (`MyApp.Tests/Authorization/EndpointPermissionInventoryTests.cs`): el test que mantiene honesto al mapa. Camina los **endpoints reales** del API (los que sirve el framework, no el reflejo de los controllers) y falla si:
+
+- una ruta que un token protege **no está en el mapa** (quedaría abierta para cualquiera autenticado), o
+- una entrada del mapa **no corresponde a ninguna ruta** (una entrada muerta que promete una protección que ya no está).
+
+```csharp
+// Every route that a token protects says the permission it needs, in the map
+// of the routes. A route that is missing from the map is a route that any
+// authenticated caller could call, so the inventory fails when one is missing.
+//
+// The inventory walks the real endpoints of the API (the same ones the
+// framework serves), not the reflection of the controllers: a route that is
+// not a controller is in the inventory too.
+public class EndpointPermissionInventoryTests : IClassFixture<ApiFactory>
+{
+    [Fact]
+    public void EveryRouteThatATokenProtectsIsInTheMap()
+    {
+        // ... por cada endpoint protegido: si no está en el mapa, la lista de
+        // faltantes crece y la aserción falla.
+    }
+}
+```
+
+**Por qué en el Domain el catálogo**: el front recibe las **claves** (`ventas.read`), no los enums → el front y el back hablan el mismo idioma y el front puede gatear la UI con lo que el API le dice (`GET /api/permissions/me` → el conjunto de claves del caller).
+
 ### ExceptionMiddleware (RFC 7807)
 
 **Ubicación**: `MyApp.Api/Extensions/ExceptionMiddleWareHandler.cs`
@@ -2362,7 +2527,9 @@ Workflow de 7 pasos para cualquier nueva entidad (ej. `Supplier`):
 
 - Login devuelve JWT con claims: `name`, `email`, `role`, `companyId`, `userId`, `jti`.
 - El controller usa `[Authorize]` por defecto. Sin `[Authorize]` solo en `AuthController` (register/login).
-- `BaseController.IsAdmin()` → admin o superadmin. `IsSuperAdminOnly()` → solo superadmin.
+- **La autorización fina vive en el mapa de rutas** (ver §2.4 "Permisos por ruta"): un permiso por controller+verb → el mapa dice qué necesita cada ruta → el filtro **cierra por defecto** lo que el mapa no cubre → el inventario test avisa de las rutas sin declarar y de las entradas muertas.
+- El caller recibe sus **claves** de permiso desde `GET /api/permissions/me` (el API resuelve la unión de los roles) → el front gatea la UI con lo mismo que el back exige.
+- `BaseController.IsAdmin()` → admin o superadmin. `IsSuperAdminOnly()` → solo superadmin. Queda para lo que es de administración, no como regla general de acceso.
 - Rate limit "auth" (5 req/min por IP) en `[EnableRateLimiting(RateLimiterPolicies.Authentication)]`.
 - Global rate limit: 300/min para authenticated, 60/min para anonymous.
 
