@@ -70,6 +70,23 @@ Consecuencia para la UX: en la caja hay que poder elegir **el documento dentro d
 
 *Derivada de la feature de roles (T8)*: el front hoy gatea la UI con su matriz local, que le da `facturacion.write` al rol `Ventas` (`erp-mvp/src/domain/constants/permisos.ts:65`) mientras el back solo deja escribir a Admin/SuperAdmin → **botones visibles que contestan 403**. Cuando la API exponga los permisos (T6/T8 de `roles-permissions`), el front los consume y desaparece la contradicción.
 
+### S11
+
+> "por eso el sistema es modular si quieres la facturacion electronica se te habilita sino sigues facturando normal"
+
+La facturación electrónica es un **módulo opt-in**: el sistema nace pensado para ella (una empresa nueva nace en modo `Electronic`), pero el contribuyente que no la quiere **factura normal con el mismo sistema** (NCF en papel). El modo declarado **no es un defecto**: es la decisión del contribuyente ante la DGII.
+
+Consecuencia para el readiness (UX6): lo que la pantalla muestra es **"el camino que la venta toma hoy"**, no "¿tienes el módulo electrónico?":
+- En modo `Electronic` y sin contingencia → el camino es el **electrónico**: hacen falta **certificado vigente** y **rango de e-NCF con cupo** (E31/E32/E33/E34).
+- En modo `Normal` **o dentro de una contingencia** → el camino es el **papel**: hace falta el **rango de NCF con cupo** (B01/B02/B03/B04) y **no hace falta certificado**.
+- El modo **no es un bloqueo**: facturar normal es un derecho, no una falla.
+
+### S12
+
+> "osea el sistema ya de por si esta pensado para la FE, pero tambien si el cliente no desea FE puede facturar normal con el mismo sistema, es a eso que me refiero por eso nos NCF deben tambien usarse normal los b02, b01 etc"
+
+El camino del NCF tiene que estar completo: los tipos **B01** (Factura de Crédito Fiscal) y **B02** (Factura de Consumo) son los que el contribuyente que no hace FE usa todos los días, y son los que la DGII pide **reportar cada mes**. El detalle de ese reporte está en `odd/tasks/reportes-dgii.md`.
+
 ## Validación de mercado (L2)
 
 | Sistema | Dónde está el interruptor | Flujo en la caja | Estados que ve el usuario |
@@ -130,13 +147,13 @@ E32 (consumo) por debajo de RD$250,000 puede ser en papel continuo; **desde RD$2
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
 | UX0 | S6, F10 | inline (parent) | DONE | **Bloqueo previo**: el stock se descuenta dos veces (create + complete). Hoy el POS no completa y por eso no se nota; en cuanto UX1 conecte el complete, toda venta del POS descuenta el doble. Bugfix aislado con sus tests en `SaleServiceTests` |
-| UX1 | S6, F4, F5 | handoff al front (`erp-mvp`) | PENDING | El botón "Completar Venta" completa la venta: se llama `PUT /api/sales/{id}/complete` y el `<select>` de estado sale de la caja (o pasa a ser el tipo de documento) |
+| UX1 | S6, F4, F5 | handoff al front (`erp-mvp`) | DONE | El botón "Completar Venta" completa la venta: se llama `PUT /api/sales/{id}/complete` y el `<select>` de estado sale de la caja (o pasa a ser el tipo de documento) — commit `erp-mvp 7bb3ba6` (`completeVenta` desde `NuevaVenta.tsx:184,206`; `saleService.ts:79-81`) |
 | UX2 | S5, F2, F3 | handoff al front (`erp-mvp`) | DONE | La elección del documento en la caja: **Consumo (E32)** / **Crédito fiscal (E31)** / **Comercial** (solo si el modo de la empresa es normal; el back rechaza el resto). Default por tipo de cliente |
 | UX3 | S7, S8, F7 | handoff al front (`erp-mvp`) | DONE | El estado fiscal de la venta con el vocabulario de la DGII, con color, **separado del estado de pago**, con el veredicto y el QR de la venta |
 | UX4 | S7, F7 | handoff al front (`erp-mvp`) | DONE | Un comprobante pendiente o rechazado se resuelve **desde la venta** (reintentar), sin el desvío de 5 clics a Contabilidad |
-| UX5 | S9, F8 | handoff al front (`erp-mvp`) | PENDING | "Listo para facturar": checklist de certificado válido, rango con cupo, modo declarado y contingencia activa, en Configuración y en el punto de venta |
-| UX6 | S5, S9 | inline (parent) | PENDING | El back expone el estado de Readiness (modo, certificado, rango con cupo, contingencia) para que el front no lo tenga que deducir de tres pantallas |
-| UX7 | S10, F9 | handoff al front (`erp-mvp`) | PENDING | Los permisos vienen de la API (depende de T6/T8 de `roles-permissions`): disappears el botón que se ve y el back responde 403 |
+| UX5 | S9, F8 | handoff al front (`erp-mvp`) | PENDING | "Listo para facturar": checklist de certificado válido, rango con cupo, modo declarado y contingencia activa, en Configuración y en el punto de venta — **depende de UX6** (el checklist se alimenta del endpoint de readiness) |
+| UX6 | S5, S9, S11 | inline (parent) | DONE | El back expone el estado de Readiness del **camino que la venta toma hoy**: modo, certificado, rango con cupo (e-NCF en modo electrónico, NCF en modo normal o en contingencia), contingencia, `IsReady` + bloqueos → `GET /api/ElectronicInvoices/readiness` — commit `a0e6507` |
+| UX7 | S10, F9 | handoff al front (`erp-mvp`) | DONE | Los permisos vienen de la API (depende de T6/T8 de `roles-permissions`): desaparece el botón que se ve y el back responde 403 — commit `erp-mvp 3907340` (`permissionStore` lee `/api/permissions`; `usePermission`) + el back ya expone el contrato (`286dd00`, `296777d`) |
 | UX8 | S1, F12 | handoff al front (`erp-mvp`) | PENDING | El test de claves i18n cubre `ventas.*` también, y las claves nuevas de UX1-UX5 se agregan en `es` y `en` |
 | UX9 | S1, F1 | handoff al front (`erp-mvp`) | PENDING | `src/pages/POS/` está vacío: se llena con la ruta del POS o se borra (hoy es código muerto que promete una pantalla que no existe) |
 | UX10 | S1, F6 | handoff al front (`erp-mvp`) | PENDING | El total que muestra la caja es el que el back recalcula (con ITBIS): la pantalla deja de mostrar un número y enviar otro |
@@ -195,3 +212,30 @@ La validación (S2) y el mapa del front se hicieron con dos exploradores de solo
 **Lo que queda de esta tanda**: los estilos del chip y de la tarjeta fiscal quedaron **en línea** (los CSS de los screens no estaban entre las superficies permitidas ✓) → se pueden mover a los módulos ✓.
 
 **Riesgo**: item 3 (contrato) — la venta responde un campo nuevo (`fiscalStatus` ✓) y el front lo consume ✓ → **el back primero** ✓. Y el merge de la rama de e-CF del front va a pedir resolución manual en `VentasList.tsx` y `VentaDetail.tsx` (las dos ramas tocaron el estado fiscal de la venta ✓).
+
+### L5 — 2026-11-21 — reanudación: el back expone el "listo para facturar"
+
+> (el dueño: *"continuemos donde quedamos"*)
+
+- **Dónde quedamos** ✓: el módulo e-CF del front ya está en `development` (`erp-mvp 570e5f7`, `e62f616`) ✓ → la parte de front de **UX1** (el botón de cobrar completa la venta ✓) y de **UX7** (los permisos los da la API ✓) está hecha ✓ → el tracker queda al día ✓.
+- **Lo que arranca hoy** ✓: **UX6** (back, inline) → `FiscalReadinessDto` con el modo de emisión, el certificado (existe/vence), los rangos con cupo, la contingencia y `IsReady` + la lista de bloqueos ✓ → `GET /api/ElectronicInvoices/readiness` ✓ (permiso `ElectronicInvoicingRead` ✓ ya está en el mapa de rutas ✓).
+- **Lo que sigue** ✓: UX5 (checklist en Configuración y en la caja, alimentado por UX6 ✓) → UX8 (i18n) ✓ → UX10 (los totales de la caja ✓) → UX9 (la decisión sobre `src/pages/POS/` vacío y las ventas pendientes ✓ → la del dueño ✓) → T10 (formalizar el POS como feature aparte ✓).
+- **Riesgo** ✓: item 3 (contrato) — la venta ya responde `fiscalStatus` ✓ y ahora la API responde un endpoint nuevo ✓ → **el back primero** ✓, el front lo consume después ✓.
+
+### L6 — 2026-11-21 — el dueño encuadra el producto: la FE es un módulo opt-in y el camino normal es de primera clase
+
+> (el dueño: *"porque no todos los negocios colmadones, mini markets y micro o medianos que quieran el sistema van a facturar electronicamente"* · *"por eso el sistema es modular si quieres la facturacion electronica se te habilita sino sigues facturando normal"* · *"osea el sistema ya de por si esta pensado para la FE, pero tambien si el cliente no desea FE puede facturar normal con el mismo sistema, es a eso que me refiero por eso nos NCF deben tambien usarse normal los b02, b01 etc"*)
+
+- **El encuadre** ✓: el sistema **nace pensado para la FE** ✓ → el default de `Company.EmissionMode` **no se toca** ✓ (una empresa nueva nace en `Electronic` ✓) → el que no la quiere la cambia a `Normal` y factura con NCF ✓.
+- **Lo que cambia en UX6** ✓: el readiness deja de ser "el módulo electrónico" y pasa a ser **"el camino que la venta toma hoy"** ✓ → en modo normal o en contingencia el checklist es el del **NCF (B01/B02)** ✓ → **el modo deja de ser un blocker** ✓ (facturar normal es un derecho ✓) → la respuesta dice `usesElectronicEmission` ✓ → y el tipo de documento se nombra como el contribuyente lo nombra (**E32**, **B02**) ✓.
+- **B01 y B02 no son formularios: son los tipos de NCF** ✓ (Guía del Contribuyente No. 5 ✓: *"Factura de Crédito Fiscal (Tipo B01, E31)"* y *"Factura de Consumo (Tipo B02, E32)"* ✓) → emitir el NCF ya existe en el código ✓ (`NormalFiscalDocumentService` ✓ + `NormalFiscalSequence` ✓) → **lo que falta es reportarlo** ✓ → feature nueva: `odd/tasks/reportes-dgii.md` ✓ (la 607 con el detalle de B01/B02, el resumen de consumo, la 606 de compras, la 608 de anulados y el RFCE ✓).
+- **Riesgo** ✓: item 1 (datos) — los reportes se remiten con los números que el contribuyente ya usó ✓ → el período cerrado se congela ✓ (task RD1 ✓).
+
+### L7 — 2026-11-21 — UX6: el back dice si el contribuyente puede facturar hoy
+
+- **El endpoint** ✓: `GET /api/ElectronicInvoices/readiness` ✓ → `FiscalReadinessDto` ✓ (modo ✓ · si emite electrónicamente hoy ✓ · contingencia ✓ · certificado ✓ · `isReady` ✓ · bloqueos ✓ · los tipos con su cupo ✓) → commit `a0e6507` ✓.
+- **El camino, no el módulo** ✓: el readiness sigue `CompanyEmissionPolicy.UsesElectronicEmission` ✓ → modo electrónico → **certificado + rango de e-NCF** (E31/E32/E33/E34) ✓ → modo normal o contingencia → **rango de NCF** (B01/B02/B03/B04) y **nada de certificado** ✓ → **el modo no es un bloqueo** ✓.
+- **Los tipos con el nombre del contribuyente** ✓: el código es **E32** o **B02** ✓ (no el número del enum ✓) → el front no tiene que adivinar de qué enum viene ✓.
+- **Los bloqueos, con su motivo** ✓: sin certificado ✓ · sin rango ✓ · rango expirado ✓ · rango agotado ✓ · rango anulado ✓ · sin fecha de expiración cuando el tipo la exige ✓ → los mismos motivos que dice la asignación de números ✓ (`ElectronicInvoiceSequenceRepository.NoRangeAsync` ✓).
+- **Tests** ✓: 10 de servicio ✓ + 3 de endpoint ✓ (la empresa sale del token ✓ y la respuesta de un tenant nunca menciona a otro ✓) → suite **1108/1108** ✓.
+- **Riesgo** ✓: item 3 (contrato) — la API responde un endpoint nuevo ✓ → **el back primero** ✓ → el front lo consume en UX5 ✓.
