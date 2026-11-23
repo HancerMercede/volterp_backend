@@ -42,8 +42,15 @@ function parseArgs(argv) {
     if (!token.startsWith('--')) continue;
     const key = token.slice(2);
     const next = argv[i + 1];
-    if (next === undefined || next.startsWith('--')) args[key] = true;
-    else { args[key] = next; i++; }
+    const value = next === undefined || next.startsWith('--') ? true : next;
+    if (next !== undefined && !next.startsWith('--')) i++;
+
+    // Un flag que se repite se acumula (--metric "32|secciones" --metric ...).
+    if (key in args) {
+      args[key] = [].concat(args[key], value);
+    } else {
+      args[key] = value;
+    }
   }
   return args;
 }
@@ -224,6 +231,10 @@ function inline(text) {
     codes.push(code);
     return `\u0000${codes.length - 1}\u0000`;
   });
+
+  // Las imagenes del markdown: la captura de una pantalla.
+  html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) =>
+    `<figure class="captura"><img src="${src}" alt="${alt}"><figcaption>${alt}</figcaption></figure>`);
 
   html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>');
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -436,17 +447,29 @@ function renderDocument({ blocks, outline }, meta, css) {
   // El título del documento (el primer # del markdown) es el de la portada:
   // si se queda en el cuerpo, el PDF repite el título dos veces.
   const body = blocks[0]?.type === 'heading' && blocks[0].level === 1 ? blocks.slice(1) : blocks;
+
+  // El título con la parte en degradado (la de la casa).
+  const titleParts = meta.titleAccent
+    ? (() => {
+        const at = meta.title.indexOf(meta.titleAccent);
+        if (at < 0) return escapeHtml(meta.title);
+        return escapeHtml(meta.title.slice(0, at))
+          + `<span class="grad">${escapeHtml(meta.titleAccent)}</span>`
+          + escapeHtml(meta.title.slice(at + meta.titleAccent.length));
+      })()
+    : escapeHtml(meta.title);
+
+  const stats = (meta.metrics ?? []).map(metric => `
+      <div class="cover-stat">
+        <div class="num">${escapeHtml(metric.value)}</div>
+        <div class="lbl">${escapeHtml(metric.label)}</div>
+      </div>`).join('');
   const cover = `
   <div class="cover">
-    <div class="kicker">${escapeHtml(meta.kicker ?? 'Volterp')}</div>
-    <div class="rule"></div>
-    <h1>${escapeHtml(meta.title ?? '')}</h1>
-    ${meta.subtitle ? `<div class="subtitle">${escapeHtml(meta.subtitle)}</div>` : ''}
-    <div class="meta">
-      ${meta.repo ? `<span><strong>Origen</strong> ${escapeHtml(meta.repo)}</span>` : ''}
-      ${meta.commit ? `<span><strong>Commit</strong> ${escapeHtml(meta.commit)}</span>` : ''}
-      ${meta.date ? `<span><strong>Fecha</strong> ${escapeHtml(meta.date)}</span>` : ''}
-    </div>
+    <div class="cover-tag">${escapeHtml(meta.kicker ?? 'Volterp')}</div>
+    <div class="cover-title">${titleParts}</div>
+    ${meta.subtitle ? `<div class="cover-sub">${escapeHtml(meta.subtitle)}</div>` : ''}
+    ${stats ? `<div class="cover-stats">${stats}</div>` : ''}
   </div>`;
 
   const toc = outline.length && meta.index !== false ? `
@@ -542,10 +565,21 @@ async function resolvePlaywright() {
 function footerTemplate(meta) {
   if (meta.pageNumbers === false) return '<div></div>';
   return `
-    <div style="font-size:7pt;width:100%;padding:0 15mm 5mm;color:#94a3b8;
+    <div style="font-size:7.5pt;width:100%;padding:0 55px 12px;color:#64748b;
                 display:flex;justify-content:space-between;font-family:Inter,sans-serif;">
-      <span>${escapeHtml(meta.title ?? '')}</span>
+      <span>${escapeHtml(meta.footer ?? '')}</span>
       <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
+    </div>`;
+}
+
+// El encabezado corrido: la marca a la izquierda, el documento a la derecha.
+function headerTemplate(meta) {
+  return `
+    <div style="font-size:7.5pt;width:100%;padding:14px 55px 0;color:#94a3b8;
+                display:flex;justify-content:space-between;text-transform:uppercase;
+                letter-spacing:0.5px;font-family:Inter,sans-serif;">
+      <span style="color:#6366f1;font-weight:700;">${escapeHtml(meta.kicker ?? '')}</span>
+      <span>${escapeHtml(meta.title ?? '')}</span>
     </div>`;
 }
 
@@ -569,7 +603,7 @@ async function printWithPlaywright(playwrightPath, htmlPath, pdfPath, meta) {
       printBackground: true,
       preferCSSPageSize: true,
       displayHeaderFooter: true,
-      headerTemplate: '<div></div>',
+      headerTemplate: headerTemplate(meta),
       footerTemplate: footerTemplate(meta),
       margin: { top: '0', bottom: '0', left: '0', right: '0' }
     });
@@ -677,13 +711,22 @@ const markdownTitle = parsed.blocks[0]?.type === 'heading' && parsed.blocks[0].l
   ? parsed.blocks[0].text
   : '';
 
+const metrics = (Array.isArray(args.metric) ? args.metric : args.metric ? [args.metric] : [])
+  .map(entry => {
+    const [value, ...rest] = String(entry).split('|');
+    return { value: value.trim(), label: rest.join('|').trim() };
+  });
+
 const meta = {
   kicker: args.kicker ?? 'Volterp',
   title: args.title ?? markdownTitle ?? sourcePath.split(/[\\/]/).pop().replace(/\.md$/i, ''),
+  titleAccent: args.accent ?? '',
   subtitle: args.subtitle ?? '',
   repo: args.repo ?? '',
   commit: args.commit ?? '',
   date: args.date ?? new Date().toISOString().slice(0, 10),
+  metrics,
+  footer: args.footer ?? (args.repo ? `Volterp · ${args.repo}` : 'Volterp'),
   pageNumbers: args.numbers !== false && !args['no-numbers'],
   index: args.index !== false && !args['no-index']
 };

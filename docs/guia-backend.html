@@ -6,27 +6,16 @@
 <style>
 /* La maqueta de los PDF del proyecto.
  *
- * Viene de la paleta de la skill `styled-pdf` (indigo/purple) y del HTML que
- * ya vive en el repo (multi-tenant-refactor.html): los PDF de los manuales
- * usan el mismo aire que el resto del proyecto.
+ * These are the values of the house (multi-tenant-refactor.html): the same
+ * palette, the same typography, the same components. The PDF of the manuals
+ * has to look like the rest of the documentation.
  *
- * Las reglas que importan al imprimir:
- *   - @page sin márgenes: el aire lo pone el body (padding) → el pie con el
- *     número de página (lo pone Chrome) no se come el texto.
- *   - Cada bloque que no se puede partir lleva `break-inside: avoid`.
- *   - Cada título de sección empieza en una hoja nueva (`break-before: page`).
+ * The rules that matter when printing:
+ *   - @page without margins: the air is the body's padding → the footer with
+ *     the page number (Chrome puts it there) does not eat the text.
+ *   - Every block that cannot be split carries `break-inside: avoid`.
+ *   - Every section title starts on a new sheet (`break-before: page`).
  */
-
-/* Las tipografias de la maqueta: Inter para el texto.
- *
- * El @import va PRIMERO: por norma el navegador ignora un @import que llega
- * despues de otra regla (por eso el titulo salia con Segoe UI).
- *
- * El codigo NO usa JetBrains Mono: esa fuente (la de la web y la del IDE) no
- * trae los caracteres de dibujo de los arboles de carpetas, y el navegador cae
- * a otra fuente para ellos → el arbol pierde la alineacion. Cascadia Mono y
- * Consolas los traen y son monoespaciadas de verdad. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   --accent-primary: #6366f1;
@@ -44,6 +33,17 @@
   --code-bg: #0f172a;
 }
 
+/* The typography of the house: Inter for the text.
+ *
+ * The @import goes FIRST: by rule the browser ignores an @import that comes
+ * after another rule (that is why the title came out in Segoe UI).
+ *
+ * The code does NOT use JetBrains Mono: that font (the web one and the one of
+ * the IDE) does not have the drawing characters of the folder trees, and the
+ * browser falls back to another font for them → the tree loses its alignment.
+ * Cascadia Mono and Consolas have them and are really monospaced. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 @page { size: A4; margin: 0; }
@@ -54,7 +54,7 @@ body {
   line-height: 1.55;
   color: var(--text-primary);
   width: 210mm;
-  padding: 16mm 15mm 20mm;
+  padding: 50px 55px 55px;
   background: #fff;
 }
 
@@ -63,13 +63,10 @@ body {
 .cover {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg,
-      var(--bg-dark) 0%,
-      var(--bg-dark) 42%,
-      color-mix(in srgb, var(--bg-dark) 68%, var(--accent-primary)) 100%);
+  background: linear-gradient(135deg, #0f0c29 0%, #1e1b4b 50%, #312e81 100%);
   color: var(--text-light);
   padding: 50px 55px;
-  margin: -16mm -15mm 0;
+  margin: -50px -55px 0;
   height: 297mm;
   box-sizing: border-box;
   break-after: page;
@@ -81,86 +78,141 @@ body {
 .cover::before {
   content: '';
   position: absolute;
-  top: -32%;
-  right: -18%;
-  width: 190mm;
-  height: 190mm;
-  background: radial-gradient(circle,
-      color-mix(in srgb, var(--accent-primary) 30%, transparent) 0%,
-      transparent 70%);
+  top: -30%;
+  right: -15%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
   border-radius: 50%;
 }
 
 .cover::after {
   content: '';
   position: absolute;
-  bottom: -22%;
-  left: -12%;
-  width: 150mm;
-  height: 150mm;
-  background: radial-gradient(circle,
-      color-mix(in srgb, var(--accent-secondary) 22%, transparent) 0%,
-      transparent 70%);
+  bottom: -25%;
+  left: -10%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
   border-radius: 50%;
 }
 
-.cover .kicker {
-  position: relative;
-  font-size: 8.5pt;
+.cover-tag {
+  display: inline-block;
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 8pt;
   font-weight: 600;
-  letter-spacing: 2.2px;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-light) 72%, var(--accent-primary));
-  margin-bottom: 9mm;
-}
-.cover h1 {
+  letter-spacing: 1.5px;
+  margin-bottom: 22px;
+  width: fit-content;
   position: relative;
-  font-size: 30pt;
-  line-height: 1.12;
+  z-index: 1;
+}
+
+.cover-title {
+  font-size: 42pt;
   font-weight: 800;
-  letter-spacing: -0.5px;
-  max-width: 150mm;
-  padding-bottom: 0;
-  margin-bottom: 0;
-  border-bottom: 0;
+  line-height: 1.05;
+  letter-spacing: -1.5px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
 }
 
-.cover .subtitle {
-  position: relative;
-  margin-top: 6mm;
-  font-size: 11.5pt;
+.cover-title .grad {
+  background: linear-gradient(90deg, #c4b5fd 0%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.cover-sub {
+  font-size: 12pt;
   font-weight: 300;
-  line-height: 1.5;
-  color: color-mix(in srgb, var(--text-light) 80%, transparent);
-  max-width: 135mm;
+  color: #cbd5e1;
+  line-height: 1.45;
+  max-width: 480px;
+  margin-bottom: 38px;
+  position: relative;
+  z-index: 1;
 }
 
-.cover .meta {
+.cover-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
   position: relative;
-  margin-top: 14mm;
+  z-index: 1;
+  margin-top: 12px;
+}
+
+.cover-stat {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 14px;
+  backdrop-filter: blur(10px);
+}
+
+.cover-stat .num {
+  font-size: 22pt;
+  font-weight: 800;
+  background: linear-gradient(90deg, #c4b5fd 0%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.cover-stat .lbl {
+  font-size: 7pt;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.cover-foot {
+  position: absolute;
+  bottom: 30px;
+  left: 55px;
+  right: 55px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 4mm 10mm;
-  font-size: 8.5pt;
-  color: color-mix(in srgb, var(--text-light) 68%, transparent);
+  justify-content: space-between;
+  font-size: 7.5pt;
+  color: #64748b;
+  z-index: 1;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.cover .meta span strong { color: var(--text-light); font-weight: 600; }
+/* ---------- Encabezado y pie de la hoja ---------- */
 
-.cover .rule {
-  position: relative;
-  width: 26mm;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-  margin-bottom: 7mm;
-  border-radius: 2px;
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1.5px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  font-size: 7.5pt;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
+
+.page-header .brand { color: var(--accent-primary); font-weight: 700; }
 
 /* ---------- Índice ---------- */
 
 .index { break-after: page; }
 
-.index h2 { break-before: auto; }
+.index h2 { break-before: auto; color: var(--text-primary); border-bottom: 0; }
 
 .toc { margin-top: 6mm; }
 
@@ -205,12 +257,11 @@ body {
 h1 {
   break-before: page;
   break-after: avoid;
-  font-size: 19pt;
+  font-size: 32pt;
   font-weight: 800;
-  letter-spacing: -0.4px;
-  padding-bottom: 2.5mm;
-  margin-bottom: 6mm;
-  border-bottom: 3px solid var(--accent-primary);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  margin-bottom: 12px;
 }
 
 h2 {
@@ -218,50 +269,41 @@ h2 {
   break-after: avoid;
   font-size: 15pt;
   font-weight: 700;
-  letter-spacing: -0.2px;
-  padding-bottom: 2.5mm;
-  margin-bottom: 5mm;
-  border-bottom: 2px solid var(--accent-primary);
+  color: var(--accent-primary);
+  margin: 18px 0 10px;
 }
 
 h3 {
   break-after: avoid;
-  font-size: 11.5pt;
+  font-size: 11pt;
   font-weight: 700;
-  margin-top: 7mm;
-  margin-bottom: 3mm;
   color: var(--text-primary);
+  margin: 12px 0 6px;
 }
 
 h4 {
   break-after: avoid;
-  font-size: 10pt;
-  font-weight: 700;
-  margin-top: 5mm;
-  margin-bottom: 2mm;
-  color: var(--accent-primary);
+  font-size: 9.5pt;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 10px 0 5px;
 }
 
-h2 + h3 { margin-top: 4mm; }
-
-p { margin: 2.4mm 0; orphans: 2; widows: 2; }
+p { margin-bottom: 7px; font-size: 9.5pt; orphans: 2; widows: 2; }
 
 strong { font-weight: 700; }
 
 a { color: var(--accent-primary); }
 
-hr {
-  border: 0;
-  height: 1px;
-  background: var(--border);
-  margin: 6mm 0;
-}
+hr { border: 0; height: 1px; background: var(--border); margin: 6mm 0; }
 
 /* ---------- Listas ---------- */
 
-ul, ol { margin: 2.4mm 0 2.4mm 6mm; }
-li { margin: 1.1mm 0; }
-li > ul, li > ol { margin: 1.1mm 0 1.1mm 5mm; }
+ul, ol { margin-left: 18px; margin-bottom: 8px; }
+li { font-size: 9.5pt; margin-bottom: 3px; }
+li > ul, li > ol { margin: 3px 0 3px 14px; }
 
 /* ---------- Tablas ---------- */
 
@@ -269,95 +311,87 @@ table {
   width: 100%;
   border-collapse: collapse;
   font-size: 8.5pt;
-  margin: 3mm 0 4mm;
-  break-inside: avoid;
+  margin: 6px 0;
+  page-break-inside: avoid;
 }
 
 thead th {
   background: var(--bg-dark);
   color: var(--text-light);
-  padding: 2mm 3mm;
-  font-size: 8pt;
-  font-weight: 600;
-  text-align: left;
+  padding: 7px 11px;
+  font-size: 7.5pt;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
+  text-align: left;
 }
 
-tbody td {
-  padding: 1.8mm 3mm;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-}
-
+tbody td { padding: 6px 11px; border-bottom: 1px solid var(--border); vertical-align: top; }
 tbody tr:nth-child(even) { background: var(--bg-surface); }
-tbody td:first-child { font-weight: 600; }
+tbody td:first-child { font-family: 'Cascadia Mono', Consolas, monospace; font-size: 7.5pt; color: var(--accent-primary); font-weight: 600; }
 
 /* ---------- Código ---------- */
 
+code {
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 8pt;
+  background: var(--bg-surface);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--accent-primary);
+}
+
 pre {
   background: var(--code-bg);
-  color: #e2e8f0;
+  color: var(--text-light);
   font-family: 'Cascadia Mono', Consolas, monospace;
-  font-size: 7.4pt;
+  font-size: 7.5pt;
   line-height: 1.45;
-  padding: 3mm 4mm 3mm 8mm;
-  text-indent: -4mm;
-  border-radius: var(--border-radius);
-  border-left: 3px solid var(--accent-primary);
+  padding: 10px 14px;
+  border-radius: 7px;
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: anywhere;
-  break-inside: avoid;
-  margin: 3mm 0 4mm;
+  text-indent: -4px;
+  page-break-inside: avoid;
+  margin: 6px 0;
   tab-size: 4;
-}
-
-code {
-  font-family: 'Cascadia Mono', Consolas, monospace;
-  font-size: 8.4pt;
-  background: var(--bg-surface);
-  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-  border-radius: 4px;
-  padding: 0.3mm 1.1mm;
 }
 
 pre code {
   background: none;
-  border: 0;
   padding: 0;
   font-size: inherit;
+  color: inherit;
 }
 
-/* Los colores del resaltado */
-.tok-key { color: #c792ea; font-weight: 500; }
-.tok-str { color: #a5d6a7; }
-.tok-num { color: #f78c6c; }
+.tok-key { color: #c084fc; }
+.tok-str { color: #86efac; }
+.tok-num { color: #fdba74; }
 .tok-com { color: #64748b; font-style: italic; }
 .tok-type { color: #7dd3fc; }
-.tok-fn   { color: #ffd866; }
+.tok-fn   { color: #fde68a; }
 .tok-punc { color: #94a3b8; }
 
 /* ---------- Citas y avisos ---------- */
 
 blockquote {
-  margin: 3mm 0;
-  padding: 2.5mm 4mm;
+  margin: 6px 0;
+  padding: 10px 12px;
   border-left: 3px solid var(--border);
   background: var(--bg-surface);
-  color: var(--text-primary);
-  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  border-radius: 0 6px 6px 0;
   break-inside: avoid;
 }
 
-blockquote p { margin: 1.2mm 0; }
+blockquote p { margin: 0; }
 
-/* Los bloques de principio y de stack: el template los marca asi y el PDF
- * los tiene que distinguir, porque es la diferencia que un dev nuevo no
- * puede deducir solo. */
+/* The principle and stack blocks: the template marks them like that and the
+ * PDF has to tell them apart, because it is the difference a new dev cannot
+ * work out on his own. */
 .callout {
-  margin: 3mm 0;
-  padding: 3mm 4mm;
+  margin: 6px 0;
+  padding: 11px 14px;
   border-radius: var(--border-radius);
   border: 1.5px solid var(--accent-primary);
   border-left-width: 4px;
@@ -366,16 +400,16 @@ blockquote p { margin: 1.2mm 0; }
 }
 
 .callout .tag {
-  display: inline-block;
+  display: block;
   font-size: 7pt;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--accent-primary);
-  margin-bottom: 1.5mm;
+  margin-bottom: 4px;
 }
 
-.callout p { margin: 1.2mm 0; }
+.callout p { margin: 0; }
 
 .callout-stack {
   border-color: var(--border);
@@ -385,35 +419,14 @@ blockquote p { margin: 1.2mm 0; }
 
 .callout-stack .tag { color: var(--text-muted); }
 
-/* ---------- Pie ---------- */
+/* ---------- Tarjetas ---------- */
 
-.pie {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 12mm;
-  padding: 0 15mm 4mm;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  font-size: 7.5pt;
-  color: var(--text-muted);
-  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-  background: #fff;
-}
-
-.pie .marca { font-weight: 600; color: var(--text-primary); }
-
-/* ---------- Los componentes de la maqueta que faltaban ---------- */
-
-/* Rejilla de tarjetas: dos columnas de features */
 .card-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin: 10px 0;
-  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .card {
@@ -425,33 +438,51 @@ blockquote p { margin: 1.2mm 0; }
   break-inside: avoid;
 }
 
-.card .ct {
-  font-weight: 700;
-  font-size: 9pt;
-  margin-bottom: 2mm;
+.card.danger { border-left-color: var(--danger); }
+.card.success { border-left-color: var(--success); }
+.card.warning { border-left-color: var(--warning); }
+
+.card-title { font-weight: 700; font-size: 9.5pt; color: var(--text-primary); margin-bottom: 3px; }
+.card-body { font-size: 8.5pt; color: var(--text-muted); line-height: 1.5; }
+
+/* ---------- Antes / después ---------- */
+
+.ba-row {
+  display: grid;
+  grid-template-columns: 1fr 40px 1fr;
+  gap: 10px;
+  align-items: stretch;
+  margin: 8px 0;
+  page-break-inside: avoid;
 }
 
-.card p { margin: 1mm 0; font-size: 8.5pt; }
+.ba-before, .ba-after { padding: 10px 12px; border-radius: 6px; font-size: 8.5pt; }
+.ba-before { background: #fef2f2; border: 1.5px solid #fecaca; }
+.ba-after { background: #f0fdf4; border: 1.5px solid #bbf7d0; }
+.ba-arrow { display: flex; align-items: center; justify-content: center; font-size: 14pt; color: var(--accent-primary); font-weight: 700; }
+.ba-label { font-size: 7pt; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 4px; }
+.ba-before .ba-label { color: var(--danger); }
+.ba-after .ba-label { color: var(--success); }
 
-/* Pasos numerados */
+/* ---------- Pasos ---------- */
+
 .flow {
   background: var(--bg-surface);
   border: 1.5px solid var(--border);
   border-radius: var(--border-radius);
   padding: 14px;
-  break-inside: avoid;
+  margin: 8px 0;
 }
 
 .fs {
   background: #fff;
   border: 1.5px solid var(--border);
   border-radius: 5px;
-  padding: 6px 10px;
-  margin-bottom: 3px;
+  padding: 7px 11px;
+  margin-bottom: 4px;
   display: flex;
   align-items: flex-start;
-  gap: 7px;
-  break-inside: avoid;
+  gap: 8px;
 }
 
 .fs .n {
@@ -470,7 +501,8 @@ blockquote p { margin: 1.2mm 0; }
 
 .fs p { margin: 0; font-size: 8.5pt; }
 
-/* Modelo de datos */
+/* ---------- Modelo de datos ---------- */
+
 .entity {
   background: var(--bg-surface);
   border: 1.5px solid var(--border);
@@ -479,28 +511,15 @@ blockquote p { margin: 1.2mm 0; }
   break-inside: avoid;
 }
 
-.entity .eh {
-  background: var(--bg-dark);
-  color: var(--text-light);
-  padding: 7px 12px;
-  font-weight: 600;
-  font-size: 8.5pt;
-}
-
+.entity .eh { background: var(--bg-dark); color: var(--text-light); padding: 7px 12px; font-weight: 600; font-size: 8.5pt; }
 .entity .eb { padding: 8px 12px; }
 
-.erow {
-  display: flex;
-  justify-content: space-between;
-  padding: 2.5px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 8pt;
-}
+.erow { display: flex; justify-content: space-between; padding: 2.5px 0; border-bottom: 1px solid var(--border); font-size: 8pt; }
 
-/* Resumen ejecutivo */
+/* ---------- Resumen y veredictos ---------- */
+
 .exec-summary {
-  background: linear-gradient(135deg, var(--bg-surface) 0%,
-      color-mix(in srgb, var(--accent-primary) 10%, var(--bg-surface)) 100%);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, color-mix(in srgb, var(--accent-primary) 10%, var(--bg-surface)) 100%);
   border: 2px solid var(--accent-primary);
   border-radius: 10px;
   padding: 20px 24px;
@@ -508,20 +527,24 @@ blockquote p { margin: 1.2mm 0; }
   break-inside: avoid;
 }
 
-.exec-summary p { margin: 1.5mm 0; }
+.exec-summary p { margin: 4px 0; }
 
-/* Veredictos */
-.verdict {
-  background: #f0fdf4;
-  border: 2px solid var(--success);
-  border-radius: 10px;
-  padding: 16px 20px;
-  margin: 12px 0;
-  break-inside: avoid;
-}
-
+.verdict { background: #f0fdf4; border: 2px solid var(--success); border-radius: 10px; padding: 16px 20px; margin: 12px 0; break-inside: avoid; }
 .verdict-danger { background: #fef2f2; border-color: var(--danger); }
 .verdict-warning { background: #fffbeb; border-color: var(--warning); }
+
+/* ---------- Capturas de pantalla ---------- */
+
+figure.captura { margin: 8px 0 10px; break-inside: avoid; }
+
+figure.captura img {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text-primary) 12%, transparent);
+}
+
+figure.captura figcaption { margin-top: 4px; font-size: 8pt; color: var(--text-muted); text-align: center; }
 
 /* ---------- Ayudas de corte ---------- */
 
@@ -534,15 +557,26 @@ blockquote p { margin: 1.2mm 0; }
 <body>
 
   <div class="cover">
-    <div class="kicker">Volterp · Backend</div>
-    <div class="rule"></div>
-    <h1>Guía del backend de Volterp</h1>
-    <div class="subtitle">Cómo se construye la API: las capas, el código, los patrones y cómo trabajamos</div>
-    <div class="meta">
-      <span><strong>Origen</strong> Volterp</span>
-      <span><strong>Commit</strong> c86614b</span>
-      <span><strong>Fecha</strong> 2026-11-23</span>
-    </div>
+    <div class="cover-tag">Volterp · Backend</div>
+    <div class="cover-title">Guía del <span class="grad">backend</span> de Volterp</div>
+    <div class="cover-sub">Cómo se construye la API: las capas, el código, los patrones y cómo trabajamos</div>
+    <div class="cover-stats">
+      <div class="cover-stat">
+        <div class="num">32</div>
+        <div class="lbl">secciones</div>
+      </div>
+      <div class="cover-stat">
+        <div class="num">70</div>
+        <div class="lbl">páginas</div>
+      </div>
+      <div class="cover-stat">
+        <div class="num">2.601</div>
+        <div class="lbl">líneas de template</div>
+      </div>
+      <div class="cover-stat">
+        <div class="num">5</div>
+        <div class="lbl">capas</div>
+      </div></div>
   </div>
 
   <div class="index">
