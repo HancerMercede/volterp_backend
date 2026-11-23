@@ -22,11 +22,14 @@
 //                    usuario se sigue paso a paso, no se consulta por página)
 //   --keep-html      deja el HTML intermedio (por defecto, lo deja)
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, readdirSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
 
 // ---------------------------------------------------------------------------
 // La línea de comandos
@@ -90,6 +93,7 @@ function parseMarkdown(markdown) {
   const blocks = [];
   const outline = [];
   let section = 0;
+  let part = 0;
   let i = 0;
 
   while (i < lines.length) {
@@ -111,12 +115,25 @@ function parseMarkdown(markdown) {
       const level = heading[1].length;
       const text = heading[2].replace(/\s+#+\s*$/, '').trim();
       const id = slug(text);
-      if (level === 2) {
-        section += 1;
-        outline.push({ level, text, id, number: section });
-      } else if (level === 3) {
-        outline.push({ level, text, id });
+
+      if (level <= 2) {
+        // El indice lleva la misma numeracion que el documento: las partes
+        // (h1) y las secciones (h2) cuelgan de la parte que las contiene.
+        if (level === 1) {
+          part += 1;
+          section = 0;
+          outline.push({ level: 1, text, id, number: String(part) });
+        } else {
+          section += 1;
+          outline.push({
+            level: 2,
+            text,
+            id,
+            number: part > 0 ? `${part}.${section}` : String(section)
+          });
+        }
       }
+
       blocks.push({ type: 'heading', level, text, id });
       i++;
       continue;
@@ -433,12 +450,11 @@ function renderDocument({ blocks, outline }, meta, css) {
   <div class="index">
     <h2 id="indice" style="break-before:auto">Índice</h2>
     <div class="toc">
-      <ol>
-        ${outline
-          .filter(entry => entry.level === 2)
-          .map(entry => `<li><a href="#${entry.id}">${inline(entry.text)}</a></li>`)
-          .join('\n        ')}
-      </ol>
+      ${outline
+        .map(entry => entry.level === 1
+          ? `<div class="toc-parte"><span class="n">${entry.number}</span><a href="#${entry.id}">${inline(entry.text)}</a></div>`
+          : `<div class="toc-seccion lvl-${entry.level}"><span class="n">${entry.number}</span><a href="#${entry.id}">${inline(entry.text)}</a></div>`)
+        .join('\n        ')}
     </div>
   </div>` : '';
 
@@ -481,7 +497,86 @@ function findChrome() {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function printToPdf(htmlPath, pdfPath, meta) {
+// Playwright primero (es la via que recomienda la skill styled-pdf); si no esta
+// en la maquina, el conversor propio habla con el Chrome por CDP y no depende
+// de nada instalado.
+//
+// El harness pisa USERPROFILE, HOME y LOCALAPPDATA, asi que la instalacion se
+// busca por donde esta de verdad: el cache de npx de los perfiles de C:.
+async function resolvePlaywright() {
+  if (process.env.PLAYWRIGHT_PATH && existsSync(process.env.PLAYWRIGHT_PATH))
+    return { module: process.env.PLAYWRIGHT_PATH, browsers: null };
+
+  const local = join(process.cwd(), 'node_modules', 'playwright');
+  if (existsSync(local)) return { module: local, browsers: null };
+
+  const roots = [];
+  for (const variable of [process.env.USERPROFILE, process.env.LOCALAPPDATA, process.env.HOME]) {
+    if (!variable) continue;
+    roots.push(join(variable, 'AppData', 'Local', 'npm-cache', '_npx'));
+  }
+  if (existsSync('C:/Users')) {
+    for (const user of readdirSync('C:/Users')) {
+      roots.push(join('C:/Users', user, 'AppData', 'Local', 'npm-cache', '_npx'));
+      roots.push(join('C:/Users', user, 'AppData', 'Local', 'ms-playwright'));
+    }
+  }
+
+  let browsers = null;
+  for (const root of roots) {
+    if (!existsSync(root)) continue;
+    if (root.endsWith('ms-playwright')) { browsers ??= root; continue; }
+    const candidates = readdirSync(root)
+      .map(name => join(root, name, 'node_modules', 'playwright'))
+      .filter(path => existsSync(path))
+      .sort();
+    if (candidates.length) return { module: candidates[candidates.length - 1], browsers };
+  }
+
+  return browsers ? { module: null, browsers } : null;
+}
+
+function footerTemplate(meta) {
+  if (meta.pageNumbers === false) return '<div></div>';
+  return `
+    <div style="font-size:7pt;width:100%;padding:0 15mm 5mm;color:#94a3b8;
+                display:flex;justify-content:space-between;font-family:Inter,sans-serif;">
+      <span>${escapeHtml(meta.title ?? '')}</span>
+      <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
+    </div>`;
+}
+
+async function printWithPlaywright(playwrightPath, htmlPath, pdfPath, meta) {
+  const { chromium } = require(playwrightPath);
+
+  // El navegador que trae la libreria puede no estar en la maquina (la
+  // version del cache pide otra revision del chromium). En vez de descargar
+  // nada, Playwright conduce el Chrome que ya esta instalado.
+  const executablePath = CHROME_CANDIDATES.find(candidate => existsSync(candidate));
+
+  const browser = await chromium.launch({
+    headless: true,
+    ...(executablePath ? { executablePath } : {})
+  });
+  try {
+    const page = await browser.newPage();
+    await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' });
+    await page.pdf({
+      path: pdfPath,
+      printBackground: true,
+      preferCSSPageSize: true,
+      displayHeaderFooter: true,
+      headerTemplate: '<div></div>',
+      footerTemplate: footerTemplate(meta),
+      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
+  } finally {
+    await browser.close();
+  }
+  return 'playwright';
+}
+
+async function printWithChrome(htmlPath, pdfPath, meta) {
   const userDataDir = join(tmpdir(), `volterp-pdf-${Date.now()}`);
   mkdirSync(userDataDir, { recursive: true });
 
@@ -545,12 +640,7 @@ async function printToPdf(htmlPath, pdfPath, meta) {
     await send('Page.enable');
     await sleep(600); // las fuentes y el layout se asientan
 
-    const footer = `
-      <div style="font-size:7pt;width:100%;padding:0 15mm 5mm;color:#94a3b8;
-                  display:flex;justify-content:space-between;font-family:Inter,sans-serif;">
-        <span>${escapeHtml(meta.title ?? '')}</span>
-        <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
-      </div>`;
+    const footer = footerTemplate(meta);
 
     const { data } = await send('Page.printToPDF', {
       printBackground: true,
@@ -599,9 +689,27 @@ const html = renderDocument(parsed, meta, css);
 mkdirSync(dirname(outputPath), { recursive: true });
 writeFileSync(htmlPath, html, 'utf8');
 
-await printToPdf(htmlPath, outputPath, meta);
+async function printToPdf(htmlPath, pdfPath, meta) {
+  const found = await resolvePlaywright();
 
+  if (found?.module) {
+    try {
+      if (found.browsers && !process.env.PLAYWRIGHT_BROWSERS_PATH)
+        process.env.PLAYWRIGHT_BROWSERS_PATH = found.browsers;
+      await printWithPlaywright(found.module, htmlPath, pdfPath, meta);
+      console.log('Convertidor  playwright');
+      return;
+    } catch (error) {
+      console.warn(`Playwright no pudo convertir (${error.message}); se usa el Chrome por CDP.`);
+    }
+  }
+
+  await printWithChrome(htmlPath, pdfPath, meta);
+  console.log('Convertidor  chrome por CDP');
+}
+
+await printToPdf(htmlPath, outputPath, meta);
 const size = readFileSync(outputPath).length;
 console.log(`PDF   ${outputPath}`);
 console.log(`HTML  ${htmlPath}`);
-console.log(`Secciones ${parsed.outline.filter(entry => entry.level === 2).length} · bloques ${parsed.blocks.length} · ${Math.round(size / 1024)} KB`);
+console.log(`Secciones ${parsed.outline.filter(entry => entry.level <= 2).length} · bloques ${parsed.blocks.length} · ${Math.round(size / 1024)} KB`);
