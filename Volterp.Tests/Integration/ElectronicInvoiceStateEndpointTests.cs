@@ -171,7 +171,14 @@ public class ElectronicInvoiceStateEndpointTests : IClassFixture<ApiFactory>
 
     private static string Readme()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        // The build can leave the test outside the repository (the output in
+        // another disk), so the root of the repository travels with the
+        // assembly.
+        var root = typeof(ElectronicInvoiceStateEndpointTests).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(attribute => attribute.Key == "RepositoryRoot")?.Value;
+
+        var directory = new DirectoryInfo(root ?? Directory.GetCurrentDirectory());
 
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Volterp.slnx")))
             directory = directory.Parent;

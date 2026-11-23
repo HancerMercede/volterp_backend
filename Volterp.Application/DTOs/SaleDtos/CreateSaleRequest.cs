@@ -12,6 +12,7 @@ public record CreateSaleRequest(
     string? Notes,
     List<CreateSaleItemRequest> Items,
     EcfDocumentType DocumentType = EcfDocumentType.Consumer,
+    bool IsCommercialInvoice = false,
     string? Code = null,
     string? IssuerTaxId = null
 ) : IMapTo<Sale>
@@ -31,6 +32,7 @@ public record CreateSaleRequest(
             ClienteName = ClienteName,
             Status = Status,
             DocumentType = DocumentType,
+            IsCommercialInvoice = IsCommercialInvoice,
             Notes = Notes,
             Code = Code ?? string.Empty,
             IssuerTaxId = IssuerTaxId,

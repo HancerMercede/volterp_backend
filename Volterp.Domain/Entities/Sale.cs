@@ -25,6 +25,9 @@ public class Sale : AuditEntity, ITenantScoped
     public SaleStatus Status { get; set; } = SaleStatus.Pending;
     
     public EcfDocumentType DocumentType { get; set; } = EcfDocumentType.Consumer;
+
+    /// <summary>The sale leaves without a fiscal document: it is an internal sale note.</summary>
+    public bool IsCommercialInvoice { get; set; }
     public string? ReceptorTaxId { get; set; }
 
     // The RNC that issues this sale. Empty means the RNC of the tenant

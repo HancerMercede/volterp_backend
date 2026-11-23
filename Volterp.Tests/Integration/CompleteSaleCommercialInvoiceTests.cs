@@ -22,9 +22,11 @@ using Xunit;
 
 namespace Volterp.Tests.Integration;
 
-// The commercial invoice: the sale of the normal path that leaves without a
-// fiscal document. It consumes no number, reaches no one and leaves no
-// trace, and the electronic path does not offer it at all.
+// The commercial invoice: the sale that leaves without a fiscal document.
+// It consumes no number, reaches no one and leaves no trace. The taxpayer
+// that invoices electronically chooses it too: the sale is created the way
+// the cashier chose it, and the hole it leaves in the books of the DGII is
+// his to carry.
 public class CompleteSaleCommercialInvoiceTests
 {
     [Fact]
@@ -87,22 +89,36 @@ public class CompleteSaleCommercialInvoiceTests
     }
 
     [Fact]
-    public async Task OnTheElectronicPath_TheCommercialInvoiceIsRefusedAndTheSaleDoesNotComplete()
+    public async Task OnTheElectronicPath_TheCommercialInvoiceCompletesTheSaleWithoutADocument()
     {
+        // The decision of the owner: the sale is created the way the cashier
+        // chose it. The old behavior refused the commercial invoice on the
+        // electronic path and left the sale pending; that is not what
+        // happens anymore, and the test says so.
         await using var fixture = new Fixture();
         await fixture.InitializeAsync(emissionMode: CompanyEmissionMode.Electronic);
 
         var result = await fixture.CompleteSaleAsync(asCommercialInvoice: true);
 
-        result.Should().BeOfType<Either<Error, SaleDto>.Left>();
-        ((Either<Error, SaleDto>.Left)result).Value.Message.Should().Contain("normal mode");
+        result.Should().BeOfType<Either<Error, SaleDto>.Right>();
 
         var sale = await fixture.ReadAsync(context => context.Sales
             .AsNoTracking()
             .SingleAsync(s => s.Id == fixture.SaleId));
-        sale.Status.Should().Be(SaleStatus.Pending);
+        sale.Status.Should().Be(SaleStatus.Completed);
 
+        // The sale leaves without a fiscal document: it consumes no number
+        // and reaches no one.
         (await fixture.ReadAsync(context => context.NormalFiscalDocuments.CountAsync())).Should().Be(0);
+        (await fixture.ReadAsync(context => context.ElectronicInvoices.CountAsync())).Should().Be(0);
+
+        var normal = await fixture.ReadAsync(context => context.NormalFiscalSequences
+            .AsNoTracking()
+            .SingleAsync());
+        normal.CurrentSequence.Should().Be(0);
+
+        fixture.ElectronicIssuance.Verify(e => e.IssueAsync(
+            It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private sealed class Fixture : IAsyncDisposable

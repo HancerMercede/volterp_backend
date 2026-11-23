@@ -12,6 +12,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The tests can run from an output that is not inside the repository
+         (the build with an alternate output path, when the disk of the
+         project is failing), so the root of the repository travels with the
+         assembly and the tests that read a file of the repo find it. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>RepositoryRoot</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..'))</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="10.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

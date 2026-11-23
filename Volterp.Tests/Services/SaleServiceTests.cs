@@ -359,6 +359,103 @@ public class  SaleServiceTests
     }
 
     [Fact]
+    public async Task UpdateSaleAsync_WithTheSameProductInTwoLines_KeepsBothLines()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 40, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
+
+        var existingSale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 2000,
+            Items = new List<SaleItem>
+            {
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 10, UnitPrice = 100, Subtotal = 1000 },
+                new() { Id = Guid.NewGuid(), ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 10, UnitPrice = 100, Subtotal = 1000 }
+            }
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingSale);
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
+        var updateRequest = new UpdateSaleRequest(
+            ClienteId: null, ClienteName: "Updated", Status: SaleStatus.Pending,
+            Total: 2000, Notes: null,
+            Items: new List<CreateSaleItemRequest>
+            {
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 10, 100, 1000),
+                new(Guid7TestValues.ProductA, "Test", null, null, null, 10, 100, 1000)
+            }
+        );
+
+        // ACT
+        await service.UpdateSaleAsync(Guid7TestValues.SaleA, Guid7TestValues.CompanyA, updateRequest, Guid7TestValues.UserA);
+
+        // ASSERT - the same product in two lines is a sale like any other:
+        // the lookup by product used to throw "An item with the same key has
+        // already been added" and the sale could not be completed.
+        existingSale.Items.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task CompleteSaleAsync_WithACommercialInvoice_CompletesTheSaleWithoutADocument()
+    {
+        // ARRANGE
+        var mockUnitOfWork = new Mock<IUnitOfWork>();
+        var mockSalesRepo = new Mock<ISaleRepository>();
+        var mockProductsRepo = new Mock<IProductRepository>();
+
+        var product = new Product { Id = Guid7TestValues.ProductA, Stock = 10, CompanyId = Guid7TestValues.CompanyA, Name = "Test" };
+
+        var existingSale = new Sale
+        {
+            Id = Guid7TestValues.SaleA, CompanyId = Guid7TestValues.CompanyA, Status = SaleStatus.Pending, Total = 500,
+            Items = new List<SaleItem>
+            {
+                new() { Id = Guid7TestValues.SaleA, ProductId = Guid7TestValues.ProductA, ProductName = "Test", Quantity = 5, UnitPrice = 100, Subtotal = 500 }
+            }
+        };
+
+        mockSalesRepo.Setup(r => r.GetSaleByIdAsync(Guid7TestValues.SaleA, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingSale);
+        mockSalesRepo.Setup(r => r.UpdateSaleAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mockProductsRepo.Setup(r => r.GetProductsByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Product> { product });
+        mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
+        mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
+
+        var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
+
+        // ACT: the cashier chose a sale without a document.
+        await service.CompleteSaleAsync(
+            Guid7TestValues.SaleA, Guid7TestValues.CompanyA, Guid7TestValues.UserA, asCommercialInvoice: true);
+
+        // ASSERT: the sale exists. The taxpayer that invoices electronically owes
+        // the DGII a document for every sale: that hole is his to carry and it
+        // is not a reason to refuse the sale.
+        existingSale.Status.Should().Be(SaleStatus.Completed);
+        _normalDocuments.Verify(
+            d => d.IssueAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _emissions.Verify(
+            e => e.IssueAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task GetAllSalesAsync_ReturnsPagedResult()
     {
         // ARRANGE
@@ -613,6 +710,9 @@ public class  SaleServiceTests
             .ReturnsAsync(new List<Product>());
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        // The delete asks whether the sale already carries a paper document:
+        // the mock has to answer that, or the check has nothing to read.
+        mockUnitOfWork.Setup(u => u.NormalFiscalDocuments).Returns(new Mock<INormalFiscalDocumentRepository>().Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
@@ -1145,6 +1245,9 @@ public class  SaleServiceTests
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        // The delete asks whether the sale already carries a paper document:
+        // the mock has to answer that, or the check has nothing to read.
+        mockUnitOfWork.Setup(u => u.NormalFiscalDocuments).Returns(new Mock<INormalFiscalDocumentRepository>().Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
@@ -1284,6 +1387,9 @@ public class  SaleServiceTests
             .ReturnsAsync(new List<Product>());
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        // The delete asks whether the sale already carries a paper document:
+        // the mock has to answer that, or the check has nothing to read.
+        mockUnitOfWork.Setup(u => u.NormalFiscalDocuments).Returns(new Mock<INormalFiscalDocumentRepository>().Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
         var service = new SaleService(mockUnitOfWork.Object, _emissions.Object, _normalDocuments.Object);
@@ -1323,6 +1429,9 @@ public class  SaleServiceTests
             .ReturnsAsync(new List<Product> { product });
         mockUnitOfWork.Setup(u => u.Sales).Returns(mockSalesRepo.Object);
         mockUnitOfWork.Setup(u => u.Products).Returns(mockProductsRepo.Object);
+        // The delete asks whether the sale already carries a paper document:
+        // the mock has to answer that, or the check has nothing to read.
+        mockUnitOfWork.Setup(u => u.NormalFiscalDocuments).Returns(new Mock<INormalFiscalDocumentRepository>().Object);
         mockUnitOfWork.Setup(u => u.CommitAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Database connection failed"));
 

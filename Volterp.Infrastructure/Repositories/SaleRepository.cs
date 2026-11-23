@@ -35,13 +35,69 @@ public class SaleRepository(VolterpDbContext context) : RepositoryBase<Sale>(con
     }
 
     public async Task UpdateSaleAsync(Sale sale, CancellationToken ct = default)
-        => await UpdateAsync(sale, ct);
+    {
+        // The lines that are no longer in the sale have to leave the database:
+        // the entity arrives without tracking (the base repository reads with
+        // AsNoTracking), so replacing the collection does not delete the rows
+        // that were there and the sale accumulated a new set of lines on every
+        // update.
+        //
+        // Only the lines are read, and without tracking: reading the sale
+        // would track a second instance of it and the update below would
+        // find two entities with the same key. The filter of the tenant is
+        // off because the lines are looked up by the sale they belong to, and
+        // that sale was already resolved for its company.
+        var kept = sale.Items.Select(i => i.Id).ToHashSet();
+
+        var persisted = await context.SaleItems
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(item => item.SaleId == sale.Id)
+            .ToListAsync(ct);
+
+        var gone = persisted.Where(item => !kept.Contains(item.Id)).ToList();
+
+        // The tracker may carry the graph of an earlier operation of the same
+        // request: the company, the sale, its lines and its documents. The
+        // graph that comes in brings its own instances of all of them, and EF
+        // refuses two instances with the same key: the tracked ones leave
+        // before the new ones enter.
+        void DetachTracked<TEntity>(Func<TEntity, bool> isTheSameOne) where TEntity : class
+        {
+            foreach (var entry in context.ChangeTracker.Entries<TEntity>()
+                         .Where(entry => isTheSameOne(entry.Entity)).ToList())
+                entry.State = EntityState.Detached;
+        }
+
+        DetachTracked<Company>(company => company.Id == sale.CompanyId);
+        DetachTracked<Sale>(tracked => tracked.Id == sale.Id);
+        DetachTracked<SaleItem>(line => line.SaleId == sale.Id);
+        DetachTracked<ElectronicInvoice>(document => document.SaleId == sale.Id);
+
+        foreach (var item in gone)
+            context.Entry(item).State = EntityState.Deleted;
+
+        await UpdateAsync(sale, ct);
+    }
 
     public async Task DeleteSaleAsync(Guid id, CancellationToken ct = default)
     {
         var sale = await GetByIdAsync(id, ct);
-        if (sale is not null)
-            await DeleteAsync(sale, ct);
+        if (sale is null)
+            return;
+
+        // The documents of the sale go with it: the database refuses to
+        // delete a sale that still carries one (the foreign key is
+        // restrictive). The service already refused the sale whose document
+        // reached the DGII, so what leaves here was never a trail.
+        var documents = await context.ElectronicInvoices
+            .IgnoreQueryFilters()
+            .Where(document => document.SaleId == id)
+            .ToListAsync(ct);
+
+        context.ElectronicInvoices.RemoveRange(documents);
+
+        await DeleteAsync(sale, ct);
     }
 
     public async Task<bool> ExistsCodeAsync(Guid companyId, string code, Guid? excludeId = null, CancellationToken ct = default)

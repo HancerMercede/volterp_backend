@@ -1254,6 +1254,9 @@ namespace Volterp.Infrastructure.Migrations
                     b.Property<int>("DocumentType")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsCommercialInvoice")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("IssuerTaxId")
                         .HasColumnType("text");
 

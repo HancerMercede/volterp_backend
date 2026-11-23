@@ -14,6 +14,7 @@ public record SaleDto:IMapFrom<Sale>
     public string? ClienteName { get; set; }
     public SaleStatus Status { get; set; }
     public EcfDocumentType DocumentType { get; set; }
+    public bool IsCommercialInvoice { get; set; }
     public string? ReceptorTaxId { get; set; }
     public string? IssuerTaxId { get; set; }
     public decimal Subtotal { get; set; }
@@ -46,6 +47,7 @@ public record SaleDto:IMapFrom<Sale>
         ClienteName = source.ClienteName;
         Status = source.Status;
         DocumentType = source.DocumentType;
+        IsCommercialInvoice = source.IsCommercialInvoice;
         ReceptorTaxId = source.ReceptorTaxId;
         IssuerTaxId = source.IssuerTaxId;
         Subtotal = source.Subtotal;

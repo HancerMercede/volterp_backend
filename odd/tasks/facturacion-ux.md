@@ -87,6 +87,28 @@ Consecuencia para el readiness (UX6): lo que la pantalla muestra es **"el camino
 
 El camino del NCF tiene que estar completo: los tipos **B01** (Factura de Crédito Fiscal) y **B02** (Factura de Consumo) son los que el contribuyente que no hace FE usa todos los días, y son los que la DGII pide **reportar cada mes**. El detalle de ese reporte está en `odd/tasks/reportes-dgii.md`.
 
+### S13
+
+> "si yo quiero facturar con comprobante fiscal uso un NCF si el clente no exite le pido su RNC y le hago la venta"
+
+> "osea nuestro sistema debe hacer eso, pero valida todo"
+
+> "Exacto asi seria lo correcto a menos que el cliente quiera que lo registren"
+
+El RNC del comprador es un dato **de la venta**, no un dato del padrón de clientes: hoy `SaleService.ResolveReceptorTaxIdAsync` lo saca de la ficha del cliente (`sale.ReceptorTaxId = client?.TaxId`) → si el cliente no está registrado, la caja **no tiene dónde anotar** el RNC que le piden. La venta lleva su propio RNC; el padrón de clientes solo se toca cuando **el cliente quiere quedar registrado**.
+
+**Las reglas que hay que validar (contra la DGII, no de memoria)**:
+
+| Documento | RNC del comprador |
+|---|---|
+| **E31 / B01** (crédito fiscal) | **siempre obligatorio** (quien compra deduce el ITBIS) |
+| **E32** (consumo electrónico) | **obligatorio desde RD$250,000**; por debajo el comprador es **opcional** (consumidor final: la sección Comprador se omite) |
+| **B02** (consumo en papel) | **no hace falta** (es el comprobante del consumidor final) |
+
+**Lo que el sistema ya hace** ✓: el E31 sin RNC se rechaza (`SaleEcfDocumentMapper.MapBuyer` → `profile.RequiresBuyerTaxId`, del `minOccurs` del XSD oficial) ✓ · el E32 sin RNC se emite sin la sección Comprador ✓ · el sistema ya decide por monto (`ElectronicInvoiceService.VerificationUrlOf` → el timbre del resumen del RFCE bajo RD$250,000, el del host del contribuyente de 250 mil para arriba) ✓ · el NCF de papel no exige receptor ✓.
+
+**Lo que falta** ✗: (1) el E32 **de RD$250,000 para arriba sin RNC** no se rechaza en la caja (la DGII lo rechaza al enviarlo) ✗ · (2) el **B01 sin RNC** no se valida en el camino de papel ✗ · (3) la venta **no tiene campo** para el RNC que llega del mostrador ✗ · (4) el **RFCE** (T29c) no se envía al host de consumo → el E32 bajo RD$250,000 sigue por el camino del e-CF y su timbre no resuelve en la DGII ✗.
+
 ## Validación de mercado (L2)
 
 | Sistema | Dónde está el interruptor | Flujo en la caja | Estados que ve el usuario |
@@ -159,6 +181,8 @@ E32 (consumo) por debajo de RD$250,000 puede ser en papel continuo; **desde RD$2
 | UX10 | S1, F6 | handoff al front (`erp-mvp`) | PENDING | El total que muestra la caja es el que el back recalcula (con ITBIS): la pantalla deja de mostrar un número y enviar otro |
 
 | UX11 | S1 | handoff al front (`erp-mvp`) | PENDING | El módulo `side-menu` entra al **template del front** (`erp-mvp/FRONTEND-SKELETON-TEMPLATE.md` ✓) con el porqué ✓ → es la manera de tener un **menú reutilizable** ✓ (PRINCIPIO: el menú se construye desde las rutas ✓ · el filtrado de permisos en un solo lugar ✓ · sin ids internos en la app ✓) → también la carpeta en el §1.1 ✓, el paso del §3.1 ✓ y las convenciones del §4 ✓ → **va junto con la integración, no al final** ✓ (los templates son la fuente única ✓ y van par a par con el desarrollo ✓) |
+
+| UX12 | S13 | inline (parent) + handoff al front (`erp-mvp`) | PENDING | El **RNC del comprador es de la venta**: `CreateSaleRequest`/`UpdateSaleRequest` llevan `ReceptorTaxId` → la venta lo guarda y `ResolveReceptorTaxIdAsync` solo lo resuelve desde la ficha del cliente cuando la venta **no** trae uno. La caja pide el RNC cuando el cliente no existe y **lo deja en la venta**; el padrón de clientes solo se toca cuando el cliente **quiere quedar registrado** (un casillero). Las validaciones: **E31 y B01 exigen RNC** (siempre) y **el E32 de RD$250,000 para arriba también** (la caja avisa antes de firmar); el **E32 por debajo** y el **B02** van sin RNC (consumidor final). El **back primero** (contrato) → el front después |
 
 ## Riesgos
 
@@ -250,3 +274,27 @@ La validación (S2) y el mapa del front se hicieron con dos exploradores de solo
 - **UX9 — el lugar del POS** ✓: el POS **vive dentro de Ventas** ✓ (se abre con "Nueva venta" ✓) **pero tiene su propia ruta** (`/pos` ✓) **y aparece como ítem de menú del grupo "Ventas"** ✓ → el sidebar deja de ser una lista plana y pasa a **grupos con submenú** ✓ → la estructura del HTML que pasó el dueño ✓ → **es referencia de estructura, no de estilo** ✓ (los colores y las formas son los de la app ✓).
 - **El menú, en palabras del dueño** ✓: *"la lista sigue solo que ahora va hacer como si fuera un submenu asi el side bar no crece con tantos botones"* ✓ → la lista de módulos **no cambia** ✓ → lo que cambia es el **dibujo** ✓ → un módulo con pantallas se dibuja como **grupo desplegable** ✓ → el sidebar deja de crecer con botones ✓.
 - **Lo que sigue esperando** ✓: las **ventas pendientes** (la otra mitad de UX9 ✓) → sin respuesta todavía ✓.
+
+### L9 — 2026-11-22 — el dueño ve la venta duplicada y define el ciclo del borrador
+
+> (el dueño: *"el borrador es una venta que no se ha completado pero al completarla es la misma venta la que cambia de pendiente a completa"* y *"cuando se completa se queda el cliente y el item en el carrito debe borrarse como cuando se salva como borrador"*)
+
+- **La regla del ciclo** ✓: el borrador **es** una venta pendiente ✓ → al completarla, **esa misma venta** pasa de pendiente a completa ✓ (no se crea otra ✓) → el front recuerda su venta y la actualiza ✓.
+- **La caja se limpia en los dos caminos** ✓: guardar borrador **y** completar limpian renglones y cliente ✓.
+- **El bug de fondo (back)** ✓: el repositorio base lee sin tracking ✗ → `s.Items = newItems` + `Update(entity)` ✗ → las filas viejas nunca se borran ✗ → cada actualización **sumaba** un juego de líneas ✗ → productos repetidos ✓, unidades infladas ✓ y **stock devuelto una vez por línea vieja** ✓. El arreglo: `SaleRepository.UpdateSaleAsync` carga las líneas persistidas con tracking y **borra las que ya no están** en la venta ✓.
+- **La venta sin comprobante** ✓: el backend no acepta `documentType: null` ✗ → la venta guarda el tipo **+ la bandera `IsCommercialInvoice`** ✓ → y la factura comercial en modo electrónico **ya no se rechaza** ✓ (la venta se crea como el cajero la elige ✓).
+- **Pendiente al cierre de la sesión** ✓: el back quedó en el working tree **sin commitear** ✗ (8 modificados + 4 nuevos ✓) → falta la suite completa en verde ✓ → el commit ✓ → y el push de los dos repos ✗ (el guard RDD exige el binario nativo que el update del shell dejó fuera ✓).
+
+### L10 — 2026-11-23 — el RNC del comprador: qué valida el back y qué falta
+
+> (el dueño: *"si yo quiero facturar con comprobante fiscal uso un NCF si el clente no exite le pido su RNC y le hago la venta"* · *"osea nuestro sistema debe hacer eso, pero valida todo"* · *"Exacto asi seria lo correcto a menos que el cliente quiera que lo registren"* · *"pero como es un sistema ERP la mayoria de mis clientes van a estar registrados ya eso seria un caso aislado"*)
+
+**La regla de la DGII, validada en la red** ✓ (no de memoria ✓): el **NCF es el número**, no el documento ✓ → 11 caracteres en papel (`B` + 2 del tipo + 8 de secuencia ✓) y 13 en el electrónico (`E` + 2 del tipo + 10 ✓) → el **E31 y el B01 exigen el RNC del comprador siempre** ✓ → el **E32 lo exige desde RD$250,000** (por debajo el comprador es **opcional**: consumidor final ✓) → el **B02 no lo exige** ✓.
+
+**Lo que el back ya hace** ✓: el E31 sin RNC se rechaza (`SaleEcfDocumentMapper.MapBuyer:166` → `profile.RequiresBuyerTaxId` ✓ → el perfil sale del **XSD oficial** (`ecf-31.xsd`: `RNCComprador` con `minOccurs="1"` ✓)) → el E32 sin RNC se emite sin la sección Comprador ✓ (`ecf-32.xsd`: `minOccurs="0"` ✓) → el sistema **ya** decide por los RD$250,000 (`ElectronicInvoiceService.VerificationUrlOf:1095` ✓: el timbre del resumen del RFCE abajo, el del host del contribuyente arriba ✓) → el NCF de papel no exige receptor ✓ (`NormalFiscalDocumentService:79` ✓) → la caja ya avisa cuando el cliente no tiene RNC ✓ (`erp-mvp/.../NuevaVenta.tsx:153-155, 260` ✓).
+
+**Lo que falta** ✗: el **E32 de RD$250,000 para arriba sin RNC no se rechaza** ✗ (la regla del monto no está en el XSD: es de la DGII ✓ → la DGII lo rechaza al enviarlo ✓) → el **B01 sin RNC no se valida** ✗ (el camino de papel no usa el perfil del XSD ✓) → la venta **no tiene campo** para el RNC del mostrador ✗ (`CreateSaleRequest`/`UpdateSaleRequest` no lo llevan ✓ → y `ResolveReceptorTaxIdAsync` sobrescribe con `client?.TaxId` ✓) → el **RFCE** (T29c del plan de e-CF ✓) no se envía al host de consumo ✗ → el E32 bajo RD$250,000 sigue por el camino del e-CF y **su timbre no resuelve en la DGII** ✗ (el trabajo está guardado en `wip/rfce-y-bugs-2026-11-21`, `595567a`, sin integrar ✓).
+
+**Lo que se decidió** ✓: el RNC que el cajero pide a un cliente que **no** está registrado **queda en la venta** ✓ → el padrón de clientes solo se toca cuando el cliente **quiere quedar registrado** ✓ → y como en un ERP el cliente **ya está registrado**, ese caso es el **aislado** ✓ → lo que pega en todas las ventas es la **validación** (UX12 ✓).
+
+**Riesgo** ✓: item 3 (contrato) — la venta acepta y expone un RNC propio ✓ → **el back primero** ✓ → el front después ✓ · item 1 (datos) — el RNC de una venta queda en esa venta ✓ (no toca el padrón de clientes salvo que el cajero lo marque ✓).

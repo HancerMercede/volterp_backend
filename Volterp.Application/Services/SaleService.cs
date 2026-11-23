@@ -132,8 +132,12 @@ public class SaleService(
                 var products = await unitOfWork.Products.GetProductsByIdsAsync(allProductIds, ct);
                 var productMap = products.ToDictionary(p => p.Id);
 
-                // Build product name lookup for error messages
-                var newItemNames = request.Items.ToDictionary(i => i.ProductId, i => i.ProductName);
+                // Build product name lookup for error messages. The same
+                // product can be in more than one line of the sale: the lookup
+                // keeps the first name and the lines are not merged.
+                var newItemNames = request.Items
+                    .GroupBy(i => i.ProductId)
+                    .ToDictionary(g => g.Key, g => g.First().ProductName);
 
                 // Apply old returns: restore stock from items being removed
                 foreach (var item in sale.Items)
@@ -227,6 +231,7 @@ public class SaleService(
                     // document, so it consumes no number and reaches no one.
                     if (asCommercialInvoice)
                     {
+                        sale.IsCommercialInvoice = true;
                         await unitOfWork.CommitAsync(ct);
 
                         return sale;
@@ -252,11 +257,18 @@ public class SaleService(
                     return sale;
                 }
 
-                // A taxpayer who declared electronic invoicing cannot get a
-                // sale without a document: the hole would be his.
+                // The commercial invoice: the sale leaves without a fiscal
+                // document, so it consumes no number and reaches no one. A
+                // taxpayer that invoices electronically owes the DGII a
+                // document for every sale: that hole is his to carry, and it
+                // is not a reason to refuse the sale.
                 if (asCommercialInvoice)
-                    throw new InvalidOperationException(
-                        "The commercial invoice is only for the taxpayer who invoices in the normal mode.");
+                {
+                    sale.IsCommercialInvoice = true;
+                    await unitOfWork.CommitAsync(ct);
+
+                    return sale;
+                }
 
                 await unitOfWork.CommitAsync(ct);
 
@@ -361,6 +373,19 @@ public class SaleService(
             .Ensure(sale => sale is not null, new Error("Sale not found.", ErrorKind.NotFound))
             .FlatMap(async sale =>
             {
+                // A document that already left is a trail: the sale cannot be
+                // erased. The electronic document that was signed but never
+                // sent is not a trail yet, and it goes with the sale.
+                if (sale!.ElectronicInvoices.Any(document => HasReachedTheDgii(document.Status)))
+                    throw new InvalidOperationException(
+                        "The fiscal document of this sale was already sent to the DGII: the sale cannot be deleted.");
+
+                // The paper document took a number of the authorized range the
+                // moment the sale was completed: that number is reported.
+                if (await unitOfWork.NormalFiscalDocuments.GetBySaleIdAsync(companyId, sale.Id, ct) is not null)
+                    throw new InvalidOperationException(
+                        "The fiscal document of this sale was already issued: the sale cannot be deleted.");
+
                 var products = await TheProductsOfTheTenantAsync(sale!, ct);
                 RestoreTheReservedStock(sale!, products);
 
@@ -370,6 +395,11 @@ public class SaleService(
             }, ex => new Error(ex.Message))
             .Run();
     }
+
+    // Only the documents that never reached the DGII can go with the sale:
+    // the draft and the signed one. The rest left, and what left is a trail.
+    private static bool HasReachedTheDgii(EcfStatus status)
+        => status is not (EcfStatus.Draft or EcfStatus.Signed);
 
     // The pending sales nobody decided expire: the sale stays on record as
     // cancelled and the stock it reserved comes back.
