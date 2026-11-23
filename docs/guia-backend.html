@@ -62,7 +62,10 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-@page { size: A4; margin: 0; }
+/* El aire de la hoja: arriba y abajo viven el encabezado corrido y el pie con
+ * el numero de pagina (Chrome los pone en los margenes), y por eso el texto
+ * no los pisa. */
+@page { size: A4; margin: 0.55in 0 0.5in 0; }
 
 body {
   font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
@@ -650,18 +653,18 @@ figure.captura.pendiente .hueco {
         <div class="toc-parte"><span class="n">5</span><a href="#fin">FIN</a></div>
     </div>
   </div>
-<blockquote><p><strong>Propósito</strong>: punto de partida único y obligatorio para crear cualquier proyecto API backend en .NET siguiendo el estilo del usuario. Separa <strong>SKELETON</strong> (la forma del proyecto) de <strong>TEMPLATE</strong> (qué código va en cada archivo). Después de leerlo, se puede generar un proyecto nuevo sin tener que explicar Clean Architecture, repos, servicios o auth otra vez.
+<div class="exec-summary"><p><strong><strong>Propósito</strong></strong> : punto de partida único y obligatorio para crear cualquier proyecto API backend en .NET siguiendo el estilo del usuario. Separa <strong>SKELETON</strong> (la forma del proyecto) de <strong>TEMPLATE</strong> (qué código va en cada archivo). Después de leerlo, se puede generar un proyecto nuevo sin tener que explicar Clean Architecture, repos, servicios o auth otra vez.
 
-<strong>Origen</strong>: extraído del proyecto Volterp ERP backend. Multi-tenant, JWT auth, PostgreSQL, EF Core.</p></blockquote>
+<strong>Origen</strong>: extraído del proyecto Volterp ERP backend. Multi-tenant, JWT auth, PostgreSQL, EF Core.</p></div>
 <hr>
-<h2 id="metadata">Metadata</h2>
+<div class="page-header"><span class="brand">1 · Metadata</span><span>Guía del backend de Volterp</span></div><h2 id="metadata">Metadata</h2>
 <table><thead><tr><th>Item</th><th>Value</th></tr></thead><tbody><tr><td>Skill domain</td><td>.NET API backend</td></tr><tr><td>Runtime</td><td>.NET 10</td></tr><tr><td>Architecture</td><td>Clean Architecture (4 capas + Tests)</td></tr><tr><td>Persistence</td><td>PostgreSQL + EF Core 10 (Npgsql)</td></tr><tr><td>Auth</td><td>JWT Bearer + BCrypt</td></tr><tr><td>Authorization</td><td>Mapa de rutas por controller+verb (deny-by-default)</td></tr><tr><td>Functional</td><td>EitherWay (<code>Either&lt;Error, T&gt;</code>)</td></tr><tr><td>Mapping</td><td>MapFlow (<code>IMapFrom&lt;T&gt;</code>, <code>IMapTo&lt;T&gt;</code>)</td></tr><tr><td>API docs</td><td>Swashbuckle.AspNetCore</td></tr><tr><td>Rate limiting</td><td>Built-in <code>Microsoft.AspNetCore.RateLimiting</code></td></tr><tr><td>Testing</td><td>xUnit + Moq + FluentAssertions</td></tr><tr><td>Solution format</td><td><code>.slnx</code> (no legacy <code>.sln</code>)</td></tr><tr><td>Source language</td><td>English (artifacts), Spanish (conversación)</td></tr></tbody></table>
 <hr>
-<h2 id="how-to-read-this-document">How to read this document</h2>
+<div class="page-header"><span class="brand">2 · How to read this document</span><span>Guía del backend de Volterp</span></div><h2 id="how-to-read-this-document">How to read this document</h2>
 <ul><li><strong>Parte 1 — SKELETON</strong> define la forma del proyecto: carpetas, proyectos, referencias, archivos de configuración. Es lo que se genera una vez.<li><strong>Parte 2 — TEMPLATE</strong> define qué código va en cada archivo del skeleton. Para cada archivo hay un snippet listo para copiar y adaptar.<li><strong>Parte 3 — WORKFLOW</strong> explica cómo crear un proyecto nuevo desde este template y cómo agregar una nueva entidad.<li><strong>Parte 4 — CONVENCIONES</strong> agrupa las reglas transversales (naming, multi-tenancy, errors, logging).</ul>
 <hr>
-<h1 id="parte-1-skeleton">PARTE 1 — SKELETON</h1>
-<h2 id="1-1-solucion">1.1 Solución</h2>
+<div class="page-header"><span class="brand">1 · PARTE 1 — SKELETON</span><span>Guía del backend de Volterp</span></div><h1 id="parte-1-skeleton">PARTE 1 — SKELETON</h1>
+<div class="page-header"><span class="brand">1.1 · 1.1 Solución</span><span>Guía del backend de Volterp</span></div><h2 id="1-1-solucion">1.1 Solución</h2>
 <p>Una solución <code>.slnx</code> (formato moderno XML, soportado oficialmente desde Visual Studio 2022 17.8+). Cinco proyectos, dependencias unidireccionales hacia adentro.</p>
 <pre><code>&lt;Solution&gt;
   &lt;Project Path="MyApp.Api/MyApp.Api.csproj" /&gt;
@@ -670,14 +673,14 @@ figure.captura.pendiente .hueco {
   &lt;Project Path="MyApp.Infrastructure/MyApp.Infrastructure.csproj" /&gt;
   &lt;Project Path="MyApp.Tests/MyApp.Tests.csproj" /&gt;
 &lt;/Solution&gt;</code></pre>
-<h2 id="1-2-regla-de-dependencias-entre-proyectos">1.2 Regla de dependencias entre proyectos</h2>
+<div class="page-header"><span class="brand">1.2 · 1.2 Regla de dependencias entre proyectos</span><span>Guía del backend de Volterp</span></div><h2 id="1-2-regla-de-dependencias-entre-proyectos">1.2 Regla de dependencias entre proyectos</h2>
 <pre><code>Api ──► Infrastructure ──► Application ──► Domain ──► ElectronicInvoicing
  │                            │              ▲              ▲
  └────────────────────────────┘              │              │
  └───────────────────────────────────────────┘──────────────┘
 Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
 <ul><li><code>Domain</code> no referencia a nadie <strong>del ERP</strong> (sí a la library fiscal, que no depende de nadie).<li><code>Application</code> solo referencia <code>Domain</code> (+ la library fiscal).<li><code>Infrastructure</code> referencia <code>Application</code> + <code>Domain</code>.<li><code>Api</code> referencia los tres.<li><code>Tests</code> referencia los cuatro (necesita acceso a todo para mockear y verificar).<li><strong><code>ElectronicInvoicing</code> no referencia a nadie</strong>: es una library vendible por separado. El motor fiscal vive <strong>por debajo</strong> del Domain, que es lo que permite que el Domain la consuma sin que la library dependa del ERP.</ul>
-<h2 id="1-3-estructura-de-carpetas">1.3 Estructura de carpetas</h2>
+<div class="page-header"><span class="brand">1.3 · 1.3 Estructura de carpetas</span><span>Guía del backend de Volterp</span></div><h2 id="1-3-estructura-de-carpetas">1.3 Estructura de carpetas</h2>
 <pre><code>MyApp.slnx
 │
 ├── MyApp.Domain/
@@ -739,7 +742,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
     ├── Controllers/     ← tests de autorización
     ├── Infrastructure/  ← tests de servicios concretos (Jwt, etc.)
     └── RateLimiting/    ← tests del partition resolver y wiring</code></pre>
-<h2 id="1-4-csproj-minimos">1.4 csproj mínimos</h2>
+<div class="page-header"><span class="brand">1.4 · 1.4 csproj mínimos</span><span>Guía del backend de Volterp</span></div><h2 id="1-4-csproj-minimos">1.4 csproj mínimos</h2>
 <h3 id="domain">Domain</h3>
 <pre><code><span class="tok-punc">&lt;</span><span class="tok-type">Project</span> <span class="tok-type">Sdk</span><span class="tok-punc">=</span><span class="tok-str">"Microsoft.NET.Sdk"</span><span class="tok-punc">&gt;</span>
   <span class="tok-punc">&lt;</span><span class="tok-type">PropertyGroup</span><span class="tok-punc">&gt;</span>
@@ -751,7 +754,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
     <span class="tok-punc">&lt;</span><span class="tok-type">PackageReference</span> <span class="tok-type">Include</span><span class="tok-punc">=</span><span class="tok-str">"MapFlow"</span> <span class="tok-type">Version</span><span class="tok-punc">=</span><span class="tok-str">"1.2.0"</span> <span class="tok-punc">/</span><span class="tok-punc">&gt;</span>
   <span class="tok-punc">&lt;</span><span class="tok-punc">/</span><span class="tok-type">ItemGroup</span><span class="tok-punc">&gt;</span>
 <span class="tok-punc">&lt;</span><span class="tok-punc">/</span><span class="tok-type">Project</span><span class="tok-punc">&gt;</span></code></pre>
-<blockquote><p><strong>Razón</strong>: Domain es la única capa que importa <code>MapFlow</code> porque las interfaces <code>IMapFrom&lt;T&gt;</code> viven en Domain y los DTOs (en Application) las implementan.</p></blockquote>
+<div class="exec-summary"><p><strong><strong>Razón</strong></strong> : Domain es la única capa que importa <code>MapFlow</code> porque las interfaces <code>IMapFrom&lt;T&gt;</code> viven en Domain y los DTOs (en Application) las implementan.</p></div>
 <h3 id="application">Application</h3>
 <pre><code><span class="tok-punc">&lt;</span><span class="tok-type">Project</span> <span class="tok-type">Sdk</span><span class="tok-punc">=</span><span class="tok-str">"Microsoft.NET.Sdk"</span><span class="tok-punc">&gt;</span>
   <span class="tok-punc">&lt;</span><span class="tok-type">ItemGroup</span><span class="tok-punc">&gt;</span>
@@ -771,7 +774,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
     <span class="tok-punc">&lt;</span><span class="tok-key">Using</span> <span class="tok-type">Include</span><span class="tok-punc">=</span><span class="tok-str">"MapFlow"</span> <span class="tok-punc">/</span><span class="tok-punc">&gt;</span>
   <span class="tok-punc">&lt;</span><span class="tok-punc">/</span><span class="tok-type">ItemGroup</span><span class="tok-punc">&gt;</span>
 <span class="tok-punc">&lt;</span><span class="tok-punc">/</span><span class="tok-type">Project</span><span class="tok-punc">&gt;</span></code></pre>
-<blockquote><p><strong>Razón</strong>: EF Core aparece en Application porque la firma de <code>IRepositoryBase&lt;T&gt;</code> usa <code>IQueryable&lt;T&gt;</code> (que es de EF). Es la única dependencia "hacia afuera" de Application.</p></blockquote>
+<div class="exec-summary"><p><strong><strong>Razón</strong></strong> : EF Core aparece en Application porque la firma de <code>IRepositoryBase&lt;T&gt;</code> usa <code>IQueryable&lt;T&gt;</code> (que es de EF). Es la única dependencia "hacia afuera" de Application.</p></div>
 <h3 id="infrastructure">Infrastructure</h3>
 <pre><code><span class="tok-punc">&lt;</span><span class="tok-type">Project</span> <span class="tok-type">Sdk</span><span class="tok-punc">=</span><span class="tok-str">"Microsoft.NET.Sdk"</span><span class="tok-punc">&gt;</span>
   <span class="tok-punc">&lt;</span><span class="tok-type">ItemGroup</span><span class="tok-punc">&gt;</span>
@@ -857,7 +860,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
     <span class="tok-punc">&lt;</span><span class="tok-type">ProjectReference</span> <span class="tok-type">Include</span><span class="tok-punc">=</span><span class="tok-str">"..\MyApp.Api\MyApp.Api.csproj"</span> <span class="tok-punc">/</span><span class="tok-punc">&gt;</span>
   <span class="tok-punc">&lt;</span><span class="tok-punc">/</span><span class="tok-type">ItemGroup</span><span class="tok-punc">&gt;</span>
 <span class="tok-punc">&lt;</span><span class="tok-punc">/</span><span class="tok-type">Project</span><span class="tok-punc">&gt;</span></code></pre>
-<h2 id="1-5-appsettings-json-base">1.5 appsettings.json base</h2>
+<div class="page-header"><span class="brand">1.5 · 1.5 appsettings.json base</span><span>Guía del backend de Volterp</span></div><h2 id="1-5-appsettings-json-base">1.5 appsettings.json base</h2>
 <pre><code><span class="tok-punc">{</span>
   <span class="tok-str">"Logging"</span><span class="tok-punc">:</span> <span class="tok-punc">{</span>
     <span class="tok-str">"LogLevel"</span><span class="tok-punc">:</span> <span class="tok-punc">{</span>
@@ -881,7 +884,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
   <span class="tok-punc">}</span><span class="tok-punc">,</span>
   <span class="tok-str">"AllowedHosts"</span><span class="tok-punc">:</span> <span class="tok-str">"*"</span>
 <span class="tok-punc">}</span></code></pre>
-<h2 id="1-6-launchsettings-json-properties">1.6 launchSettings.json (Properties/)</h2>
+<div class="page-header"><span class="brand">1.6 · 1.6 launchSettings.json (Properties/)</span><span>Guía del backend de Volterp</span></div><h2 id="1-6-launchsettings-json-properties">1.6 launchSettings.json (Properties/)</h2>
 <pre><code><span class="tok-punc">{</span>
   <span class="tok-str">"$schema"</span><span class="tok-punc">:</span> <span class="tok-str">"https://json.schemastore.org/launchsettings.json"</span><span class="tok-punc">,</span>
   <span class="tok-str">"profiles"</span><span class="tok-punc">:</span> <span class="tok-punc">{</span>
@@ -902,8 +905,8 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
   <span class="tok-punc">}</span>
 <span class="tok-punc">}</span></code></pre>
 <hr>
-<h1 id="parte-2-template">PARTE 2 — TEMPLATE</h1>
-<h2 id="2-1-domain-layer">2.1 Domain layer</h2>
+<div class="page-header"><span class="brand">2 · PARTE 2 — TEMPLATE</span><span>Guía del backend de Volterp</span></div><h1 id="parte-2-template">PARTE 2 — TEMPLATE</h1>
+<div class="page-header"><span class="brand">2.1 · 2.1 Domain layer</span><span>Guía del backend de Volterp</span></div><h2 id="2-1-domain-layer">2.1 Domain layer</h2>
 <h3 id="auditentity-base-auditable">AuditEntity (base auditable)</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.Domain/Entities/AuditEntity.cs</code><br><strong>Propósito</strong>: clase abstracta que toda entidad heredable usa. Contiene 4 campos + 3 métodos.<br><strong>Snippet:</strong></p>
 <pre><code><span class="tok-key">namespace</span> <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Domain</span><span class="tok-punc">.</span><span class="tok-type">Entities</span><span class="tok-punc">;</span>
@@ -1034,7 +1037,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
     <span class="tok-type">Contabilidad</span> <span class="tok-punc">=</span> <span class="tok-num">5</span><span class="tok-punc">,</span>
     <span class="tok-type">RRHH</span> <span class="tok-punc">=</span> <span class="tok-num">6</span>
 <span class="tok-punc">}</span></code></pre>
-<blockquote><p><strong>Configurar <code>JsonStringEnumConverter</code> en <code>ServiceExtensions.ConfigureControllers</code> para que la API serialice enums como string.</strong></p></blockquote>
+<div class="exec-summary"><p><strong><strong>Configurar <code>JsonStringEnumConverter</code> en <code>ServiceExtensions.ConfigureControllers</code> para que la API serialice enums como string.</strong></strong> </p></div>
 <h3 id="domain-exception">Domain Exception</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.Domain/Exceptions/{Concept}Exception.cs</code><br><strong>Reglas</strong>:</p>
 <ul><li>Hereda de <code>Exception</code>.<li>Expone propiedades con datos del error (Requested, FromStatus, etc.).<li>NO implementa <code>IHttpException</code> — eso es responsabilidad de Application.</ul>
@@ -1054,7 +1057,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
     <span class="tok-punc">}</span>
 <span class="tok-punc">}</span></code></pre>
 <hr>
-<h2 id="2-2-application-layer">2.2 Application layer</h2>
+<div class="page-header"><span class="brand">2.2 · 2.2 Application layer</span><span>Guía del backend de Volterp</span></div><h2 id="2-2-application-layer">2.2 Application layer</h2>
 <h3 id="irepositorybase-t">IRepositoryBase&lt;T&gt;</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.Application/Interfaces/IRepositoryBase.cs</code><br><strong>Reglas</strong>:</p>
 <ul><li>Métodos CRUD genéricos con paginación.<li><code>Func&lt;IQueryable&lt;T&gt;, IQueryable&lt;T&gt;&gt;? includes</code> permite eager loading opcional.<li><strong>Nota histórica</strong>: el proyecto usa <code>GetByCondictionsAsync</code> (typo) — mantenerlo por consistencia.</ul>
@@ -1426,7 +1429,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
     <span class="tok-punc">}</span>
 <span class="tok-punc">}</span></code></pre>
 <p><strong>StringExtensions.cs</strong> — NO incluir en el template por defecto. La validación de tipos con semántica propia (emails, tax IDs, formatos) vive en el VO via <code>TryParse</code>. <code>StringExtensions</code> solo se justifica para operaciones de string sin un VO asociado (slugify, normalización, trimming, etc.). Si en algún caso particular se necesita una extensión de validación, revisar primero si corresponde crear/mejorar el VO.</p>
-<blockquote><p><strong>Regla</strong>: nunca duplicar lógica de validación de un VO en <code>StringExtensions</code>. El VO es la única fuente de verdad.</p></blockquote>
+<div class="exec-summary"><p><strong><strong>Regla</strong></strong> : nunca duplicar lógica de validación de un VO en <code>StringExtensions</code>. El VO es la única fuente de verdad.</p></div>
 <h3 id="cross-cutting-interfaces">Cross-cutting interfaces</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.Application/Interfaces/</code></p>
 <pre><code><span class="tok-key">public</span> <span class="tok-key">interface</span> <span class="tok-type">IJwtService</span>
@@ -1501,7 +1504,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
         <span class="tok-punc">=</span><span class="tok-punc">&gt;</span> _queue<span class="tok-punc">.</span><span class="tok-type">Reverse</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">.</span><span class="tok-type">Take</span><span class="tok-punc">(</span>count<span class="tok-punc">)</span><span class="tok-punc">.</span><span class="tok-type">ToList</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">.</span><span class="tok-type">AsReadOnly</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
 <span class="tok-punc">}</span></code></pre>
 <hr>
-<h2 id="2-3-infrastructure-layer">2.3 Infrastructure layer</h2>
+<div class="page-header"><span class="brand">2.3 · 2.3 Infrastructure layer</span><span>Guía del backend de Volterp</span></div><h2 id="2-3-infrastructure-layer">2.3 Infrastructure layer</h2>
 <h3 id="repositorybase-t">RepositoryBase&lt;T&gt;</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.Infrastructure/Repositories/RepositoryBase.cs</code><br><strong>Reglas</strong>:</p>
 <ul><li>Primary ctor con <code>MyAppDbContext</code>.<li><code>Set()</code> helper que devuelve <code>context.Set&lt;T&gt;()</code>.<li><code>GetAllAsync</code> aplica <code>AsNoTracking()</code> y llama a <code>ToPagedResultAsync</code>.</ul>
@@ -1781,9 +1784,9 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
         <span class="tok-key">return</span> computedHash <span class="tok-punc">=</span><span class="tok-punc">=</span> hash<span class="tok-punc">;</span>
     <span class="tok-punc">}</span>
 <span class="tok-punc">}</span></code></pre>
-<blockquote><p><strong>Por qué BCrypt cost 12 + fallback legacy</strong>: BCrypt es estándar moderno (cost12 = ~250ms por hash en hardware 2024). El prefijo <code>"$2"</code> distingue hashes BCrypt de hashes SHA256 legacy. La rama legacy permite migrar gradualmente.</p></blockquote>
+<div class="exec-summary"><p><strong><strong>Por qué BCrypt cost 12 + fallback legacy</strong></strong> : BCrypt es estándar moderno (cost12 = ~250ms por hash en hardware 2024). El prefijo <code>"$2"</code> distingue hashes BCrypt de hashes SHA256 legacy. La rama legacy permite migrar gradualmente.</p></div>
 <hr>
-<h2 id="2-4-api-layer">2.4 API layer</h2>
+<div class="page-header"><span class="brand">2.4 · 2.4 API layer</span><span>Guía del backend de Volterp</span></div><h2 id="2-4-api-layer">2.4 API layer</h2>
 <h3 id="program-cs">Program.cs</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.Api/Program.cs</code><br><strong>Reglas</strong>:</p>
 <ul><li>Top-level statements.<li>Settings binding manual desde <code>appsettings.json</code> (sin <code>IOptions&lt;T&gt;</code> para Jwt/Database).<li>DI por método estático (<code>ServiceExtensions.ConfigureXxx</code>).<li>Migración automática al arrancar.<li>Orden del pipeline (de estricto a flexible):</ul><ol><li>Exception handler</li><li>Forwarded headers</li><li>CORS</li><li>Authentication</li><li>Rate limiter</li><li>Authorization</li><li>Swagger (solo Development)</li><li>Controllers</li><li>Health check</li><li>Diagnostics</li><li>Static files</ol>
@@ -2130,7 +2133,7 @@ global <span class="tok-key">using</span> <span class="tok-type">System</span><s
 <p><strong>Ubicación</strong>: <code>MyApp.Domain/Authorization/Permissions.cs</code>, <code>MyApp.Api/Authorization/PermissionRoutes.cs</code>, <code>MyApp.Api/Authorization/PermissionAuthorizationFilter.cs</code>, <code>MyApp.Tests/Authorization/EndpointPermissionInventoryTests.cs</code></p>
 <p><strong>Cuándo aplicarlo</strong>: cuando la API tiene más de un rol y las acciones no son iguales para todos (un vendedor no escribe la configuración fiscal, un administrador sí). Es el patrón que evita el botón visible que contesta 403.</p>
 <p><strong>El patrón, en tres piezas</strong>:</p>
-<ol><li><strong>El catálogo</strong> vive en el Domain: el enum de permisos, el módulo al que pertenece cada uno y la <strong>clave que viaja al front</strong> (<code>ventas.read</code>, <code>facturacion.write</code>).<li><strong>El mapa de rutas</strong> dice qué necesita cada ruta, en <strong>un solo lugar</strong>: la clave es el controller y el método (<code>"Sales:GET"</code>), y las rutas que necesitan otra cosa llevan su propia entrada por acción (<code>"Sales.Completar"</code>).<li><strong>El filtro</strong> aplica el mapa y <strong>cierra por defecto</strong> lo que el mapa no cubre.</ol>
+<div class="flow"><div class="fs"><span class="n">1</span><p><strong>El catálogo</strong> vive en el Domain: el enum de permisos, el módulo al que pertenece cada uno y la <strong>clave que viaja al front</strong> (<code>ventas.read</code>, <code>facturacion.write</code>).</p></div><div class="fs"><span class="n">2</span><p><strong>El mapa de rutas</strong> dice qué necesita cada ruta, en <strong>un solo lugar</strong>: la clave es el controller y el método (<code>"Sales:GET"</code>), y las rutas que necesitan otra cosa llevan su propia entrada por acción (<code>"Sales.Completar"</code>).</p></div><div class="fs"><span class="n">3</span><p><strong>El filtro</strong> aplica el mapa y <strong>cierra por defecto</strong> lo que el mapa no cubre.</p></div></div>
 <p><strong>1. El catálogo</strong> (<code>MyApp.Domain/Authorization/Permissions.cs</code>):</p>
 <pre><code><span class="tok-key">namespace</span> <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Domain</span><span class="tok-punc">.</span><span class="tok-type">Authorization</span><span class="tok-punc">;</span>
 
@@ -2449,7 +2452,7 @@ global <span class="tok-key">using</span> <span class="tok-type">System</span><s
         <span class="tok-key">return</span> ip<span class="tok-punc">.</span><span class="tok-type">ToString</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
     <span class="tok-punc">}</span>
 <span class="tok-punc">}</span></code></pre>
-<blockquote><p><strong>Configurar el rate limiter en <code>ServiceExtensions.ConfigureRateLimiting</code></strong>: global sliding-window por <code>userId</code>/<code>ip</code>, named policy "auth" con fixed-window por IP, <code>OnRejected</code> devuelve <code>ProblemDetails</code> con <code>Retry-After</code> header.</p></blockquote>
+<div class="exec-summary"><p><strong><strong>Configurar el rate limiter en <code>ServiceExtensions.ConfigureRateLimiting</code></strong></strong> : global sliding-window por <code>userId</code>/<code>ip</code>, named policy "auth" con fixed-window por IP, <code>OnRejected</code> devuelve <code>ProblemDetails</code> con <code>Retry-After</code> header.</p></div>
 <h3 id="currentuserservice-impl">CurrentUserService (impl)</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.Api/Helpers/CurrentUserService.cs</code></p>
 <pre><code><span class="tok-key">using</span> <span class="tok-type">System</span><span class="tok-punc">.</span><span class="tok-type">Security</span><span class="tok-punc">.</span><span class="tok-type">Claims</span><span class="tok-punc">;</span>
@@ -2537,7 +2540,7 @@ global <span class="tok-key">using</span> <span class="tok-type">System</span><s
             &lt;/ul&gt;"</span><span class="tok-punc">;</span>
 <span class="tok-punc">}</span></code></pre>
 <hr>
-<h2 id="2-5-tests-layer">2.5 Tests layer</h2>
+<div class="page-header"><span class="brand">2.5 · 2.5 Tests layer</span><span>Guía del backend de Volterp</span></div><h2 id="2-5-tests-layer">2.5 Tests layer</h2>
 <h3 id="estructura">Estructura</h3>
 <pre><code>Tests/
 ├── Domain/{Entity}BehaviorTests.cs, AuditEntityTests.cs, BaseEntityBehaviorTests.cs
@@ -2617,7 +2620,7 @@ global <span class="tok-key">using</span> <span class="tok-type">System</span><s
     <span class="tok-punc">}</span>
 <span class="tok-punc">}</span></code></pre>
 <hr>
-<h2 id="2-6-modulo-de-facturacion-electronica-e-cf">2.6 Módulo de facturación electrónica (e-CF)</h2>
+<div class="page-header"><span class="brand">2.6 · 2.6 Módulo de facturación electrónica (e-CF)</span><span>Guía del backend de Volterp</span></div><h2 id="2-6-modulo-de-facturacion-electronica-e-cf">2.6 Módulo de facturación electrónica (e-CF)</h2>
 <p>Este módulo convierte una venta en un comprobante que la DGII acepta. Se armó contra la<br>documentación oficial (la Descripción Técnica de Servicios DGII, el Formato del e-CF<br>v1.0 y los XSD por tipo) y <strong>la norma vive en el repo</strong>, no en la cabeza de nadie.</p>
 <h3 id="la-library-portable-proyecto-vendible">La library portable (proyecto vendible)</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.ElectronicInvoicing/MyApp.ElectronicInvoicing.csproj</code></p>
@@ -2754,8 +2757,8 @@ signedXml<span class="tok-punc">.</span><span class="tok-type">ComputeSignature<
 <p><strong>Reglas</strong>:</p>
 <ul><li>Las transiciones son <strong>métodos de dominio con guarda</strong> (<code>Sign</code>, <code>MarkSent</code>, <code>Accept</code>, <code>Reject</code>, <code>Annull</code>...), nunca asignaciones de <code>Status</code>.<li>Cada estado tiene <strong>un solo punto de entrada</strong>: el que lo dispara vive en <code>ElectronicInvoiceService</code>.</ul>
 <hr>
-<h1 id="parte-3-workflow">PARTE 3 — WORKFLOW</h1>
-<h2 id="3-1-crear-un-proyecto-nuevo-desde-este-template">3.1 Crear un proyecto nuevo desde este template</h2>
+<div class="page-header"><span class="brand">3 · PARTE 3 — WORKFLOW</span><span>Guía del backend de Volterp</span></div><h1 id="parte-3-workflow">PARTE 3 — WORKFLOW</h1>
+<div class="page-header"><span class="brand">3.1 · 3.1 Crear un proyecto nuevo desde este template</span><span>Guía del backend de Volterp</span></div><h2 id="3-1-crear-un-proyecto-nuevo-desde-este-template">3.1 Crear un proyecto nuevo desde este template</h2>
 <pre><code><span class="tok-com"># 1. Crear la solución</span>
 dotnet new sln <span class="tok-punc">-</span>n <span class="tok-type">MyApp</span>
 
@@ -2788,34 +2791,34 @@ dotnet add <span class="tok-type">MyApp</span><span class="tok-punc">.</span><sp
 dotnet build
 dotnet ef migrations add <span class="tok-type">Initial</span> <span class="tok-punc">-</span><span class="tok-punc">-</span>project <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Infrastructure</span> <span class="tok-punc">-</span><span class="tok-punc">-</span>startup<span class="tok-punc">-</span>project <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Api</span>
 dotnet run <span class="tok-punc">-</span><span class="tok-punc">-</span>project <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Api</span></code></pre>
-<h2 id="3-2-agregar-una-nueva-entidad">3.2 Agregar una nueva entidad</h2>
+<div class="page-header"><span class="brand">3.2 · 3.2 Agregar una nueva entidad</span><span>Guía del backend de Volterp</span></div><h2 id="3-2-agregar-una-nueva-entidad">3.2 Agregar una nueva entidad</h2>
 <p>Workflow de 7 pasos para cualquier nueva entidad (ej. <code>Supplier</code>):</p>
-<ol><li><strong>Domain</strong>:</ol><ul><li><code>MyApp.Domain/Entities/Supplier.cs</code> — hereda de <code>AuditEntity</code>.</li><li><code>MyApp.Domain/Exceptions/Supplier/</code> — crear carpeta.</ul><ol><li><strong>Application</strong>:</ol><ul><li><code>Interfaces/ISupplierService.cs</code> — patrón del §2.2.</li><li><code>Services/SupplierService.cs</code> — pipeline Either.</li><li><code>Interfaces/ISupplierRepository.cs</code> — métodos específicos.</li><li><code>DTOs/SupplierDtos/{SupplierDto, CreateSupplierRequest, UpdateSupplierRequest}.cs</code> — IMapFrom + IMapTo.</ul><ol><li><strong>Infrastructure</strong>:</ol><ul><li><code>Repositories/SupplierRepository.cs</code> — extiende <code>RepositoryBase&lt;Supplier&gt;</code>.</li><li><code>Data/Configurations/SupplierConfiguration.cs</code> — IEntityTypeConfiguration.</li><li>Agregar <code>DbSet&lt;Supplier&gt;</code> al <code>MyAppDbContext</code>.</ul><ol><li><strong>Application — registration</strong>:</ol><ul><li>Agregar <code>ISupplierService Suppliers { get; }</code> a <code>IServiceManager</code>.</li><li>Agregar <code>ISupplierRepository Suppliers { get; }</code> a <code>IUnitOfWork</code>.</li><li>Instanciar en <code>ServiceManager</code> y <code>UnitOfWork</code>.</ul><ol><li><strong>Api</strong>:</ol><ul><li><code>Controllers/SuppliersController.cs</code> — hereda de <code>BaseController</code>, <code>[Authorize]</code>.</ul><ol><li><strong>Tests</strong>:</ol><ul><li><code>Services/SupplierServiceTests.cs</code> — mocking con Moq.</ul><ol><li><strong>Migrations</strong>:</ol><ul><li><code>dotnet ef migrations add AddSupplier --project MyApp.Infrastructure --startup-project MyApp.Api</code></li><li><code>dotnet ef database update</code></ul>
-<h2 id="3-3-setup-inicial">3.3 Setup inicial</h2>
+<div class="flow"><div class="fs"><span class="n">1</span><p><strong>Domain</strong>:</p></div><div class="fs"><span class="n">2</span><p><code>MyApp.Domain/Entities/Supplier.cs</code> — hereda de <code>AuditEntity</code>.</p></div><div class="fs"><span class="n">3</span><p><code>MyApp.Domain/Exceptions/Supplier/</code> — crear carpeta.</p></div><div class="fs"><span class="n">4</span><p><strong>Application</strong>:</p></div><div class="fs"><span class="n">5</span><p><code>Interfaces/ISupplierService.cs</code> — patrón del §2.2.</p></div><div class="fs"><span class="n">6</span><p><code>Services/SupplierService.cs</code> — pipeline Either.</p></div><div class="fs"><span class="n">7</span><p><code>Interfaces/ISupplierRepository.cs</code> — métodos específicos.</p></div><div class="fs"><span class="n">8</span><p><code>DTOs/SupplierDtos/{SupplierDto, CreateSupplierRequest, UpdateSupplierRequest}.cs</code> — IMapFrom + IMapTo.</p></div><div class="fs"><span class="n">9</span><p><strong>Infrastructure</strong>:</p></div><div class="fs"><span class="n">10</span><p><code>Repositories/SupplierRepository.cs</code> — extiende <code>RepositoryBase&lt;Supplier&gt;</code>.</p></div><div class="fs"><span class="n">11</span><p><code>Data/Configurations/SupplierConfiguration.cs</code> — IEntityTypeConfiguration.</p></div><div class="fs"><span class="n">12</span><p>Agregar <code>DbSet&lt;Supplier&gt;</code> al <code>MyAppDbContext</code>.</p></div><div class="fs"><span class="n">13</span><p><strong>Application — registration</strong>:</p></div><div class="fs"><span class="n">14</span><p>Agregar <code>ISupplierService Suppliers { get; }</code> a <code>IServiceManager</code>.</p></div><div class="fs"><span class="n">15</span><p>Agregar <code>ISupplierRepository Suppliers { get; }</code> a <code>IUnitOfWork</code>.</p></div><div class="fs"><span class="n">16</span><p>Instanciar en <code>ServiceManager</code> y <code>UnitOfWork</code>.</p></div><div class="fs"><span class="n">17</span><p><strong>Api</strong>:</p></div><div class="fs"><span class="n">18</span><p><code>Controllers/SuppliersController.cs</code> — hereda de <code>BaseController</code>, <code>[Authorize]</code>.</p></div><div class="fs"><span class="n">19</span><p><strong>Tests</strong>:</p></div><div class="fs"><span class="n">20</span><p><code>Services/SupplierServiceTests.cs</code> — mocking con Moq.</p></div><div class="fs"><span class="n">21</span><p><strong>Migrations</strong>:</p></div><div class="fs"><span class="n">22</span><p><code>dotnet ef migrations add AddSupplier --project MyApp.Infrastructure --startup-project MyApp.Api</code></p></div><div class="fs"><span class="n">23</span><p><code>dotnet ef database update</code></p></div></div>
+<div class="page-header"><span class="brand">3.3 · 3.3 Setup inicial</span><span>Guía del backend de Volterp</span></div><h2 id="3-3-setup-inicial">3.3 Setup inicial</h2>
 <ol><li>Cambiar <code>MyApp</code> por el nombre real del proyecto en TODOS los archivos.<li>Generar una clave JWT real (&gt;= 32 chars) y guardarla en user secrets o env var.<li>Cambiar connection string a la DB real (no usar <code>temppassword123</code>).<li>Cambiar el <code>admin</code> seed en <code>UserConfiguration</code> (password + email).<li>Configurar CORS para el origen del frontend real (no <code>localhost:5173</code> por defecto).<li>Correr <code>dotnet test</code> para asegurar que los tests pasan.<li>Correr <code>dotnet run</code> y verificar <code>/swagger</code> + <code>/health</code>.</ol>
 <hr>
-<h1 id="parte-4-convenciones">PARTE 4 — CONVENCIONES</h1>
-<h2 id="4-1-naming">4.1 Naming</h2>
+<div class="page-header"><span class="brand">4 · PARTE 4 — CONVENCIONES</span><span>Guía del backend de Volterp</span></div><h1 id="parte-4-convenciones">PARTE 4 — CONVENCIONES</h1>
+<div class="page-header"><span class="brand">4.1 · 4.1 Naming</span><span>Guía del backend de Volterp</span></div><h2 id="4-1-naming">4.1 Naming</h2>
 <table><thead><tr><th>Elemento</th><th>Convención</th><th>Ejemplo</th></tr></thead><tbody><tr><td>Proyectos</td><td><code>{App}.{Layer}</code></td><td><code>MyApp.Domain</code></td></tr><tr><td>Solution</td><td><code>{App}.slnx</code></td><td><code>MyApp.slnx</code></td></tr><tr><td>Namespaces</td><td><code>{App}.{Layer}.{Subfolder}</code></td><td><code>MyApp.Application.Interfaces</code></td></tr><tr><td>Entidades</td><td>singular, PascalCase</td><td><code>Category</code>, <code>SaleItem</code></td></tr><tr><td>ValueObjects</td><td>singular, PascalCase, struct</td><td><code>Email</code>, <code>Money</code></td></tr><tr><td>Enums</td><td>singular, PascalCase, valores numéricos explícitos</td><td><code>UserRole.SuperAdmin = 1</code></td></tr><tr><td>Interfaces</td><td><code>I{Name}</code></td><td><code>ICategoryService</code></td></tr><tr><td>Servicios</td><td><code>{Name}Service</code></td><td><code>CategoryService</code></td></tr><tr><td>Repositorios</td><td><code>{Name}Repository</code></td><td><code>CategoryRepository</code></td></tr><tr><td>Repos interfaces</td><td><code>I{Name}Repository</code></td><td><code>ICategoryRepository</code></td></tr><tr><td>Controllers</td><td><code>{Entities}Controller</code> (plural)</td><td><code>CategoriesController</code></td></tr><tr><td>Exceptions dominio</td><td><code>{Concept}Exception</code></td><td><code>InsufficientStockException</code></td></tr><tr><td>Exceptions app</td><td><code>{Entity}NotFoundException</code> / <code>{Entity}AlreadyExistException</code></td><td><code>UserNotFoundException</code></td></tr><tr><td>DTOs response</td><td><code>{Entity}Dto</code></td><td><code>CategoryDto</code></td></tr><tr><td>DTOs request create</td><td><code>Create{Name}Request</code> o <code>Create{Name}Dto</code> (mantener uno)</td><td><code>CreateCategoryRequest</code></td></tr><tr><td>DTOs request update</td><td><code>Update{Name}Request</code> o <code>Update{Name}Dto</code></td><td><code>UpdateCategoryRequest</code></td></tr><tr><td>Configurations EF</td><td><code>{Entity}Configuration</code></td><td><code>CategoryConfiguration</code></td></tr><tr><td>ValueConverters</td><td><code>{Name}Converter</code></td><td><code>EmailConverter</code></td></tr><tr><td>Paged result</td><td><code>PagedResult&lt;T&gt;</code> (incluye RowCount, PageNumber, PageCount, PageSize, Items)</td><td>—</td></tr><tr><td>Primary ctor</td><td><code>(param Type)</code> — sin field privado</td><td><code>RepositoryBase&lt;T&gt;(DbContext context)</code></td></tr></tbody></table>
-<h2 id="4-2-multi-tenancy">4.2 Multi-tenancy</h2>
+<div class="page-header"><span class="brand">4.2 · 4.2 Multi-tenancy</span><span>Guía del backend de Volterp</span></div><h2 id="4-2-multi-tenancy">4.2 Multi-tenancy</h2>
 <ul><li>Toda entidad (salvo las que son inherently globales) lleva <code>int CompanyId</code> y navegación a <code>Company</code>.<li>Cada service method recibe <code>int companyId</code> y filtra por él.<li>El controller obtiene <code>companyId</code> de <code>GetCurrentUserCompanyId()</code> y se lo pasa al service.<li>Cross-tenant access está bloqueado en service (<code>Ensure(category =&gt; category.CompanyId == companyId, ...)</code>).<li>Indices únicos en EF config son compuestos con <code>CompanyId</code> cuando aplica.</ul>
-<h2 id="4-3-auth-y-roles">4.3 Auth y roles</h2>
+<div class="page-header"><span class="brand">4.3 · 4.3 Auth y roles</span><span>Guía del backend de Volterp</span></div><h2 id="4-3-auth-y-roles">4.3 Auth y roles</h2>
 <ul><li>Login devuelve JWT con claims: <code>name</code>, <code>email</code>, <code>role</code>, <code>companyId</code>, <code>userId</code>, <code>jti</code>.<li>El controller usa <code>[Authorize]</code> por defecto. Sin <code>[Authorize]</code> solo en <code>AuthController</code> (register/login).<li><strong>La autorización fina vive en el mapa de rutas</strong> (ver §2.4 "Permisos por ruta"): un permiso por controller+verb → el mapa dice qué necesita cada ruta → el filtro <strong>cierra por defecto</strong> lo que el mapa no cubre → el inventario test avisa de las rutas sin declarar y de las entradas muertas.<li>El caller recibe sus <strong>claves</strong> de permiso desde <code>GET /api/permissions/me</code> (el API resuelve la unión de los roles) → el front gatea la UI con lo mismo que el back exige.<li><code>BaseController.IsAdmin()</code> → admin o superadmin. <code>IsSuperAdminOnly()</code> → solo superadmin. Queda para lo que es de administración, no como regla general de acceso.<li>Rate limit "auth" (5 req/min por IP) en <code>[EnableRateLimiting(RateLimiterPolicies.Authentication)]</code>.<li>Global rate limit: 300/min para authenticated, 60/min para anonymous.</ul>
-<h2 id="4-4-error-handling">4.4 Error handling</h2>
+<div class="page-header"><span class="brand">4.4 · 4.4 Error handling</span><span>Guía del backend de Volterp</span></div><h2 id="4-4-error-handling">4.4 Error handling</h2>
 <ul><li><strong>Domain exceptions</strong> (<code>InsufficientStockException</code>, etc.) NO se mapean automáticamente a HTTP — la entidad las tira, el service las deja pasar.<li><strong>Application exceptions HTTP-aware</strong> (<code>NotFoundException</code>, <code>AlreadyExistException</code>, <code>ValidationException</code>) implementan <code>IHttpException</code> con <code>HttpStatusCode</code>.<li><strong>Exception middleware</strong> (API) captura todo y mapea:</li><li><code>IHttpException</code> → su <code>HttpStatusCode</code>.</li><li>Todo lo demás → 500.<li><strong>Either pipeline</strong> para errores de validación de input dentro del service (devuelven <code>Either&lt;Error, T&gt;</code> con <code>Error(message)</code>).<li><strong>Response shape</strong>:</li><li>4xx (validación): <code>ErrorResponse(error, details?)</code>.</li><li>5xx, rate limit: RFC 7807 <code>ProblemDetails</code>.</li><li>Exitosos: DTO directo.<li><strong>Logging level</strong>: 5xx = Error, 4xx = Warning, &lt;400 = Information.</ul>
-<h2 id="4-5-logging">4.5 Logging</h2>
+<div class="page-header"><span class="brand">4.5 · 4.5 Logging</span><span>Guía del backend de Volterp</span></div><h2 id="4-5-logging">4.5 Logging</h2>
 <ul><li><code>ILogger&lt;T&gt;</code> injection estándar.<li>Mensajes con placeholders: <code>LogInformation("User {UserId} logged in", userId)</code>.<li>El exception middleware loggea siempre con <code>Method</code> y <code>Path</code>.<li><code>Detail</code> (stack trace) solo en <code>IsDevelopment()</code>. En producción, <code>null</code>.</ul>
-<h2 id="4-6-auditing-automatico">4.6 Auditing automático</h2>
+<div class="page-header"><span class="brand">4.6 · 4.6 Auditing automático</span><span>Guía del backend de Volterp</span></div><h2 id="4-6-auditing-automatico">4.6 Auditing automático</h2>
 <ul><li><code>AuditEntity</code> tiene <code>CreatedAt</code>, <code>UpdatedAt</code>, <code>CreatedBy</code>, <code>UpdatedBy</code>.<li>El service setea <code>CreatedBy</code>/<code>UpdatedBy</code> con <code>userId</code> del JWT (vía <code>GetCurrentUserId()</code>).<li><code>UpdatedAt</code> se setea manualmente con <code>DateTime.UtcNow</code> en el <code>.Apply(...)</code> del update.<li><code>CreatedAt</code> se setea por default del constructor de <code>AuditEntity</code>.</ul>
-<h2 id="4-7-mapping-mapflow">4.7 Mapping (MapFlow)</h2>
+<div class="page-header"><span class="brand">4.7 · 4.7 Mapping (MapFlow)</span><span>Guía del backend de Volterp</span></div><h2 id="4-7-mapping-mapflow">4.7 Mapping (MapFlow)</h2>
 <ul><li>DTOs response implementan <code>IMapFrom&lt;T&gt;</code> con <code>MapFrom(source)</code>.<li>DTOs request implementan <code>IMapTo&lt;T&gt;</code> con <code>MapTo()</code>.<li>El service hace <code>entity.MapTo&lt;T, TDto&gt;()</code> o <code>request.Project()</code>.<li>Para colecciones: <code>IEnumerable&lt;T&gt;.MapTo&lt;T, TDto&gt;()</code>.</ul>
-<h2 id="4-8-either-pipeline-eitherway">4.8 Either pipeline (EitherWay)</h2>
+<div class="page-header"><span class="brand">4.8 · 4.8 Either pipeline (EitherWay)</span><span>Guía del backend de Volterp</span></div><h2 id="4-8-either-pipeline-eitherway">4.8 Either pipeline (EitherWay)</h2>
 <ul><li><strong>Imports</strong>: <code>using EitherWay;</code>.<li><strong>Pipeline típico</strong>: <code>EitherAsync&lt;Error, InputType&gt;.FromRight(x).Ensure(cond, error).Map(proj).FlatMap(asyncOp, exMapper).Map(toDto).Run()</code>.<li><strong>Either Left vs Right</strong>: <code>Left = Error</code>, <code>Right = Value</code>. Pattern matching con <code>result.Match(left =&gt; ..., right =&gt; ...)</code>.<li><strong>Tests</strong>: <code>result.Should().BeOfType&lt;Either&lt;Error, T&gt;.Left&gt;()</code> o <code>.Right&gt;</code>.<li><strong>Unit</strong>: para operaciones sin valor de retorno (Delete), usar <code>Either&lt;Error, Unit&gt;</code> y devolver <code>new Unit()</code>.</ul>
-<h2 id="4-9-decisions-intencionales-que-respetar">4.9 Decisions intencionales que respetar</h2>
+<div class="page-header"><span class="brand">4.9 · 4.9 Decisions intencionales que respetar</span><span>Guía del backend de Volterp</span></div><h2 id="4-9-decisions-intencionales-que-respetar">4.9 Decisions intencionales que respetar</h2>
 <ul><li><strong><code>GetByCondictionsAsync</code></strong> tiene un typo histórico. NO corregir — rompería todos los repos.<li><strong><code>ValidationExecption</code></strong> también tiene typo. Mantener para no romper el middleware que la matchea.<li><strong>VOs exponen <code>TryParse(string?, out VO)</code></strong> para uso en <code>Ensure()</code> de services. El VO es la <strong>única fuente de verdad</strong> para validación — nunca duplicar el regex/lógica en <code>StringExtensions</code> u otra utilidad.<li><strong><code>InMemoryExceptionLogStore</code></strong> es singleton con ring buffer (capacity 100). Pensado para diagnóstico rápido sin levantar Seq/ELK. Reemplazable por una impl que escriba a un sink externo.<li><strong><code>MapFlow</code> y <code>EitherWay</code></strong> son librerías propias del usuario (publicadas en GitHub). Son "infraestructura funcional" transversal — están en TODAS las capas.<li><strong>PasswordHasher con fallback SHA256</strong>: el prefijo <code>"$2"</code> distingue BCrypt de hashes legacy. Permite migrar gradualmente.<li><strong>Multi-tenant filter</strong>: el filtro por empresa es un <strong>global query filter</strong> del <code>DbContext</code> (<code>VolterpDbContext.ApplyTenantFilters</code>), no un filtro por servicio. El <code>ITenantContext</code> lo lleva; fuera de una petición HTTP el contexto es <code>NullTenantContext</code> y no filtra nada. Un <code>IgnoreQueryFilters()</code> se usa solo cuando la búsqueda es por una clave exacta (los renglones de una venta ya resuelta para su empresa).<li><strong><code>ElectronicInvoicing</code> es una library por debajo del Domain</strong>: no referencia al ERP y por eso el Domain la consume. El valor de un enum es el <strong>código oficial</strong> de la DGII, no un ordinal.<li><strong>El XML del e-CF sale sin indentación</strong>: el whitespace entra en el digest de la firma y la DGII lo descarta.<li><strong>El número del NCF se toma dentro de la transacción</strong> que persiste el documento: si se toma antes, el número se quema sin documento.<li><strong>El readiness sigue el camino, no el módulo</strong>: el modo declarado no es un bloqueo y el certificado solo se pide en el camino electrónico.<li><strong>BCrypt cost 12</strong>: ~250ms por hash en hardware 2024. Balance seguridad/UX.<li><strong>JsonStringEnumConverter</strong> configurado globalmente para que enums viajen como string en JSON.<li><strong><code>StringExtensions</code> no incluir por defecto</strong> en proyectos nuevos. Solo se justifica para operaciones de string sin un VO asociado (slugify, normalización, trimming). La validación de tipos con semántica propia vive en el VO via <code>TryParse</code>.</ul>
 <hr>
-<h1 id="fin">FIN</h1>
+<div class="page-header"><span class="brand">5 · FIN</span><span>Guía del backend de Volterp</span></div><h1 id="fin">FIN</h1>
 <p>Este MD es el contrato de la skill <code>dotnet-api-backend</code>. El próximo paso es:</p>
-<ol><li>Revisar este MD con el usuario.<li>Convertirlo en una skill OpenCode registrada en <code>~/.config/opencode/skills/dotnet-api-backend/SKILL.md</code>.<li>Crear un script <code>new-dotnet-api.sh</code> que genere la estructura a partir del template.<li>Usar la skill en el próximo proyecto API .NET que pida el usuario.</ol>
+<div class="flow"><div class="fs"><span class="n">1</span><p>Revisar este MD con el usuario.</p></div><div class="fs"><span class="n">2</span><p>Convertirlo en una skill OpenCode registrada en <code>~/.config/opencode/skills/dotnet-api-backend/SKILL.md</code>.</p></div><div class="fs"><span class="n">3</span><p>Crear un script <code>new-dotnet-api.sh</code> que genere la estructura a partir del template.</p></div><div class="fs"><span class="n">4</span><p>Usar la skill en el próximo proyecto API .NET que pida el usuario.</p></div></div>
 </body>
 </html>

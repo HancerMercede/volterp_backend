@@ -143,7 +143,7 @@ function parseMarkdown(markdown) {
         }
       }
 
-      blocks.push({ type: 'heading', level, text, id });
+      blocks.push({ type: 'heading', level, text, id, number: outline[outline.length - 1]?.number ?? '' });
       i++;
       continue;
     }
@@ -198,7 +198,13 @@ function parseMarkdown(markdown) {
         }
         break;
       }
-      blocks.push({ type: 'list', items });
+      // Una lista numerada que viene detras de un texto que termina en ":" son
+      // los pasos de un procedimiento: salen como los pasos de la maqueta.
+      const isProcedure = items.length > 0 && items[0].ordered &&
+        blocks.length > 0 &&
+        blocks[blocks.length - 1].type === 'paragraph' &&
+        blocks[blocks.length - 1].text.trim().endsWith(':');
+      blocks.push({ type: 'list', items, isProcedure });
       continue;
     }
 
@@ -417,7 +423,14 @@ function renderBlock(block) {
   switch (block.type) {
     case 'heading': {
       const tag = `h${Math.min(block.level, 4)}`;
-      return `<${tag} id="${block.id}">${inline(block.text)}</${tag}>`;
+      // La barra de la hoja: la seccion con su numero a la izquierda y el
+      // documento a la derecha. Va dentro del flujo (no es fija), asi que
+      // cada seccion abre su hoja con su barra y nunca se superpone.
+      const header = block.level <= 2
+        ? `<div class="page-header"><span class="brand">${block.number ? block.number + ' · ' : ''}${inline(block.text)}</span>`
+          + `<span>${escapeHtml(meta.docTitle ?? meta.title ?? '')}</span></div>`
+        : '';
+      return header + `<${tag} id="${block.id}">${inline(block.text)}</${tag}>`;
     }
     case 'code':
       // El resaltado solo cuando el bloque declara su lenguaje: un arbol de
@@ -431,12 +444,25 @@ function renderBlock(block) {
         .join('');
       return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
     }
-    case 'quote':
+    case 'quote': {
+      // Una cita que empieza con una palabra en negrita es el resumen de la
+      // seccion: sale como el recuadro de la maqueta.
+      const lead = /^(\*\*[^*]+\*\*)\s*([\s\S]*)$/.exec(block.text.trim());
+      if (lead) {
+        return `<div class="exec-summary"><p><strong>${inline(lead[1])}</strong> ${inline(lead[2])}</p></div>`;
+      }
       return `<blockquote><p>${inline(block.text)}</p></blockquote>`;
+    }
     case 'hr':
       return '<hr>';
-    case 'list':
+    case 'list': {
+      if (block.isProcedure) {
+        const steps = block.items.map((item, index) =>
+          `<div class="fs"><span class="n">${index + 1}</span><p>${inline(item.text)}</p></div>`).join('');
+        return `<div class="flow">${steps}</div>`;
+      }
       return renderList(block.items);
+    }
     case 'paragraph': {
       const text = block.text.trim();
       if (/^\[PRINCIPIO/i.test(text)) {
@@ -695,10 +721,13 @@ async function printWithChrome(htmlPath, pdfPath, meta) {
 
     const { data } = await send('Page.printToPDF', {
       printBackground: true,
+      // Los margenes van en el @page de la maqueta: ahi viven el pie con el
+      // numero de pagina. Con los margenes en cero, Chrome lo dibuja encima
+      // del texto.
       preferCSSPageSize: true,
-      displayHeaderFooter: meta.pageNumbers !== false,
+      displayHeaderFooter: true,
       headerTemplate: '<div></div>',
-      footerTemplate: meta.pageNumbers === false ? '<div></div>' : footer,
+      footerTemplate: footerTemplate(meta),
       marginTop: 0,
       marginBottom: 0,
       marginLeft: 0,
