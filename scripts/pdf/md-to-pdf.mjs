@@ -610,11 +610,14 @@ async function printWithPlaywright(playwrightPath, htmlPath, pdfPath, meta) {
     await page.pdf({
       path: pdfPath,
       printBackground: true,
-      preferCSSPageSize: true,
+      // Los margenes los pone Chrome: ahi viven el encabezado y el pie. Con
+      // los margenes en cero se dibujan encima del texto.
+      paperWidth: '8.27in',
+      paperHeight: '11.69in',
+      margin: { top: '0.55in', bottom: '0.5in', left: '0', right: '0' },
       displayHeaderFooter: true,
       headerTemplate: headerTemplate(meta),
-      footerTemplate: footerTemplate(meta),
-      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+      footerTemplate: footerTemplate(meta)
     });
   } finally {
     await browser.close();

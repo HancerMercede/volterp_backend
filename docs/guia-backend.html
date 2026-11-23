@@ -54,7 +54,9 @@ body {
   line-height: 1.55;
   color: var(--text-primary);
   width: 210mm;
-  padding: 50px 55px 55px;
+  /* El aire vertical lo dan los margenes de Chrome (alli viven el
+   * encabezado y el pie); aqui solo el aire de los lados. */
+  padding: 0 55px 8px;
   background: #fff;
 }
 
@@ -66,7 +68,9 @@ body {
   background: linear-gradient(135deg, #0f0c29 0%, #1e1b4b 50%, #312e81 100%);
   color: var(--text-light);
   padding: 50px 55px;
-  margin: -50px -55px 0;
+  /* La portada sangra al borde de la hoja: los margenes negativos la sacan de
+   * la caja de contenido y Chrome imprime eldesborde. */
+  margin: -0.55in -55px -0.5in;
   height: 297mm;
   box-sizing: border-box;
   break-after: page;
@@ -551,6 +555,17 @@ figure.captura figcaption { margin-top: 4px; font-size: 8pt; color: var(--text-m
 .avoid-break { break-inside: avoid; }
 .avoid-after { break-after: avoid; }
 .force-before { break-before: page; }
+
+/* El hueco de una captura que todavia no se tomo */
+figure.captura.pendiente .hueco {
+  border: 1px dashed var(--border);
+  border-radius: var(--border-radius);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 8.5pt;
+  padding: 14mm 8mm;
+  text-align: center;
+}
 
 </style>
 </head>
