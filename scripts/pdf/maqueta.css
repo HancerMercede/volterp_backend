@@ -11,6 +11,17 @@
  *   - Cada título de sección empieza en una hoja nueva (`break-before: page`).
  */
 
+/* Las tipografias de la maqueta: Inter para el texto.
+ *
+ * El @import va PRIMERO: por norma el navegador ignora un @import que llega
+ * despues de otra regla (por eso el titulo salia con Segoe UI).
+ *
+ * El codigo NO usa JetBrains Mono: esa fuente (la de la web y la del IDE) no
+ * trae los caracteres de dibujo de los arboles de carpetas, y el navegador cae
+ * a otra fuente para ellos → el arbol pierde la alineacion. Cascadia Mono y
+ * Consolas los traen y son monoespaciadas de verdad. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
   --accent-primary: #6366f1;
   --accent-secondary: #8b5cf6;
@@ -51,9 +62,10 @@ body {
       var(--bg-dark) 42%,
       color-mix(in srgb, var(--bg-dark) 68%, var(--accent-primary)) 100%);
   color: var(--text-light);
-  padding: 62mm 22mm 18mm;
-  margin: -16mm -15mm 12mm;
-  min-height: 245mm;
+  padding: 50px 55px;
+  margin: -16mm -15mm 0;
+  height: 297mm;
+  box-sizing: border-box;
   break-after: page;
   display: flex;
   flex-direction: column;
@@ -95,7 +107,6 @@ body {
   color: color-mix(in srgb, var(--text-light) 72%, var(--accent-primary));
   margin-bottom: 9mm;
 }
-
 .cover h1 {
   position: relative;
   font-size: 30pt;
@@ -103,6 +114,9 @@ body {
   font-weight: 800;
   letter-spacing: -0.5px;
   max-width: 150mm;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
 }
 
 .cover .subtitle {
@@ -278,10 +292,11 @@ tbody td:first-child { font-weight: 600; }
 pre {
   background: var(--code-bg);
   color: #e2e8f0;
-  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-family: 'Cascadia Mono', Consolas, monospace;
   font-size: 7.4pt;
   line-height: 1.45;
-  padding: 3mm 4mm;
+  padding: 3mm 4mm 3mm 8mm;
+  text-indent: -4mm;
   border-radius: var(--border-radius);
   border-left: 3px solid var(--accent-primary);
   white-space: pre-wrap;
@@ -293,7 +308,7 @@ pre {
 }
 
 code {
-  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-family: 'Cascadia Mono', Consolas, monospace;
   font-size: 8.4pt;
   background: var(--bg-surface);
   border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
@@ -383,3 +398,127 @@ blockquote p { margin: 1.2mm 0; }
 }
 
 .pie .marca { font-weight: 600; color: var(--text-primary); }
+
+/* ---------- Los componentes de la maqueta que faltaban ---------- */
+
+/* Rejilla de tarjetas: dos columnas de features */
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+  break-inside: avoid;
+}
+
+.card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--border-radius);
+  padding: 11px 14px;
+  border-left: 4px solid var(--accent-primary);
+  break-inside: avoid;
+}
+
+.card .ct {
+  font-weight: 700;
+  font-size: 9pt;
+  margin-bottom: 2mm;
+}
+
+.card p { margin: 1mm 0; font-size: 8.5pt; }
+
+/* Pasos numerados */
+.flow {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--border-radius);
+  padding: 14px;
+  break-inside: avoid;
+}
+
+.fs {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 10px;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  break-inside: avoid;
+}
+
+.fs .n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--accent-primary);
+  color: var(--text-light);
+  border-radius: 50%;
+  font-size: 7pt;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fs p { margin: 0; font-size: 8.5pt; }
+
+/* Modelo de datos */
+.entity {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  break-inside: avoid;
+}
+
+.entity .eh {
+  background: var(--bg-dark);
+  color: var(--text-light);
+  padding: 7px 12px;
+  font-weight: 600;
+  font-size: 8.5pt;
+}
+
+.entity .eb { padding: 8px 12px; }
+
+.erow {
+  display: flex;
+  justify-content: space-between;
+  padding: 2.5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 8pt;
+}
+
+/* Resumen ejecutivo */
+.exec-summary {
+  background: linear-gradient(135deg, var(--bg-surface) 0%,
+      color-mix(in srgb, var(--accent-primary) 10%, var(--bg-surface)) 100%);
+  border: 2px solid var(--accent-primary);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 18px;
+  break-inside: avoid;
+}
+
+.exec-summary p { margin: 1.5mm 0; }
+
+/* Veredictos */
+.verdict {
+  background: #f0fdf4;
+  border: 2px solid var(--success);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 12px 0;
+  break-inside: avoid;
+}
+
+.verdict-danger { background: #fef2f2; border-color: var(--danger); }
+.verdict-warning { background: #fffbeb; border-color: var(--warning); }
+
+/* ---------- Ayudas de corte ---------- */
+
+.avoid-break { break-inside: avoid; }
+.avoid-after { break-after: avoid; }
+.force-before { break-before: page; }

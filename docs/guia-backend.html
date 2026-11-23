@@ -17,6 +17,17 @@
  *   - Cada título de sección empieza en una hoja nueva (`break-before: page`).
  */
 
+/* Las tipografias de la maqueta: Inter para el texto.
+ *
+ * El @import va PRIMERO: por norma el navegador ignora un @import que llega
+ * despues de otra regla (por eso el titulo salia con Segoe UI).
+ *
+ * El codigo NO usa JetBrains Mono: esa fuente (la de la web y la del IDE) no
+ * trae los caracteres de dibujo de los arboles de carpetas, y el navegador cae
+ * a otra fuente para ellos → el arbol pierde la alineacion. Cascadia Mono y
+ * Consolas los traen y son monoespaciadas de verdad. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
   --accent-primary: #6366f1;
   --accent-secondary: #8b5cf6;
@@ -57,9 +68,10 @@ body {
       var(--bg-dark) 42%,
       color-mix(in srgb, var(--bg-dark) 68%, var(--accent-primary)) 100%);
   color: var(--text-light);
-  padding: 62mm 22mm 18mm;
-  margin: -16mm -15mm 12mm;
-  min-height: 245mm;
+  padding: 50px 55px;
+  margin: -16mm -15mm 0;
+  height: 297mm;
+  box-sizing: border-box;
   break-after: page;
   display: flex;
   flex-direction: column;
@@ -101,7 +113,6 @@ body {
   color: color-mix(in srgb, var(--text-light) 72%, var(--accent-primary));
   margin-bottom: 9mm;
 }
-
 .cover h1 {
   position: relative;
   font-size: 30pt;
@@ -109,6 +120,9 @@ body {
   font-weight: 800;
   letter-spacing: -0.5px;
   max-width: 150mm;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
 }
 
 .cover .subtitle {
@@ -284,10 +298,11 @@ tbody td:first-child { font-weight: 600; }
 pre {
   background: var(--code-bg);
   color: #e2e8f0;
-  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-family: 'Cascadia Mono', Consolas, monospace;
   font-size: 7.4pt;
   line-height: 1.45;
-  padding: 3mm 4mm;
+  padding: 3mm 4mm 3mm 8mm;
+  text-indent: -4mm;
   border-radius: var(--border-radius);
   border-left: 3px solid var(--accent-primary);
   white-space: pre-wrap;
@@ -299,7 +314,7 @@ pre {
 }
 
 code {
-  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-family: 'Cascadia Mono', Consolas, monospace;
   font-size: 8.4pt;
   background: var(--bg-surface);
   border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
@@ -390,6 +405,130 @@ blockquote p { margin: 1.2mm 0; }
 
 .pie .marca { font-weight: 600; color: var(--text-primary); }
 
+/* ---------- Los componentes de la maqueta que faltaban ---------- */
+
+/* Rejilla de tarjetas: dos columnas de features */
+.card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+  break-inside: avoid;
+}
+
+.card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--border-radius);
+  padding: 11px 14px;
+  border-left: 4px solid var(--accent-primary);
+  break-inside: avoid;
+}
+
+.card .ct {
+  font-weight: 700;
+  font-size: 9pt;
+  margin-bottom: 2mm;
+}
+
+.card p { margin: 1mm 0; font-size: 8.5pt; }
+
+/* Pasos numerados */
+.flow {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--border-radius);
+  padding: 14px;
+  break-inside: avoid;
+}
+
+.fs {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  padding: 6px 10px;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  break-inside: avoid;
+}
+
+.fs .n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--accent-primary);
+  color: var(--text-light);
+  border-radius: 50%;
+  font-size: 7pt;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.fs p { margin: 0; font-size: 8.5pt; }
+
+/* Modelo de datos */
+.entity {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  break-inside: avoid;
+}
+
+.entity .eh {
+  background: var(--bg-dark);
+  color: var(--text-light);
+  padding: 7px 12px;
+  font-weight: 600;
+  font-size: 8.5pt;
+}
+
+.entity .eb { padding: 8px 12px; }
+
+.erow {
+  display: flex;
+  justify-content: space-between;
+  padding: 2.5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 8pt;
+}
+
+/* Resumen ejecutivo */
+.exec-summary {
+  background: linear-gradient(135deg, var(--bg-surface) 0%,
+      color-mix(in srgb, var(--accent-primary) 10%, var(--bg-surface)) 100%);
+  border: 2px solid var(--accent-primary);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 18px;
+  break-inside: avoid;
+}
+
+.exec-summary p { margin: 1.5mm 0; }
+
+/* Veredictos */
+.verdict {
+  background: #f0fdf4;
+  border: 2px solid var(--success);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 12px 0;
+  break-inside: avoid;
+}
+
+.verdict-danger { background: #fef2f2; border-color: var(--danger); }
+.verdict-warning { background: #fffbeb; border-color: var(--warning); }
+
+/* ---------- Ayudas de corte ---------- */
+
+.avoid-break { break-inside: avoid; }
+.avoid-after { break-after: avoid; }
+.force-before { break-before: page; }
+
 </style>
 </head>
 <body>
@@ -401,7 +540,7 @@ blockquote p { margin: 1.2mm 0; }
     <div class="subtitle">Cómo se construye la API: las capas, el código, los patrones y cómo trabajamos</div>
     <div class="meta">
       <span><strong>Origen</strong> Volterp</span>
-      <span><strong>Commit</strong> 4aa5b61</span>
+      <span><strong>Commit</strong> c86614b</span>
       <span><strong>Fecha</strong> 2026-11-23</span>
     </div>
   </div>
@@ -425,6 +564,7 @@ blockquote p { margin: 1.2mm 0; }
         <div class="toc-seccion lvl-2"><span class="n">3.3</span><a href="#2-3-infrastructure-layer">2.3 Infrastructure layer</a></div>
         <div class="toc-seccion lvl-2"><span class="n">3.4</span><a href="#2-4-api-layer">2.4 API layer</a></div>
         <div class="toc-seccion lvl-2"><span class="n">3.5</span><a href="#2-5-tests-layer">2.5 Tests layer</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">3.6</span><a href="#2-6-modulo-de-facturacion-electronica-e-cf">2.6 Módulo de facturación electrónica (e-CF)</a></div>
         <div class="toc-parte"><span class="n">4</span><a href="#parte-3-workflow">PARTE 3 — WORKFLOW</a></div>
         <div class="toc-seccion lvl-2"><span class="n">4.1</span><a href="#3-1-crear-un-proyecto-nuevo-desde-este-template">3.1 Crear un proyecto nuevo desde este template</a></div>
         <div class="toc-seccion lvl-2"><span class="n">4.2</span><a href="#3-2-agregar-una-nueva-entidad">3.2 Agregar una nueva entidad</a></div>
@@ -455,74 +595,82 @@ blockquote p { margin: 1.2mm 0; }
 <h1 id="parte-1-skeleton">PARTE 1 — SKELETON</h1>
 <h2 id="1-1-solucion">1.1 Solución</h2>
 <p>Una solución <code>.slnx</code> (formato moderno XML, soportado oficialmente desde Visual Studio 2022 17.8+). Cinco proyectos, dependencias unidireccionales hacia adentro.</p>
-<pre><code><span class="tok-punc">&lt;</span><span class="tok-type">Solution</span><span class="tok-punc">&gt;</span>
-  <span class="tok-punc">&lt;</span><span class="tok-type">Project</span> <span class="tok-type">Path</span><span class="tok-punc">=</span><span class="tok-str">"MyApp.Api/MyApp.Api.csproj"</span> <span class="tok-punc">/</span><span class="tok-punc">&gt;</span>
-  <span class="tok-punc">&lt;</span><span class="tok-type">Project</span> <span class="tok-type">Path</span><span class="tok-punc">=</span><span class="tok-str">"MyApp.Application/MyApp.Application.csproj"</span> <span class="tok-punc">/</span><span class="tok-punc">&gt;</span>
-  <span class="tok-punc">&lt;</span><span class="tok-type">Project</span> <span class="tok-type">Path</span><span class="tok-punc">=</span><span class="tok-str">"MyApp.Domain/MyApp.Domain.csproj"</span> <span class="tok-punc">/</span><span class="tok-punc">&gt;</span>
-  <span class="tok-punc">&lt;</span><span class="tok-type">Project</span> <span class="tok-type">Path</span><span class="tok-punc">=</span><span class="tok-str">"MyApp.Infrastructure/MyApp.Infrastructure.csproj"</span> <span class="tok-punc">/</span><span class="tok-punc">&gt;</span>
-  <span class="tok-punc">&lt;</span><span class="tok-type">Project</span> <span class="tok-type">Path</span><span class="tok-punc">=</span><span class="tok-str">"MyApp.Tests/MyApp.Tests.csproj"</span> <span class="tok-punc">/</span><span class="tok-punc">&gt;</span>
-<span class="tok-punc">&lt;</span><span class="tok-punc">/</span><span class="tok-type">Solution</span><span class="tok-punc">&gt;</span></code></pre>
+<pre><code>&lt;Solution&gt;
+  &lt;Project Path="MyApp.Api/MyApp.Api.csproj" /&gt;
+  &lt;Project Path="MyApp.Application/MyApp.Application.csproj" /&gt;
+  &lt;Project Path="MyApp.Domain/MyApp.Domain.csproj" /&gt;
+  &lt;Project Path="MyApp.Infrastructure/MyApp.Infrastructure.csproj" /&gt;
+  &lt;Project Path="MyApp.Tests/MyApp.Tests.csproj" /&gt;
+&lt;/Solution&gt;</code></pre>
 <h2 id="1-2-regla-de-dependencias-entre-proyectos">1.2 Regla de dependencias entre proyectos</h2>
-<pre><code><span class="tok-type">Api</span> ──► <span class="tok-type">Infrastructure</span> ──► <span class="tok-type">Application</span> ──► <span class="tok-type">Domain</span>
- │                            │              ▲
- └────────────────────────────┘              │
- └───────────────────────────────────────────┘
-<span class="tok-type">Tests</span> ──► <span class="tok-punc">(</span><span class="tok-type">Api</span><span class="tok-punc">,</span> <span class="tok-type">Infrastructure</span><span class="tok-punc">,</span> <span class="tok-type">Application</span><span class="tok-punc">,</span> <span class="tok-type">Domain</span><span class="tok-punc">)</span></code></pre>
-<ul><li><code>Domain</code> no referencia a nadie.<li><code>Application</code> solo referencia <code>Domain</code>.<li><code>Infrastructure</code> referencia <code>Application</code> + <code>Domain</code>.<li><code>Api</code> referencia los tres.<li><code>Tests</code> referencia los cuatro (necesita acceso a todo para mockear y verificar).</ul>
+<pre><code>Api ──► Infrastructure ──► Application ──► Domain ──► ElectronicInvoicing
+ │                            │              ▲              ▲
+ └────────────────────────────┘              │              │
+ └───────────────────────────────────────────┘──────────────┘
+Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
+<ul><li><code>Domain</code> no referencia a nadie <strong>del ERP</strong> (sí a la library fiscal, que no depende de nadie).<li><code>Application</code> solo referencia <code>Domain</code> (+ la library fiscal).<li><code>Infrastructure</code> referencia <code>Application</code> + <code>Domain</code>.<li><code>Api</code> referencia los tres.<li><code>Tests</code> referencia los cuatro (necesita acceso a todo para mockear y verificar).<li><strong><code>ElectronicInvoicing</code> no referencia a nadie</strong>: es una library vendible por separado. El motor fiscal vive <strong>por debajo</strong> del Domain, que es lo que permite que el Domain la consuma sin que la library dependa del ERP.</ul>
 <h2 id="1-3-estructura-de-carpetas">1.3 Estructura de carpetas</h2>
-<pre><code><span class="tok-type">MyApp</span><span class="tok-punc">.</span>slnx
+<pre><code>MyApp.slnx
 │
-├── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Domain</span><span class="tok-punc">/</span>
-│   ├── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Domain</span><span class="tok-punc">.</span>csproj
-│   ├── <span class="tok-type">Entities</span><span class="tok-punc">/</span>        ← <span class="tok-type">POCOs</span> con comportamiento
-│   ├── <span class="tok-type">ValueObjects</span><span class="tok-punc">/</span>    ← <span class="tok-key">readonly</span> <span class="tok-key">record</span> <span class="tok-key">struct</span>
-│   ├── <span class="tok-type">Enums</span><span class="tok-punc">/</span>           ← estados<span class="tok-punc">,</span> roles<span class="tok-punc">,</span> tipos
-│   └── <span class="tok-type">Exceptions</span><span class="tok-punc">/</span>      ← excepciones de <span class="tok-fn">dominio</span> <span class="tok-punc">(</span><span class="tok-type">NO</span> <span class="tok-type">HTTP</span><span class="tok-punc">)</span>
+├── MyApp.Domain/
+│   ├── MyApp.Domain.csproj
+│   ├── Entities/        ← POCOs con comportamiento
+│   ├── ValueObjects/    ← readonly record struct
+│   ├── Enums/           ← estados, roles, tipos
+│   └── Exceptions/      ← excepciones de dominio (NO HTTP)
 │
-├── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Application</span><span class="tok-punc">/</span>
-│   ├── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Application</span><span class="tok-punc">.</span>csproj
-│   ├── <span class="tok-type">Interfaces</span><span class="tok-punc">/</span>      ← <span class="tok-fn">contratos</span> <span class="tok-punc">(</span><span class="tok-type">IRepositoryBase</span><span class="tok-punc">,</span> <span class="tok-type">IServiceManager</span><span class="tok-punc">,</span> <span class="tok-type">IServices</span><span class="tok-punc">,</span> <span class="tok-type">IRepos</span><span class="tok-punc">)</span>
-│   ├── <span class="tok-type">Services</span><span class="tok-punc">/</span>        ← implementaciones de servicios <span class="tok-punc">+</span> <span class="tok-type">ServiceManager</span>
-│   ├── <span class="tok-type">DTOs</span><span class="tok-punc">/</span>            ← <span class="tok-punc">{</span><span class="tok-type">Entity</span><span class="tok-punc">}</span><span class="tok-type">Dtos</span><span class="tok-punc">/</span><span class="tok-punc">{</span><span class="tok-type">Create</span><span class="tok-punc">|</span><span class="tok-type">Update</span><span class="tok-punc">|</span><span class="tok-type">Response</span><span class="tok-punc">}</span><span class="tok-punc">.</span>cs
-│   ├── <span class="tok-type">Helpers</span><span class="tok-punc">/</span>         ← <span class="tok-type">PaginationExtensions</span> <span class="tok-punc">(</span><span class="tok-punc">+</span> <span class="tok-type">StringExtensions</span> solo si hace falta<span class="tok-punc">)</span>
-│   ├── <span class="tok-type">Exceptions</span><span class="tok-punc">/</span>      ← <span class="tok-type">HTTP</span><span class="tok-punc">-</span><span class="tok-fn">aware</span> <span class="tok-punc">(</span><span class="tok-type">NotFoundException</span><span class="tok-punc">,</span> <span class="tok-type">AlreadyExistException</span><span class="tok-punc">,</span> <span class="tok-type">ValidationException</span><span class="tok-punc">)</span>
-│   │   ├── <span class="tok-type">AppErrors</span><span class="tok-punc">/</span>   ← <span class="tok-type">Error</span> <span class="tok-key">record</span>
-│   │   └── <span class="tok-punc">{</span><span class="tok-type">Entity</span><span class="tok-punc">}</span><span class="tok-punc">/</span>    ← <span class="tok-punc">{</span><span class="tok-type">Entity</span><span class="tok-punc">}</span><span class="tok-type">NotFound</span><span class="tok-punc">,</span> <span class="tok-punc">{</span><span class="tok-type">Entity</span><span class="tok-punc">}</span><span class="tok-type">AlreadyExist</span>
-│   └── <span class="tok-type">Diagnostics</span><span class="tok-punc">/</span>     ← <span class="tok-type">IExceptionLogStore</span> <span class="tok-punc">+</span> impl
+├── MyApp.ElectronicInvoicing/    ← library fiscal vendible (no referencia al ERP)
+│   ├── MyApp.ElectronicInvoicing.csproj
+│   ├── Xml/             ← el modelo del documento, el writer y los perfiles por tipo
+│   ├── Schemas/         ← los XSD oficiales de la DGII (EmbeddedResource)
+│   ├── Signing/         ← la firma XMLDSig y el código de seguridad
+│   ├── Dgii/            ← el transporte contra la DGII (semilla, token, envío, veredicto)
+│   └── Qr/              ← las URLs de verificación
 │
-├── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Infrastructure</span><span class="tok-punc">/</span>
-│   ├── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Infrastructure</span><span class="tok-punc">.</span>csproj
-│   ├── <span class="tok-type">Data</span><span class="tok-punc">/</span>
-│   │   ├── <span class="tok-type">MyAppDbContext</span><span class="tok-punc">.</span>cs
-│   │   ├── <span class="tok-type">Configurations</span><span class="tok-punc">/</span>   ← <span class="tok-type">IEntityTypeConfiguration</span> por entidad
-│   │   └── <span class="tok-type">ValueConverters</span><span class="tok-punc">/</span>  ← <span class="tok-type">VO</span> ⇄ columnas
-│   ├── <span class="tok-type">Repositories</span><span class="tok-punc">/</span>    ← <span class="tok-type">RepositoryBase</span><span class="tok-punc">&lt;</span><span class="tok-type">T</span><span class="tok-punc">&gt;</span> <span class="tok-punc">+</span> repos concretos
-│   ├── <span class="tok-type">UnitOfWork</span><span class="tok-punc">/</span>      ← <span class="tok-type">IUnitOfWork</span> <span class="tok-punc">+</span> impl
-│   ├── <span class="tok-type">Services</span><span class="tok-punc">/</span>        ← <span class="tok-type">JwtService</span><span class="tok-punc">,</span> <span class="tok-type">PasswordHasher</span> <span class="tok-punc">(</span>concretos<span class="tok-punc">)</span>
-│   └── <span class="tok-type">Migrations</span><span class="tok-punc">/</span>      ← generadas por <span class="tok-type">EF</span>
+├── MyApp.Application/
+│   ├── MyApp.Application.csproj
+│   ├── Interfaces/      ← contratos (IRepositoryBase, IServiceManager, IServices, IRepos)
+│   ├── Services/        ← implementaciones de servicios + ServiceManager
+│   ├── DTOs/            ← {Entity}Dtos/{Create|Update|Response}.cs
+│   ├── Helpers/         ← PaginationExtensions (+ StringExtensions solo si hace falta)
+│   ├── Exceptions/      ← HTTP-aware (NotFoundException, AlreadyExistException, ValidationException)
+│   │   ├── AppErrors/   ← Error record
+│   │   └── {Entity}/    ← {Entity}NotFound, {Entity}AlreadyExist
+│   └── Diagnostics/     ← IExceptionLogStore + impl
 │
-├── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Api</span><span class="tok-punc">/</span>
-│   ├── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Api</span><span class="tok-punc">.</span>csproj
-│   ├── <span class="tok-type">Program</span><span class="tok-punc">.</span>cs       ← top<span class="tok-punc">-</span>level<span class="tok-punc">,</span> único entry point
-│   ├── appsettings<span class="tok-punc">.</span>json ← <span class="tok-type">Jwt</span> <span class="tok-punc">+</span> <span class="tok-type">ConnectionString</span> <span class="tok-punc">+</span> <span class="tok-type">RateLimiting</span>
-│   ├── appsettings<span class="tok-punc">.</span><span class="tok-type">Development</span><span class="tok-punc">.</span>json
-│   ├── <span class="tok-type">Controllers</span><span class="tok-punc">/</span>     ← <span class="tok-type">BaseController</span> <span class="tok-punc">+</span> controllers
-│   ├── <span class="tok-type">Configuration</span><span class="tok-punc">/</span>   ← <span class="tok-type">Settings</span> <span class="tok-fn">tipados</span> <span class="tok-punc">(</span><span class="tok-type">JwtSettings</span><span class="tok-punc">,</span> <span class="tok-type">DatabaseSettings</span><span class="tok-punc">,</span> <span class="tok-type">RateLimitingOptions</span><span class="tok-punc">)</span>
-│   ├── <span class="tok-type">Extensions</span><span class="tok-punc">/</span>      ← <span class="tok-type">ExceptionMiddleWareHandler</span>
-│   ├── <span class="tok-type">Helpers</span><span class="tok-punc">/</span>         ← <span class="tok-type">ServiceExtensions</span><span class="tok-punc">,</span> <span class="tok-type">Constants</span><span class="tok-punc">,</span> <span class="tok-type">CurrentUserService</span><span class="tok-punc">,</span> <span class="tok-type">PaginationParameters</span><span class="tok-punc">,</span> <span class="tok-type">HealthCheck</span><span class="tok-punc">,</span> imports<span class="tok-punc">.</span>cs
-│   ├── <span class="tok-type">RateLimiting</span><span class="tok-punc">/</span>    ← <span class="tok-type">RateLimiterPolicies</span><span class="tok-punc">,</span> <span class="tok-type">RateLimitPartitionResolver</span>
-│   ├── <span class="tok-type">Properties</span><span class="tok-punc">/</span>      ← launchSettings<span class="tok-punc">.</span>json
-│   └── wwwroot<span class="tok-punc">/</span>         ← opcional<span class="tok-punc">,</span> <span class="tok-key">static</span> files
+├── MyApp.Infrastructure/
+│   ├── MyApp.Infrastructure.csproj
+│   ├── Data/
+│   │   ├── MyAppDbContext.cs
+│   │   ├── Configurations/   ← IEntityTypeConfiguration por entidad
+│   │   └── ValueConverters/  ← VO ⇄ columnas
+│   ├── Repositories/    ← RepositoryBase&lt;T&gt; + repos concretos
+│   ├── UnitOfWork/      ← IUnitOfWork + impl
+│   ├── Services/        ← JwtService, PasswordHasher (concretos)
+│   └── Migrations/      ← generadas por EF
 │
-└── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Tests</span><span class="tok-punc">/</span>
-    ├── <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Tests</span><span class="tok-punc">.</span>csproj
-    ├── <span class="tok-type">Domain</span><span class="tok-punc">/</span>          ← tests de entidades y <span class="tok-type">VOs</span>
-    ├── <span class="tok-type">ValueObjects</span><span class="tok-punc">/</span>    ← tests de <span class="tok-type">VOs</span>
-    ├── <span class="tok-type">Exceptions</span><span class="tok-punc">/</span>      ← tests de excepciones <span class="tok-type">HTTP</span>
-    ├── <span class="tok-type">Services</span><span class="tok-punc">/</span>        ← tests de application <span class="tok-fn">services</span> <span class="tok-punc">(</span>con <span class="tok-type">Moq</span><span class="tok-punc">)</span>
-    ├── <span class="tok-type">Controllers</span><span class="tok-punc">/</span>     ← tests de autorización
-    ├── <span class="tok-type">Infrastructure</span><span class="tok-punc">/</span>  ← tests de servicios <span class="tok-fn">concretos</span> <span class="tok-punc">(</span><span class="tok-type">Jwt</span><span class="tok-punc">,</span> etc<span class="tok-punc">.</span><span class="tok-punc">)</span>
-    └── <span class="tok-type">RateLimiting</span><span class="tok-punc">/</span>    ← tests del partition resolver y wiring</code></pre>
+├── MyApp.Api/
+│   ├── MyApp.Api.csproj
+│   ├── Program.cs       ← top-level, único entry point
+│   ├── appsettings.json ← Jwt + ConnectionString + RateLimiting
+│   ├── appsettings.Development.json
+│   ├── Controllers/     ← BaseController + controllers
+│   ├── Configuration/   ← Settings tipados (JwtSettings, DatabaseSettings, RateLimitingOptions)
+│   ├── Extensions/      ← ExceptionMiddleWareHandler
+│   ├── Helpers/         ← ServiceExtensions, Constants, CurrentUserService, PaginationParameters, HealthCheck, imports.cs
+│   ├── RateLimiting/    ← RateLimiterPolicies, RateLimitPartitionResolver
+│   ├── Properties/      ← launchSettings.json
+│   └── wwwroot/         ← opcional, static files
+│
+└── MyApp.Tests/
+    ├── MyApp.Tests.csproj
+    ├── Domain/          ← tests de entidades y VOs
+    ├── ValueObjects/    ← tests de VOs
+    ├── Exceptions/      ← tests de excepciones HTTP
+    ├── Services/        ← tests de application services (con Moq)
+    ├── Controllers/     ← tests de autorización
+    ├── Infrastructure/  ← tests de servicios concretos (Jwt, etc.)
+    └── RateLimiting/    ← tests del partition resolver y wiring</code></pre>
 <h2 id="1-4-csproj-minimos">1.4 csproj mínimos</h2>
 <h3 id="domain">Domain</h3>
 <pre><code><span class="tok-punc">&lt;</span><span class="tok-type">Project</span> <span class="tok-type">Sdk</span><span class="tok-punc">=</span><span class="tok-str">"Microsoft.NET.Sdk"</span><span class="tok-punc">&gt;</span>
@@ -2320,14 +2468,14 @@ global <span class="tok-key">using</span> <span class="tok-type">System</span><s
 <hr>
 <h2 id="2-5-tests-layer">2.5 Tests layer</h2>
 <h3 id="estructura">Estructura</h3>
-<pre><code><span class="tok-type">Tests</span><span class="tok-punc">/</span>
-├── <span class="tok-type">Domain</span><span class="tok-punc">/</span><span class="tok-punc">{</span><span class="tok-type">Entity</span><span class="tok-punc">}</span><span class="tok-type">BehaviorTests</span><span class="tok-punc">.</span>cs<span class="tok-punc">,</span> <span class="tok-type">AuditEntityTests</span><span class="tok-punc">.</span>cs<span class="tok-punc">,</span> <span class="tok-type">BaseEntityBehaviorTests</span><span class="tok-punc">.</span>cs
-├── <span class="tok-type">ValueObjects</span><span class="tok-punc">/</span><span class="tok-punc">{</span><span class="tok-type">ValueObject</span><span class="tok-punc">}</span><span class="tok-type">Tests</span><span class="tok-punc">.</span>cs
-├── <span class="tok-type">Exceptions</span><span class="tok-punc">/</span><span class="tok-type">ExceptionTests</span><span class="tok-punc">.</span>cs
-├── <span class="tok-type">Services</span><span class="tok-punc">/</span><span class="tok-punc">{</span><span class="tok-type">Service</span><span class="tok-punc">}</span><span class="tok-type">ServiceTests</span><span class="tok-punc">.</span>cs
-├── <span class="tok-type">Controllers</span><span class="tok-punc">/</span><span class="tok-punc">{</span><span class="tok-type">Controller</span><span class="tok-punc">}</span><span class="tok-type">AuthorizationTests</span><span class="tok-punc">.</span>cs
-├── <span class="tok-type">Infrastructure</span><span class="tok-punc">/</span><span class="tok-punc">{</span><span class="tok-type">Service</span><span class="tok-punc">}</span><span class="tok-type">Tests</span><span class="tok-punc">.</span>cs   ← ej<span class="tok-punc">.</span> <span class="tok-type">JwtServiceTests</span>
-└── <span class="tok-type">RateLimiting</span><span class="tok-punc">/</span><span class="tok-type">RateLimitingOptionsTests</span><span class="tok-punc">.</span>cs<span class="tok-punc">,</span> <span class="tok-type">RateLimiterBehaviorTests</span><span class="tok-punc">.</span>cs<span class="tok-punc">,</span> <span class="tok-type">RateLimitPartitionResolverTests</span><span class="tok-punc">.</span>cs<span class="tok-punc">,</span> <span class="tok-type">RateLimitingWiringTests</span><span class="tok-punc">.</span>cs</code></pre>
+<pre><code>Tests/
+├── Domain/{Entity}BehaviorTests.cs, AuditEntityTests.cs, BaseEntityBehaviorTests.cs
+├── ValueObjects/{ValueObject}Tests.cs
+├── Exceptions/ExceptionTests.cs
+├── Services/{Service}ServiceTests.cs
+├── Controllers/{Controller}AuthorizationTests.cs
+├── Infrastructure/{Service}Tests.cs   ← ej. JwtServiceTests
+└── RateLimiting/RateLimitingOptionsTests.cs, RateLimiterBehaviorTests.cs, RateLimitPartitionResolverTests.cs, RateLimitingWiringTests.cs</code></pre>
 <h3 id="patron-de-mocking">Patrón de mocking</h3>
 <p><strong>Reglas</strong>:</p>
 <ul><li><code>Moq</code> para todo (repos, UnitOfWork, PasswordHasher).<li><code>Mock.Of&lt;T&gt;()</code> para dependencias que no se usan en el test específico.<li><code>mockRepo.Setup(r =&gt; r.Xxx(...)).ReturnsAsync(...)</code>.<li><code>mockUnitOfWork.Setup(u =&gt; u.Repos).Returns(mockRepo.Object);</code></ul>
@@ -2398,6 +2546,143 @@ global <span class="tok-key">using</span> <span class="tok-type">System</span><s
     <span class="tok-punc">}</span>
 <span class="tok-punc">}</span></code></pre>
 <hr>
+<h2 id="2-6-modulo-de-facturacion-electronica-e-cf">2.6 Módulo de facturación electrónica (e-CF)</h2>
+<p>Este módulo convierte una venta en un comprobante que la DGII acepta. Se armó contra la<br>documentación oficial (la Descripción Técnica de Servicios DGII, el Formato del e-CF<br>v1.0 y los XSD por tipo) y <strong>la norma vive en el repo</strong>, no en la cabeza de nadie.</p>
+<h3 id="la-library-portable-proyecto-vendible">La library portable (proyecto vendible)</h3>
+<p><strong>Ubicación</strong>: <code>MyApp.ElectronicInvoicing/MyApp.ElectronicInvoicing.csproj</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li><strong>No referencia ningún proyecto del ERP.</strong> Es vendible por separado: por eso el Domain puede consumirla. Si aparece <code>Sale</code> o <code>Company</code> en la library, la library dejó de ser vendible.<li>Un solo NuGet: <code>System.Security.Cryptography.Xml</code> (la firma).<li>Los <strong>XSD oficiales van como <code>EmbeddedResource</code></strong>: el requerimiento de cada tipo se lee del esquema, no se escribe a mano.<li>Tiene su propio proyecto de tests, que referencia <strong>solo</strong> la library: esa suite es la prueba de que la library es vendible.</ul>
+<h3 id="los-enums-fiscales">Los enums fiscales</h3>
+<p><strong>Ubicación</strong>: <code>EcfDocumentType.cs</code>, <code>TaxCode.cs</code>, <code>EcfStatus.cs</code>, <code>EcfFiscalState.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>El valor del enum <strong>es el código oficial de la DGII</strong> (31, 32, 41...), no un ordinal propio.<li>El estado que ve el tenant (<code>EcfFiscalState</code>) es <strong>otra taxonomía</strong>: <code>Classify</code> los separa y uno nunca se deriva del otro.<li><code>EcfStatus</code> son los 8 estados del comprobante (borrador, firmado, enviado, en proceso, aceptado, aceptado condicional, rechazado, anulado).</ul>
+<h3 id="el-modelo-del-documento">El modelo del documento</h3>
+<p><strong>Ubicación</strong>: <code>Xml/EcfDocument.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>El modelo es <strong>neutral</strong>: la library no sabe de tenants ni de HTTP.<li>Los totales, los ítems y los ajustes son del documento, no de la venta.</ul>
+<h3 id="los-perfiles-por-tipo-introspeccion-del-xsd">Los perfiles por tipo (introspección del XSD)</h3>
+<p><strong>Ubicación</strong>: <code>Xml/EcfTypeProfiles.cs</code> + <code>Schemas/EcfSchema.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>Los requisitos de un tipo <strong>se leen del XSD</strong> (<code>IsRequired</code>, <code>AllowedValues</code>, <code>MaxOccurs</code>), no se escriben a mano.<li>Un tipo <strong>nunca hereda</strong> las reglas de otro.<li>El perfil es la única fuente para "este tipo exige comprador / fecha de expiración / ingresos permitidos".</ul>
+<h3 id="el-writer">El writer</h3>
+<p><strong>Ubicación</strong>: <code>Xml/EcfXmlWriter.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>Valida <strong>antes de escribir</strong>: lo que no cuadra no se escribe y por lo tanto nunca se firma.<li>La salida va <strong>sin indentación</strong>: el whitespace entra en el digest de la firma y la DGII lo descarta → un XML formateado no valida su propia firma.<li>Valida la salida contra el XSD.</ul>
+<pre><code><span class="tok-key">var</span> breaches <span class="tok-punc">=</span> <span class="tok-type">EcfDocumentValidator</span><span class="tok-punc">.</span><span class="tok-type">Validate</span><span class="tok-punc">(</span>document<span class="tok-punc">)</span><span class="tok-punc">;</span>
+
+<span class="tok-key">if</span> <span class="tok-punc">(</span>breaches<span class="tok-punc">.</span><span class="tok-type">Count</span> <span class="tok-punc">&gt;</span> <span class="tok-num">0</span><span class="tok-punc">)</span>
+<span class="tok-punc">{</span>
+    <span class="tok-key">var</span> details <span class="tok-punc">=</span> <span class="tok-key">string</span><span class="tok-punc">.</span><span class="tok-type">Join</span><span class="tok-punc">(</span><span class="tok-str">" | "</span><span class="tok-punc">,</span> breaches<span class="tok-punc">.</span><span class="tok-type">Take</span><span class="tok-punc">(</span><span class="tok-num">3</span><span class="tok-punc">)</span><span class="tok-punc">.</span><span class="tok-type">Select</span><span class="tok-punc">(</span>breach <span class="tok-punc">=</span><span class="tok-punc">&gt;</span> breach<span class="tok-punc">.</span><span class="tok-type">Message</span><span class="tok-punc">)</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+    <span class="tok-key">throw</span> <span class="tok-key">new</span> <span class="tok-type">EcfXmlException</span><span class="tok-punc">(</span>$<span class="tok-str">"The e-CF {(int)document.DocumentType} is not valid: {details}"</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+<span class="tok-punc">}</span>
+
+<span class="tok-key">var</span> settings <span class="tok-punc">=</span> <span class="tok-key">new</span> <span class="tok-type">XmlWriterSettings</span>
+<span class="tok-punc">{</span>
+    <span class="tok-type">Indent</span> <span class="tok-punc">=</span> <span class="tok-key">false</span><span class="tok-punc">,</span>                                  <span class="tok-com">// el whitespace entra en el digest</span>
+    <span class="tok-type">OmitXmlDeclaration</span> <span class="tok-punc">=</span> <span class="tok-key">false</span><span class="tok-punc">,</span>
+    <span class="tok-type">Encoding</span> <span class="tok-punc">=</span> <span class="tok-key">new</span> <span class="tok-type">UTF8Encoding</span><span class="tok-punc">(</span>encoderShouldEmitUTF8Identifier<span class="tok-punc">:</span> <span class="tok-key">false</span><span class="tok-punc">)</span><span class="tok-punc">,</span>
+    <span class="tok-type">NewLineHandling</span> <span class="tok-punc">=</span> <span class="tok-type">NewLineHandling</span><span class="tok-punc">.</span><span class="tok-type">None</span>
+<span class="tok-punc">}</span><span class="tok-punc">;</span></code></pre>
+<h3 id="el-firmador-xmldsig">El firmador (XMLDSig)</h3>
+<p><strong>Ubicación</strong>: <code>Signing/XmlDsigEcfSigner.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>Enveloped + C14N + RSA-SHA256, con digest SHA-256.<li>El certificado <strong>viaja dentro de la firma</strong> (<code>KeyInfo/X509Data</code>): el receptor valida sin saber de antemano quién emitió.<li><strong>Verifica antes de devolver</strong>: si la firma no verifica contra el certificado, no sale.</ul>
+<pre><code>signedXml<span class="tok-punc">.</span><span class="tok-type">SignedInfo</span><span class="tok-punc">!</span><span class="tok-punc">.</span><span class="tok-type">CanonicalizationMethod</span> <span class="tok-punc">=</span> <span class="tok-type">SignedXml</span><span class="tok-punc">.</span><span class="tok-type">XmlDsigC14NTransformUrl</span><span class="tok-punc">;</span>
+signedXml<span class="tok-punc">.</span><span class="tok-type">SignedInfo</span><span class="tok-punc">.</span><span class="tok-type">SignatureMethod</span> <span class="tok-punc">=</span> <span class="tok-type">SignedXml</span><span class="tok-punc">.</span><span class="tok-type">XmlDsigRSASHA256Url</span><span class="tok-punc">;</span>
+
+<span class="tok-key">var</span> reference <span class="tok-punc">=</span> <span class="tok-key">new</span> <span class="tok-type">Reference</span><span class="tok-punc">(</span><span class="tok-key">string</span><span class="tok-punc">.</span><span class="tok-type">Empty</span><span class="tok-punc">)</span> <span class="tok-punc">{</span> <span class="tok-type">DigestMethod</span> <span class="tok-punc">=</span> <span class="tok-type">SignedXml</span><span class="tok-punc">.</span><span class="tok-type">XmlDsigSHA256Url</span> <span class="tok-punc">}</span><span class="tok-punc">;</span>
+reference<span class="tok-punc">.</span><span class="tok-type">AddTransform</span><span class="tok-punc">(</span><span class="tok-key">new</span> <span class="tok-type">XmlDsigEnvelopedSignatureTransform</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+signedXml<span class="tok-punc">.</span><span class="tok-type">AddReference</span><span class="tok-punc">(</span>reference<span class="tok-punc">)</span><span class="tok-punc">;</span>
+
+<span class="tok-key">var</span> keyInfo <span class="tok-punc">=</span> <span class="tok-key">new</span> <span class="tok-type">KeyInfo</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+keyInfo<span class="tok-punc">.</span><span class="tok-type">AddClause</span><span class="tok-punc">(</span><span class="tok-key">new</span> <span class="tok-type">KeyInfoX509Data</span><span class="tok-punc">(</span>certificate<span class="tok-punc">)</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+signedXml<span class="tok-punc">.</span><span class="tok-type">KeyInfo</span> <span class="tok-punc">=</span> keyInfo<span class="tok-punc">;</span>
+
+signedXml<span class="tok-punc">.</span><span class="tok-type">ComputeSignature</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span></code></pre>
+<h3 id="el-transporte-contra-la-dgii">El transporte contra la DGII</h3>
+<p><strong>Ubicación</strong>: <code>Dgii/</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>La URL es <code>{base}/{ambiente}/{servicio}</code>: <code>testecf</code> | <code>certecf</code> | <code>ecf</code>.<li>El XML va como multipart <code>text/xml</code> con el <strong>nombre de archivo contractual</strong>.<li><strong>La semilla firmada es la credencial</strong>: no hay usuario ni contraseña.<li>El token se cachea <strong>por RNC emisor</strong>, con una sola renovación a la vez.<li>Un <code>trackId</code> desconocido es una <strong>consulta fallida</strong>, no un veredicto.</ul>
+<h3 id="las-urls-de-verificacion-y-el-qr">Las URLs de verificación y el QR</h3>
+<p><strong>Ubicación</strong>: <code>Qr/EcfVerificationUrl.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>Tres URLs distintas (la consulta del consumo, el timbre del RFCE y el timbre del comprobante) y <strong>dos hosts</strong> (<code>fc.dgii.gov.do</code> y <code>ecf.dgii.gov.do</code>).</ul>
+<h3 id="el-rfce-y-la-anulacion">El RFCE y la anulación</h3>
+<p><strong>Ubicación</strong>: <code>Xml/RfceDocument.cs</code>, <code>Xml/RfceXmlWriter.cs</code>, <code>Xml/AnecfXmlWriter.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>El resumen RFCE es <strong>solo del tipo 32</strong> y <strong>solo por debajo de RD$250,000</strong>.<li>El código de seguridad del resumen es el de <strong>la factura resumida</strong>, no el del resumen.</ul>
+<h3 id="el-camino-normal-ncf-b01-b02">El camino normal (NCF B01/B02)</h3>
+<p><strong>Ubicación</strong>: <code>NormalFiscalDocumentService.cs</code>, <code>NormalFiscalDocument.cs</code>, <code>NormalFiscalSequence.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>El rango del NCF es <strong>propio</strong>: nunca el del e-NCF.<li>El número se toma <strong>dentro de la transacción</strong> que persiste el documento (si no, el número se quema).<li>Una venta, un documento.<li>El número del NCF tiene <strong>11 caracteres</strong> (<code>B{2 dígitos de tipo}{8 de secuencia}</code>); el e-NCF tiene 13.<li>El tipo normal se deriva del electrónico (<code>NormalFiscalDocumentTypes.For</code>): E31→B01, E32→B02, E33→B03, E34→B04.</ul>
+<h3 id="el-registro-en-el-di">El registro en el DI</h3>
+<p><strong>Ubicación</strong>: <code>Volterp.Api/Helpers/ServiceExtensions.cs</code> (<code>ConfigureElectronicInvoicing</code>)</p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>Un método <code>Configure*</code> por responsabilidad.<li><strong>Solo el cache del token es singleton</strong>: es el único estado que sobrevive un request.<li>El cliente HTTP es <strong>typed client</strong>; el autenticador es <strong>transient</strong> (un singleton capturaría el <code>HttpClient</code> y pinearía la dirección de la DGII).</ul>
+<pre><code><span class="tok-key">public</span> <span class="tok-key">static</span> <span class="tok-key">void</span> <span class="tok-type">ConfigureElectronicInvoicing</span><span class="tok-punc">(</span><span class="tok-key">this</span> <span class="tok-type">IServiceCollection</span> services<span class="tok-punc">,</span> <span class="tok-type">IConfiguration</span> configuration<span class="tok-punc">)</span>
+<span class="tok-punc">{</span>
+    services<span class="tok-punc">.</span><span class="tok-type">AddSingleton</span><span class="tok-punc">&lt;</span><span class="tok-type">IEcfSigner</span><span class="tok-punc">,</span> <span class="tok-type">XmlDsigEcfSigner</span><span class="tok-punc">&gt;</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+    services<span class="tok-punc">.</span><span class="tok-type">AddSingleton</span><span class="tok-punc">(</span><span class="tok-key">new</span> <span class="tok-type">EcfXmlWriter</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+
+    <span class="tok-key">var</span> dgiiOptions <span class="tok-punc">=</span> <span class="tok-key">new</span> <span class="tok-type">DgiiOptions</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+    configuration<span class="tok-punc">.</span><span class="tok-type">GetSection</span><span class="tok-punc">(</span><span class="tok-type">DgiiOptions</span><span class="tok-punc">.</span><span class="tok-type">SectionName</span><span class="tok-punc">)</span><span class="tok-punc">.</span><span class="tok-type">Bind</span><span class="tok-punc">(</span>dgiiOptions<span class="tok-punc">)</span><span class="tok-punc">;</span>
+    services<span class="tok-punc">.</span><span class="tok-type">AddSingleton</span><span class="tok-punc">(</span>dgiiOptions<span class="tok-punc">)</span><span class="tok-punc">;</span>
+
+    services<span class="tok-punc">.</span><span class="tok-type">AddHttpClient</span><span class="tok-punc">&lt;</span><span class="tok-type">IDgiiClient</span><span class="tok-punc">,</span> <span class="tok-type">DgiiClient</span><span class="tok-punc">&gt;</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+    services<span class="tok-punc">.</span><span class="tok-type">AddSingleton</span><span class="tok-punc">(</span><span class="tok-type">TimeProvider</span><span class="tok-punc">.</span><span class="tok-type">System</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+
+    services<span class="tok-punc">.</span><span class="tok-type">AddSingleton</span><span class="tok-punc">&lt;</span><span class="tok-type">DgiiTokenCache</span><span class="tok-punc">&gt;</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+    services<span class="tok-punc">.</span><span class="tok-type">AddTransient</span><span class="tok-punc">&lt;</span><span class="tok-type">DgiiAuthenticator</span><span class="tok-punc">&gt;</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+
+    services<span class="tok-punc">.</span><span class="tok-type">AddScoped</span><span class="tok-punc">&lt;</span><span class="tok-type">ISigningCertificateProvider</span><span class="tok-punc">,</span> <span class="tok-type">CompanySigningCertificateProvider</span><span class="tok-punc">&gt;</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+    services<span class="tok-punc">.</span><span class="tok-type">AddScoped</span><span class="tok-punc">&lt;</span><span class="tok-type">IElectronicInvoiceService</span><span class="tok-punc">,</span> <span class="tok-type">ElectronicInvoiceService</span><span class="tok-punc">&gt;</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+    services<span class="tok-punc">.</span><span class="tok-type">AddHostedService</span><span class="tok-punc">&lt;</span><span class="tok-type">ElectronicInvoiceQueueWorker</span><span class="tok-punc">&gt;</span><span class="tok-punc">(</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+<span class="tok-punc">}</span></code></pre>
+<h3 id="el-readiness-fiscal">El readiness fiscal</h3>
+<p><strong>Ubicación</strong>: <code>Volterp.Api/Controllers/SalesController.cs</code> (<code>GET /api/Sales/readiness</code>) · <code>Volterp.Application/DTOs/ElectronicInvoiceDtos/FiscalReadinessDto.cs</code> · <code>Volterp.Application/Services/ElectronicInvoiceService.cs</code> (<code>BuildTheReadinessAsync</code>) · <code>Volterp.Domain/Policies/CompanyEmissionPolicy.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>El readiness sigue <strong>el camino que la venta toma hoy</strong> (el modo que declaró el contribuyente y la contingencia en la que está), <strong>no el módulo</strong>. El front muestra "el camino que la venta toma hoy", no "¿tienes el módulo electrónico?".<li>En <strong>modo electrónico</strong> → hacen falta <strong>certificado vigente</strong> y <strong>rango de e-NCF</strong> con cupo.<li>En <strong>modo normal o dentro de una contingencia</strong> → hace falta el <strong>rango de NCF</strong> con cupo y <strong>nada de certificado</strong>.<li><strong>El modo NO es un bloqueo</strong>: facturar normal es un derecho del contribuyente, no una falla.<li>Decide <code>IsReady</code> <strong>solo el tipo de consumo</strong> (<code>E32</code>/<code>B02</code>): es el documento que toda venta puede emitir.<li>Los <strong>códigos de bloqueo son un contrato con el front</strong> (<code>certificate-missing</code>, <code>range-missing</code>, <code>range-expired</code>, <code>range-exhausted</code>, <code>range-annulled</code>, <code>range-without-expiry</code>): el front traduce el código, nunca el mensaje.<li>El tipo que viaja al front es <strong><code>E32</code>/<code>B02</code></strong>, nunca el número del enum.</ul>
+<pre><code><span class="tok-key">public</span> <span class="tok-key">static</span> <span class="tok-key">bool</span> <span class="tok-type">UsesElectronicEmission</span><span class="tok-punc">(</span><span class="tok-type">Company</span><span class="tok-punc">?</span> company<span class="tok-punc">,</span> <span class="tok-type">DateTime</span> now<span class="tok-punc">)</span>
+<span class="tok-punc">{</span>
+    <span class="tok-com">// A company that cannot be read cannot silently turn an electronic</span>
+    <span class="tok-com">// sale into the normal one.</span>
+    <span class="tok-key">if</span> <span class="tok-punc">(</span>company <span class="tok-key">is</span> <span class="tok-key">null</span><span class="tok-punc">)</span>
+        <span class="tok-key">return</span> <span class="tok-key">true</span><span class="tok-punc">;</span>
+
+    <span class="tok-key">if</span> <span class="tok-punc">(</span>company<span class="tok-punc">.</span><span class="tok-type">EmissionMode</span> <span class="tok-punc">=</span><span class="tok-punc">=</span> <span class="tok-type">CompanyEmissionMode</span><span class="tok-punc">.</span><span class="tok-type">Normal</span><span class="tok-punc">)</span>
+        <span class="tok-key">return</span> <span class="tok-key">false</span><span class="tok-punc">;</span>
+
+    <span class="tok-key">if</span> <span class="tok-punc">(</span>company<span class="tok-punc">.</span><span class="tok-type">ContingencyStatus</span> <span class="tok-punc">=</span><span class="tok-punc">=</span> <span class="tok-type">CompanyContingencyStatus</span><span class="tok-punc">.</span><span class="tok-type">None</span><span class="tok-punc">)</span>
+        <span class="tok-key">return</span> <span class="tok-key">true</span><span class="tok-punc">;</span>
+
+    <span class="tok-com">// A contingency without both of its bounds suspends the electronic</span>
+    <span class="tok-com">// path in the conservative way.</span>
+    <span class="tok-key">if</span> <span class="tok-punc">(</span><span class="tok-punc">!</span>company<span class="tok-punc">.</span><span class="tok-type">ContingencyStartsAt</span><span class="tok-punc">.</span><span class="tok-type">HasValue</span> <span class="tok-punc">|</span><span class="tok-punc">|</span> <span class="tok-punc">!</span>company<span class="tok-punc">.</span><span class="tok-type">ContingencyEndsAt</span><span class="tok-punc">.</span><span class="tok-type">HasValue</span><span class="tok-punc">)</span>
+        <span class="tok-key">return</span> <span class="tok-key">false</span><span class="tok-punc">;</span>
+
+    <span class="tok-com">// Outside the window of the contingency the electronic path is back.</span>
+    <span class="tok-key">return</span> now <span class="tok-punc">&lt;</span> company<span class="tok-punc">.</span><span class="tok-type">ContingencyStartsAt</span><span class="tok-punc">.</span><span class="tok-type">Value</span>
+        <span class="tok-punc">|</span><span class="tok-punc">|</span> now <span class="tok-punc">&gt;</span><span class="tok-punc">=</span> company<span class="tok-punc">.</span><span class="tok-type">ContingencyEndsAt</span><span class="tok-punc">.</span><span class="tok-type">Value</span><span class="tok-punc">;</span>
+<span class="tok-punc">}</span></code></pre>
+<pre><code><span class="tok-com">// El certificado pertenece al RNC que emite.</span>
+<span class="tok-key">var</span> certificate <span class="tok-punc">=</span> <span class="tok-key">await</span> unitOfWork<span class="tok-punc">.</span><span class="tok-type">CompanyCertificates</span><span class="tok-punc">.</span><span class="tok-type">GetActiveByTaxIdAsync</span><span class="tok-punc">(</span>company<span class="tok-punc">.</span><span class="tok-type">TaxId</span><span class="tok-punc">,</span> ct<span class="tok-punc">)</span><span class="tok-punc">;</span>
+
+<span class="tok-com">// Los tipos del camino que el contribuyente toma ahora.</span>
+<span class="tok-key">var</span> documentTypes <span class="tok-punc">=</span> electronic
+    <span class="tok-punc">?</span> <span class="tok-key">await</span> <span class="tok-type">TheElectronicTypesAsync</span><span class="tok-punc">(</span>company<span class="tok-punc">,</span> now<span class="tok-punc">,</span> ct<span class="tok-punc">)</span>
+    <span class="tok-punc">:</span> <span class="tok-key">await</span> <span class="tok-type">ThePaperTypesAsync</span><span class="tok-punc">(</span>company<span class="tok-punc">,</span> now<span class="tok-punc">,</span> ct<span class="tok-punc">)</span><span class="tok-punc">;</span>
+
+<span class="tok-com">// Un contribuyente que emite en papel no necesita certificado.</span>
+<span class="tok-key">if</span> <span class="tok-punc">(</span>electronic <span class="tok-punc">&amp;</span><span class="tok-punc">&amp;</span> certificate <span class="tok-key">is</span> <span class="tok-key">null</span><span class="tok-punc">)</span>
+    blockers<span class="tok-punc">.</span><span class="tok-type">Add</span><span class="tok-punc">(</span><span class="tok-key">new</span> <span class="tok-type">FiscalBlockerDto</span> <span class="tok-punc">{</span> <span class="tok-type">Code</span> <span class="tok-punc">=</span> <span class="tok-str">"certificate-missing"</span><span class="tok-punc">,</span> <span class="tok-com">/* ... */</span> <span class="tok-punc">}</span><span class="tok-punc">)</span><span class="tok-punc">;</span>
+
+<span class="tok-com">// El consumo es el documento que toda venta puede emitir: el que decide.</span>
+<span class="tok-key">var</span> consumption <span class="tok-punc">=</span> documentTypes<span class="tok-punc">.</span><span class="tok-type">Single</span><span class="tok-punc">(</span>x <span class="tok-punc">=</span><span class="tok-punc">&gt;</span> x<span class="tok-punc">.</span><span class="tok-type">Code</span> <span class="tok-punc">=</span><span class="tok-punc">=</span> <span class="tok-punc">(</span>electronic <span class="tok-punc">?</span> <span class="tok-str">"E32"</span> <span class="tok-punc">:</span> <span class="tok-str">"B02"</span><span class="tok-punc">)</span><span class="tok-punc">)</span><span class="tok-punc">;</span></code></pre>
+<h3 id="el-ciclo-de-vida-del-comprobante">El ciclo de vida del comprobante</h3>
+<p><strong>Ubicación</strong>: <code>Volterp.Domain/Entities/ElectronicInvoice.cs</code></p>
+<p><strong>Reglas</strong>:</p>
+<ul><li>Las transiciones son <strong>métodos de dominio con guarda</strong> (<code>Sign</code>, <code>MarkSent</code>, <code>Accept</code>, <code>Reject</code>, <code>Annull</code>...), nunca asignaciones de <code>Status</code>.<li>Cada estado tiene <strong>un solo punto de entrada</strong>: el que lo dispara vive en <code>ElectronicInvoiceService</code>.</ul>
+<hr>
 <h1 id="parte-3-workflow">PARTE 3 — WORKFLOW</h1>
 <h2 id="3-1-crear-un-proyecto-nuevo-desde-este-template">3.1 Crear un proyecto nuevo desde este template</h2>
 <pre><code><span class="tok-com"># 1. Crear la solución</span>
@@ -2456,7 +2741,7 @@ dotnet run <span class="tok-punc">-</span><span class="tok-punc">-</span>project
 <h2 id="4-8-either-pipeline-eitherway">4.8 Either pipeline (EitherWay)</h2>
 <ul><li><strong>Imports</strong>: <code>using EitherWay;</code>.<li><strong>Pipeline típico</strong>: <code>EitherAsync&lt;Error, InputType&gt;.FromRight(x).Ensure(cond, error).Map(proj).FlatMap(asyncOp, exMapper).Map(toDto).Run()</code>.<li><strong>Either Left vs Right</strong>: <code>Left = Error</code>, <code>Right = Value</code>. Pattern matching con <code>result.Match(left =&gt; ..., right =&gt; ...)</code>.<li><strong>Tests</strong>: <code>result.Should().BeOfType&lt;Either&lt;Error, T&gt;.Left&gt;()</code> o <code>.Right&gt;</code>.<li><strong>Unit</strong>: para operaciones sin valor de retorno (Delete), usar <code>Either&lt;Error, Unit&gt;</code> y devolver <code>new Unit()</code>.</ul>
 <h2 id="4-9-decisions-intencionales-que-respetar">4.9 Decisions intencionales que respetar</h2>
-<ul><li><strong><code>GetByCondictionsAsync</code></strong> tiene un typo histórico. NO corregir — rompería todos los repos.<li><strong><code>ValidationExecption</code></strong> también tiene typo. Mantener para no romper el middleware que la matchea.<li><strong>VOs exponen <code>TryParse(string?, out VO)</code></strong> para uso en <code>Ensure()</code> de services. El VO es la <strong>única fuente de verdad</strong> para validación — nunca duplicar el regex/lógica en <code>StringExtensions</code> u otra utilidad.<li><strong><code>InMemoryExceptionLogStore</code></strong> es singleton con ring buffer (capacity 100). Pensado para diagnóstico rápido sin levantar Seq/ELK. Reemplazable por una impl que escriba a un sink externo.<li><strong><code>MapFlow</code> y <code>EitherWay</code></strong> son librerías propias del usuario (publicadas en GitHub). Son "infraestructura funcional" transversal — están en TODAS las capas.<li><strong>PasswordHasher con fallback SHA256</strong>: el prefijo <code>"$2"</code> distingue BCrypt de hashes legacy. Permite migrar gradualmente.<li><strong>Multi-tenant filter en service</strong>, no global query filter. Más explícito, más testeable.<li><strong>BCrypt cost 12</strong>: ~250ms por hash en hardware 2024. Balance seguridad/UX.<li><strong>JsonStringEnumConverter</strong> configurado globalmente para que enums viajen como string en JSON.<li><strong><code>StringExtensions</code> no incluir por defecto</strong> en proyectos nuevos. Solo se justifica para operaciones de string sin un VO asociado (slugify, normalización, trimming). La validación de tipos con semántica propia vive en el VO via <code>TryParse</code>.</ul>
+<ul><li><strong><code>GetByCondictionsAsync</code></strong> tiene un typo histórico. NO corregir — rompería todos los repos.<li><strong><code>ValidationExecption</code></strong> también tiene typo. Mantener para no romper el middleware que la matchea.<li><strong>VOs exponen <code>TryParse(string?, out VO)</code></strong> para uso en <code>Ensure()</code> de services. El VO es la <strong>única fuente de verdad</strong> para validación — nunca duplicar el regex/lógica en <code>StringExtensions</code> u otra utilidad.<li><strong><code>InMemoryExceptionLogStore</code></strong> es singleton con ring buffer (capacity 100). Pensado para diagnóstico rápido sin levantar Seq/ELK. Reemplazable por una impl que escriba a un sink externo.<li><strong><code>MapFlow</code> y <code>EitherWay</code></strong> son librerías propias del usuario (publicadas en GitHub). Son "infraestructura funcional" transversal — están en TODAS las capas.<li><strong>PasswordHasher con fallback SHA256</strong>: el prefijo <code>"$2"</code> distingue BCrypt de hashes legacy. Permite migrar gradualmente.<li><strong>Multi-tenant filter</strong>: el filtro por empresa es un <strong>global query filter</strong> del <code>DbContext</code> (<code>VolterpDbContext.ApplyTenantFilters</code>), no un filtro por servicio. El <code>ITenantContext</code> lo lleva; fuera de una petición HTTP el contexto es <code>NullTenantContext</code> y no filtra nada. Un <code>IgnoreQueryFilters()</code> se usa solo cuando la búsqueda es por una clave exacta (los renglones de una venta ya resuelta para su empresa).<li><strong><code>ElectronicInvoicing</code> es una library por debajo del Domain</strong>: no referencia al ERP y por eso el Domain la consume. El valor de un enum es el <strong>código oficial</strong> de la DGII, no un ordinal.<li><strong>El XML del e-CF sale sin indentación</strong>: el whitespace entra en el digest de la firma y la DGII lo descarta.<li><strong>El número del NCF se toma dentro de la transacción</strong> que persiste el documento: si se toma antes, el número se quema sin documento.<li><strong>El readiness sigue el camino, no el módulo</strong>: el modo declarado no es un bloqueo y el certificado solo se pide en el camino electrónico.<li><strong>BCrypt cost 12</strong>: ~250ms por hash en hardware 2024. Balance seguridad/UX.<li><strong>JsonStringEnumConverter</strong> configurado globalmente para que enums viajen como string en JSON.<li><strong><code>StringExtensions</code> no incluir por defecto</strong> en proyectos nuevos. Solo se justifica para operaciones de string sin un VO asociado (slugify, normalización, trimming). La validación de tipos con semántica propia vive en el VO via <code>TryParse</code>.</ul>
 <hr>
 <h1 id="fin">FIN</h1>
 <p>Este MD es el contrato de la skill <code>dotnet-api-backend</code>. El próximo paso es:</p>

@@ -54,18 +54,19 @@ Una solución `.slnx` (formato moderno XML, soportado oficialmente desde Visual 
 ## 1.2 Regla de dependencias entre proyectos
 
 ```
-Api ──► Infrastructure ──► Application ──► Domain
- │                            │              ▲
- └────────────────────────────┘              │
- └───────────────────────────────────────────┘
+Api ──► Infrastructure ──► Application ──► Domain ──► ElectronicInvoicing
+ │                            │              ▲              ▲
+ └────────────────────────────┘              │              │
+ └───────────────────────────────────────────┘──────────────┘
 Tests ──► (Api, Infrastructure, Application, Domain)
 ```
 
-- `Domain` no referencia a nadie.
-- `Application` solo referencia `Domain`.
+- `Domain` no referencia a nadie **del ERP** (sí a la library fiscal, que no depende de nadie).
+- `Application` solo referencia `Domain` (+ la library fiscal).
 - `Infrastructure` referencia `Application` + `Domain`.
 - `Api` referencia los tres.
 - `Tests` referencia los cuatro (necesita acceso a todo para mockear y verificar).
+- **`ElectronicInvoicing` no referencia a nadie**: es una library vendible por separado. El motor fiscal vive **por debajo** del Domain, que es lo que permite que el Domain la consuma sin que la library dependa del ERP.
 
 ## 1.3 Estructura de carpetas
 
@@ -78,6 +79,14 @@ MyApp.slnx
 │   ├── ValueObjects/    ← readonly record struct
 │   ├── Enums/           ← estados, roles, tipos
 │   └── Exceptions/      ← excepciones de dominio (NO HTTP)
+│
+├── MyApp.ElectronicInvoicing/    ← library fiscal vendible (no referencia al ERP)
+│   ├── MyApp.ElectronicInvoicing.csproj
+│   ├── Xml/             ← el modelo del documento, el writer y los perfiles por tipo
+│   ├── Schemas/         ← los XSD oficiales de la DGII (EmbeddedResource)
+│   ├── Signing/         ← la firma XMLDSig y el código de seguridad
+│   ├── Dgii/            ← el transporte contra la DGII (semilla, token, envío, veredicto)
+│   └── Qr/              ← las URLs de verificación
 │
 ├── MyApp.Application/
 │   ├── MyApp.Application.csproj
@@ -2409,6 +2418,232 @@ public class UserServiceTests
 
 ---
 
+## 2.6 Módulo de facturación electrónica (e-CF)
+
+Este módulo convierte una venta en un comprobante que la DGII acepta. Se armó contra la
+documentación oficial (la Descripción Técnica de Servicios DGII, el Formato del e-CF
+v1.0 y los XSD por tipo) y **la norma vive en el repo**, no en la cabeza de nadie.
+
+### La library portable (proyecto vendible)
+
+**Ubicación**: `MyApp.ElectronicInvoicing/MyApp.ElectronicInvoicing.csproj`
+
+**Reglas**:
+- **No referencia ningún proyecto del ERP.** Es vendible por separado: por eso el Domain puede consumirla. Si aparece `Sale` o `Company` en la library, la library dejó de ser vendible.
+- Un solo NuGet: `System.Security.Cryptography.Xml` (la firma).
+- Los **XSD oficiales van como `EmbeddedResource`**: el requerimiento de cada tipo se lee del esquema, no se escribe a mano.
+- Tiene su propio proyecto de tests, que referencia **solo** la library: esa suite es la prueba de que la library es vendible.
+
+### Los enums fiscales
+
+**Ubicación**: `EcfDocumentType.cs`, `TaxCode.cs`, `EcfStatus.cs`, `EcfFiscalState.cs`
+
+**Reglas**:
+- El valor del enum **es el código oficial de la DGII** (31, 32, 41...), no un ordinal propio.
+- El estado que ve el tenant (`EcfFiscalState`) es **otra taxonomía**: `Classify` los separa y uno nunca se deriva del otro.
+- `EcfStatus` son los 8 estados del comprobante (borrador, firmado, enviado, en proceso, aceptado, aceptado condicional, rechazado, anulado).
+
+### El modelo del documento
+
+**Ubicación**: `Xml/EcfDocument.cs`
+
+**Reglas**:
+- El modelo es **neutral**: la library no sabe de tenants ni de HTTP.
+- Los totales, los ítems y los ajustes son del documento, no de la venta.
+
+### Los perfiles por tipo (introspección del XSD)
+
+**Ubicación**: `Xml/EcfTypeProfiles.cs` + `Schemas/EcfSchema.cs`
+
+**Reglas**:
+- Los requisitos de un tipo **se leen del XSD** (`IsRequired`, `AllowedValues`, `MaxOccurs`), no se escriben a mano.
+- Un tipo **nunca hereda** las reglas de otro.
+- El perfil es la única fuente para "este tipo exige comprador / fecha de expiración / ingresos permitidos".
+
+### El writer
+
+**Ubicación**: `Xml/EcfXmlWriter.cs`
+
+**Reglas**:
+- Valida **antes de escribir**: lo que no cuadra no se escribe y por lo tanto nunca se firma.
+- La salida va **sin indentación**: el whitespace entra en el digest de la firma y la DGII lo descarta → un XML formateado no valida su propia firma.
+- Valida la salida contra el XSD.
+
+```csharp
+var breaches = EcfDocumentValidator.Validate(document);
+
+if (breaches.Count > 0)
+{
+    var details = string.Join(" | ", breaches.Take(3).Select(breach => breach.Message));
+    throw new EcfXmlException($"The e-CF {(int)document.DocumentType} is not valid: {details}");
+}
+
+var settings = new XmlWriterSettings
+{
+    Indent = false,                                  // el whitespace entra en el digest
+    OmitXmlDeclaration = false,
+    Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+    NewLineHandling = NewLineHandling.None
+};
+```
+
+### El firmador (XMLDSig)
+
+**Ubicación**: `Signing/XmlDsigEcfSigner.cs`
+
+**Reglas**:
+- Enveloped + C14N + RSA-SHA256, con digest SHA-256.
+- El certificado **viaja dentro de la firma** (`KeyInfo/X509Data`): el receptor valida sin saber de antemano quién emitió.
+- **Verifica antes de devolver**: si la firma no verifica contra el certificado, no sale.
+
+```csharp
+signedXml.SignedInfo!.CanonicalizationMethod = SignedXml.XmlDsigC14NTransformUrl;
+signedXml.SignedInfo.SignatureMethod = SignedXml.XmlDsigRSASHA256Url;
+
+var reference = new Reference(string.Empty) { DigestMethod = SignedXml.XmlDsigSHA256Url };
+reference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
+signedXml.AddReference(reference);
+
+var keyInfo = new KeyInfo();
+keyInfo.AddClause(new KeyInfoX509Data(certificate));
+signedXml.KeyInfo = keyInfo;
+
+signedXml.ComputeSignature();
+```
+
+### El transporte contra la DGII
+
+**Ubicación**: `Dgii/`
+
+**Reglas**:
+- La URL es `{base}/{ambiente}/{servicio}`: `testecf` | `certecf` | `ecf`.
+- El XML va como multipart `text/xml` con el **nombre de archivo contractual**.
+- **La semilla firmada es la credencial**: no hay usuario ni contraseña.
+- El token se cachea **por RNC emisor**, con una sola renovación a la vez.
+- Un `trackId` desconocido es una **consulta fallida**, no un veredicto.
+
+### Las URLs de verificación y el QR
+
+**Ubicación**: `Qr/EcfVerificationUrl.cs`
+
+**Reglas**:
+- Tres URLs distintas (la consulta del consumo, el timbre del RFCE y el timbre del comprobante) y **dos hosts** (`fc.dgii.gov.do` y `ecf.dgii.gov.do`).
+
+### El RFCE y la anulación
+
+**Ubicación**: `Xml/RfceDocument.cs`, `Xml/RfceXmlWriter.cs`, `Xml/AnecfXmlWriter.cs`
+
+**Reglas**:
+- El resumen RFCE es **solo del tipo 32** y **solo por debajo de RD$250,000**.
+- El código de seguridad del resumen es el de **la factura resumida**, no el del resumen.
+
+### El camino normal (NCF B01/B02)
+
+**Ubicación**: `NormalFiscalDocumentService.cs`, `NormalFiscalDocument.cs`, `NormalFiscalSequence.cs`
+
+**Reglas**:
+- El rango del NCF es **propio**: nunca el del e-NCF.
+- El número se toma **dentro de la transacción** que persiste el documento (si no, el número se quema).
+- Una venta, un documento.
+- El número del NCF tiene **11 caracteres** (`B{2 dígitos de tipo}{8 de secuencia}`); el e-NCF tiene 13.
+- El tipo normal se deriva del electrónico (`NormalFiscalDocumentTypes.For`): E31→B01, E32→B02, E33→B03, E34→B04.
+
+### El registro en el DI
+
+**Ubicación**: `Volterp.Api/Helpers/ServiceExtensions.cs` (`ConfigureElectronicInvoicing`)
+
+**Reglas**:
+- Un método `Configure*` por responsabilidad.
+- **Solo el cache del token es singleton**: es el único estado que sobrevive un request.
+- El cliente HTTP es **typed client**; el autenticador es **transient** (un singleton capturaría el `HttpClient` y pinearía la dirección de la DGII).
+
+```csharp
+public static void ConfigureElectronicInvoicing(this IServiceCollection services, IConfiguration configuration)
+{
+    services.AddSingleton<IEcfSigner, XmlDsigEcfSigner>();
+    services.AddSingleton(new EcfXmlWriter());
+
+    var dgiiOptions = new DgiiOptions();
+    configuration.GetSection(DgiiOptions.SectionName).Bind(dgiiOptions);
+    services.AddSingleton(dgiiOptions);
+
+    services.AddHttpClient<IDgiiClient, DgiiClient>();
+    services.AddSingleton(TimeProvider.System);
+
+    services.AddSingleton<DgiiTokenCache>();
+    services.AddTransient<DgiiAuthenticator>();
+
+    services.AddScoped<ISigningCertificateProvider, CompanySigningCertificateProvider>();
+    services.AddScoped<IElectronicInvoiceService, ElectronicInvoiceService>();
+    services.AddHostedService<ElectronicInvoiceQueueWorker>();
+}
+```
+
+### El readiness fiscal
+
+**Ubicación**: `Volterp.Api/Controllers/SalesController.cs` (`GET /api/Sales/readiness`) · `Volterp.Application/DTOs/ElectronicInvoiceDtos/FiscalReadinessDto.cs` · `Volterp.Application/Services/ElectronicInvoiceService.cs` (`BuildTheReadinessAsync`) · `Volterp.Domain/Policies/CompanyEmissionPolicy.cs`
+
+**Reglas**:
+- El readiness sigue **el camino que la venta toma hoy** (el modo que declaró el contribuyente y la contingencia en la que está), **no el módulo**. El front muestra "el camino que la venta toma hoy", no "¿tienes el módulo electrónico?".
+- En **modo electrónico** → hacen falta **certificado vigente** y **rango de e-NCF** con cupo.
+- En **modo normal o dentro de una contingencia** → hace falta el **rango de NCF** con cupo y **nada de certificado**.
+- **El modo NO es un bloqueo**: facturar normal es un derecho del contribuyente, no una falla.
+- Decide `IsReady` **solo el tipo de consumo** (`E32`/`B02`): es el documento que toda venta puede emitir.
+- Los **códigos de bloqueo son un contrato con el front** (`certificate-missing`, `range-missing`, `range-expired`, `range-exhausted`, `range-annulled`, `range-without-expiry`): el front traduce el código, nunca el mensaje.
+- El tipo que viaja al front es **`E32`/`B02`**, nunca el número del enum.
+
+```csharp
+public static bool UsesElectronicEmission(Company? company, DateTime now)
+{
+    // A company that cannot be read cannot silently turn an electronic
+    // sale into the normal one.
+    if (company is null)
+        return true;
+
+    if (company.EmissionMode == CompanyEmissionMode.Normal)
+        return false;
+
+    if (company.ContingencyStatus == CompanyContingencyStatus.None)
+        return true;
+
+    // A contingency without both of its bounds suspends the electronic
+    // path in the conservative way.
+    if (!company.ContingencyStartsAt.HasValue || !company.ContingencyEndsAt.HasValue)
+        return false;
+
+    // Outside the window of the contingency the electronic path is back.
+    return now < company.ContingencyStartsAt.Value
+        || now >= company.ContingencyEndsAt.Value;
+}
+```
+
+```csharp
+// El certificado pertenece al RNC que emite.
+var certificate = await unitOfWork.CompanyCertificates.GetActiveByTaxIdAsync(company.TaxId, ct);
+
+// Los tipos del camino que el contribuyente toma ahora.
+var documentTypes = electronic
+    ? await TheElectronicTypesAsync(company, now, ct)
+    : await ThePaperTypesAsync(company, now, ct);
+
+// Un contribuyente que emite en papel no necesita certificado.
+if (electronic && certificate is null)
+    blockers.Add(new FiscalBlockerDto { Code = "certificate-missing", /* ... */ });
+
+// El consumo es el documento que toda venta puede emitir: el que decide.
+var consumption = documentTypes.Single(x => x.Code == (electronic ? "E32" : "B02"));
+```
+
+### El ciclo de vida del comprobante
+
+**Ubicación**: `Volterp.Domain/Entities/ElectronicInvoice.cs`
+
+**Reglas**:
+- Las transiciones son **métodos de dominio con guarda** (`Sign`, `MarkSent`, `Accept`, `Reject`, `Annull`...), nunca asignaciones de `Status`.
+- Cada estado tiene **un solo punto de entrada**: el que lo dispara vive en `ElectronicInvoiceService`.
+
+---
+
 # PARTE 3 — WORKFLOW
 
 ## 3.1 Crear un proyecto nuevo desde este template
@@ -2584,7 +2819,11 @@ Workflow de 7 pasos para cualquier nueva entidad (ej. `Supplier`):
 - **`InMemoryExceptionLogStore`** es singleton con ring buffer (capacity 100). Pensado para diagnóstico rápido sin levantar Seq/ELK. Reemplazable por una impl que escriba a un sink externo.
 - **`MapFlow` y `EitherWay`** son librerías propias del usuario (publicadas en GitHub). Son "infraestructura funcional" transversal — están en TODAS las capas.
 - **PasswordHasher con fallback SHA256**: el prefijo `"$2"` distingue BCrypt de hashes legacy. Permite migrar gradualmente.
-- **Multi-tenant filter en service**, no global query filter. Más explícito, más testeable.
+- **Multi-tenant filter**: el filtro por empresa es un **global query filter** del `DbContext` (`VolterpDbContext.ApplyTenantFilters`), no un filtro por servicio. El `ITenantContext` lo lleva; fuera de una petición HTTP el contexto es `NullTenantContext` y no filtra nada. Un `IgnoreQueryFilters()` se usa solo cuando la búsqueda es por una clave exacta (los renglones de una venta ya resuelta para su empresa).
+- **`ElectronicInvoicing` es una library por debajo del Domain**: no referencia al ERP y por eso el Domain la consume. El valor de un enum es el **código oficial** de la DGII, no un ordinal.
+- **El XML del e-CF sale sin indentación**: el whitespace entra en el digest de la firma y la DGII lo descarta.
+- **El número del NCF se toma dentro de la transacción** que persiste el documento: si se toma antes, el número se quema sin documento.
+- **El readiness sigue el camino, no el módulo**: el modo declarado no es un bloqueo y el certificado solo se pide en el camino electrónico.
 - **BCrypt cost 12**: ~250ms por hash en hardware 2024. Balance seguridad/UX.
 - **JsonStringEnumConverter** configurado globalmente para que enums viajen como string en JSON.
 - **`StringExtensions` no incluir por defecto** en proyectos nuevos. Solo se justifica para operaciones de string sin un VO asociado (slugify, normalización, trimming). La validación de tipos con semántica propia vive en el VO via `TryParse`.

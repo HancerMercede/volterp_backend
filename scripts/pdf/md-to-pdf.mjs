@@ -398,7 +398,10 @@ function renderBlock(block) {
       return `<${tag} id="${block.id}">${inline(block.text)}</${tag}>`;
     }
     case 'code':
-      return `<pre><code>${highlight(block.code, block.lang)}</code></pre>`;
+      // El resaltado solo cuando el bloque declara su lenguaje: un arbol de
+      // carpetas o un diagrama no son C# y pintarlos de colores los hace
+      // ilegibles.
+      return `<pre><code>${block.lang ? highlight(block.code, block.lang) : escapeHtml(block.code)}</code></pre>`;
     case 'table': {
       const head = block.header.map(cell => `<th>${inline(cell)}</th>`).join('');
       const body = block.rows

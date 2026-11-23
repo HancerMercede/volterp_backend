@@ -44,10 +44,10 @@ El trabajo de esos dos PDF es **renderizar los templates y completar lo que falt
 
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
-| MP1 | S1, S2 | inline (parent) | PENDING | El **pipeline**: MD → HTML → PDF + la maqueta (portada, índice navegable, numeración, código con resaltado, bloques de "principio" y "stack", las páginas del PDF) → la guía es la skill `styled-pdf` |
-| MP2 | S1, S3 | inline (parent) | PENDING | El **PDF del frontend** desde `FRONTEND-SKELETON-TEMPLATE.md` + lo que falte (el módulo `side-menu` nuevo ✓, la ruta `/pos` ✓, los totales de la caja ✓) |
-| MP3 | S1, S3 | inline (parent) | PENDING | El **PDF del backend** desde `NET-API-SKELETON-TEMPLATE.md` + lo que falte (el readiness ✓, los permisos ✓, el e-CF ✓) |
-| MP4 | S1, S4 | inline (parent) | PENDING | El **manual del usuario**: inventario de pantallas y flujos + el texto paso a paso + capturas de las pantallas reales |
+| MP1 | S1, S2 | inline (parent) | DONE | El **pipeline**: MD → HTML → PDF + la maqueta (portada, índice navegable, numeración, código con resaltado, bloques de "principio" y "stack", las páginas del PDF) → la guía es la skill `styled-pdf`. Commits `82c6daf` (la maqueta y el conversor) y `4aa5b61` (Playwright) |
+| MP2 | S1, S3 | inline (parent) | DONE | El **PDF del frontend** desde `FRONTEND-SKELETON-TEMPLATE.md` → `erp-mvp/docs/guia-frontend.pdf` (85 páginas) + el link en el README |
+| MP3 | S1, S3 | inline (parent) | DONE | El **PDF del backend** desde `NET-API-SKELETON-TEMPLATE.md` → `docs/guia-backend.pdf` (con la sección nueva del e-CF y del readiness ✓) + el link en el README |
+| MP4 | S1, S4 | inline (parent) | PENDING | El **manual del usuario**: inventario de pantallas y flujos + el texto paso a paso + capturas de las pantallas reales. **Sin números de página** (se sigue paso a paso, no se consulta por página) |
 | MP5 | S2, S5 | inline (parent) | PENDING | La **revisión**: que un dev nuevo arranque con el PDF del front sin preguntar nada, y que un usuario pueda hacer su tarea sin ayuda |
 
 ## Riesgos
@@ -71,3 +71,15 @@ El trabajo de esos dos PDF es **renderizar los templates y completar lo que falt
 **Regla** ✓: el template se actualiza **con el desarrollo**, no al final ✓ → un patrón nuevo que aterrice en el código entra al template en la misma tanda ✓ → el PDF se **renderiza** desde el template ✓ (si el template está viejo, el PDF miente ✓).
 
 **El hueco que ya se ve** ✓: el template del **back** (`NET-API-SKELETON-TEMPLATE.md` ✓) **no documenta el mapa de permisos** ✓ (el `PermissionRoutes` ✓ —un permiso por controller+verb ✓— ni el test de inventario que avisa de las rutas sin declarar ✓) → el patrón nació con la feature de roles-permissions ✓ y quedó afuera ✓ → entra con la actualización ✓ (tarea T8 ✓ en `odd/tasks/dotnet-api-skeleton-template.md` ✓).
+
+### L3 — 2026-11-23 — el pipeline de los PDF y las dos guías de programador
+
+**Lo que se armó** ✓: el pipeline (`scripts/pdf/md-to-pdf.mjs` + `scripts/pdf/maqueta.css` ✓) y las dos guías de programador (`erp-mvp/docs/guia-frontend.pdf` ✓ 85 páginas · `docs/guia-backend.pdf` ✓) → las dos se **renderizan desde el template** ✓ (que es la fuente única ✓) y el README de cada repo las enlaza ✓.
+
+**El conversor** ✓: la skill `styled-pdf` prefiere Playwright ✓ → en esta máquina está (en el cache de npx ✓) pero su navegador no (pide el chromium 1228 y hay 1223 y 1248 ✓) → **Playwright conduce el Chrome que ya está instalado** ✓ (sin descargar nada ✓) y el conversor propio por CDP queda de respaldo ✓ → el pipeline no depende de nada instalado ✓.
+
+**Lo que la maqueta aprendio** ✓: el `@import` de las fuentes **va primero** (después de otra regla el navegador lo ignora ✓ y el título salía con Segoe UI ✓) · el código **no usa JetBrains Mono** (ni la de la web ni la del IDE: no traen los caracteres de dibujo de los árboles ✓ y el navegador cae a otra fuente → **el árbol pierde la alineación** ✓ → va con Cascadia Mono/Consolas ✓) · el resaltado **solo cuando el bloque declara su lenguaje** (un árbol de carpetas no es C# ✓ y pintarlo de colores lo volvía ilegible ✓) · la portada **llena la hoja** (`height: 297mm` ✓ y sin el borde del `h1` ✓).
+
+**El template del back se completó** ✓: la sección **2.6** con el módulo de e-CF (la library vendible ✓, los enums fiscales ✓, el modelo ✓, los perfiles por tipo ✓, el writer ✓, el firmador ✓, el transporte ✓, las URLs de verificación ✓, el RFCE ✓, el camino normal ✓, el DI ✓, el readiness ✓ y el ciclo de vida ✓) + la library en la regla de dependencias ✓ y en la estructura ✓ → y se **corrigió una afirmación que mentía**: el template decía *"Multi-tenant filter en service, no global query filter"* y el código real **sí** tiene un global query filter (`VolterpDbContext.ApplyTenantFilters` ✓) → una guía que enseña lo contrario del código es peor que no tener guía ✓.
+
+**Lo que falta** ✗: el **manual del usuario** (MP4 ✓) — es el que hay que escribir ✗ → el inventario de pantallas ✗ → el paso a paso ✗ → las capturas de las pantallas reales ✗ (el front tiene que estar corriendo ✗).
