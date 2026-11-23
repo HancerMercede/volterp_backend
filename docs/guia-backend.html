@@ -62,10 +62,10 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* El aire de la hoja: arriba y abajo viven el encabezado corrido y el pie con
- * el numero de pagina (Chrome los pone en los margenes), y por eso el texto
- * no los pisa. */
-@page { size: A4; margin: 0.55in 0 0.5in 0; }
+/* El aire de la hoja: sin margenes, como el PDF de la casa. El encabezado
+ * de cada seccion va dentro del flujo (no es fijo), y el pie con el numero de
+ * pagina lo pone Chrome abajo, en el aire que deja el cuerpo. */
+@page { size: A4; margin: 0; }
 
 body {
   font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
@@ -73,9 +73,8 @@ body {
   line-height: 1.55;
   color: var(--text-primary);
   width: 210mm;
-  /* El aire vertical lo dan los margenes de Chrome (alli viven el
-   * encabezado y el pie); aqui solo el aire de los lados. */
-  padding: 0 55px 8px;
+  /* El aire de los lados y el del pie (ahi se dibuja el numero de pagina). */
+  padding: 0 55px 14mm;
   background: #fff;
 }
 
@@ -88,8 +87,8 @@ body {
   color: var(--text-light);
   padding: 50px 55px;
   /* La portada sangra al borde de la hoja: los margenes negativos la sacan de
-   * la caja de contenido y Chrome imprime eldesborde. */
-  margin: -0.55in -55px -0.5in;
+   * la caja de contenido y Chrome imprime el desborde. */
+  margin: 0 -55px 0;
   height: 297mm;
   box-sizing: border-box;
   break-after: page;
