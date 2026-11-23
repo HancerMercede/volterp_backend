@@ -2,6 +2,12 @@
 
 ERP backend built with Clean Architecture, .NET 10, and PostgreSQL. Serves as the API layer for the Volterp ERP frontend ([erp-mvp](https://github.com/HancerMercede/erp-mvp)).
 
+## Documentation
+
+- **[Guía del backend (PDF)](docs/guia-backend.pdf)** — la guía de cómo se construye esta API: las capas, los patrones, las convenciones y cómo trabajamos. La produce el template (`NET-API-SKELETON-TEMPLATE.md`) y se regenera de ahí, no se edita a mano.
+- El template vivo: [`NET-API-SKELETON-TEMPLATE.md`](NET-API-SKELETON-TEMPLATE.md).
+- El pipeline que arma el PDF: `scripts/pdf/md-to-pdf.mjs` (markdown → HTML → PDF).
+
 ## Tech Stack
 
 | Layer | Technology |
