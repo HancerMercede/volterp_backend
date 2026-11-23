@@ -11,6 +11,31 @@
  *   - Every section title starts on a new sheet (`break-before: page`).
  */
 
+/* La maqueta de los PDF del proyecto.
+ *
+ * These are the values of the house (multi-tenant-refactor.html): the same
+ * palette, the same typography, the same components. The PDF of the manuals
+ * has to look like the rest of the documentation.
+ *
+ * The rules that matter when printing:
+ *   - @page without margins: the air is the body's padding → the footer with
+ *     the page number (Chrome puts it there) does not eat the text.
+ *   - Every block that cannot be split carries `break-inside: avoid`.
+ *   - Every section title starts on a new sheet (`break-before: page`).
+ */
+
+/* The typography of the house: Inter for the text.
+ *
+ * The @import goes FIRST, before any other rule: by rule the browser ignores
+ * an @import that comes after another rule (that is why the title came out in
+ * Segoe UI).
+ *
+ * The code does NOT use JetBrains Mono: that font (the web one and the one of
+ * the IDE) does not have the drawing characters of the folder trees, and the
+ * browser falls back to another font for them → the tree loses its alignment.
+ * Cascadia Mono and Consolas have them and are really monospaced. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
   --accent-primary: #6366f1;
   --accent-secondary: #8b5cf6;
@@ -27,16 +52,7 @@
   --code-bg: #0f172a;
 }
 
-/* The typography of the house: Inter for the text.
- *
- * The @import goes FIRST: by rule the browser ignores an @import that comes
- * after another rule (that is why the title came out in Segoe UI).
- *
- * The code does NOT use JetBrains Mono: that font (the web one and the one of
- * the IDE) does not have the drawing characters of the folder trees, and the
- * browser falls back to another font for them → the tree loses its alignment.
- * Cascadia Mono and Consolas have them and are really monospaced. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* The typography of the house: Inter for the text. */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -560,3 +576,6 @@ figure.captura.pendiente .hueco {
   padding: 14mm 8mm;
   text-align: center;
 }
+
+/* El titulo del documento no lleva numero: no es una parte */
+.toc-parte.toc-titulo { border-bottom-color: color-mix(in srgb, var(--border) 70%, transparent); }

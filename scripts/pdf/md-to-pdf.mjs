@@ -127,9 +127,11 @@ function parseMarkdown(markdown) {
         // El indice lleva la misma numeracion que el documento: las partes
         // (h1) y las secciones (h2) cuelgan de la parte que las contiene.
         if (level === 1) {
-          part += 1;
+          // El primer # es el titulo del documento: no numera partes.
+          const isTheTitle = blocks.length === 0;
+          if (!isTheTitle) part += 1;
           section = 0;
-          outline.push({ level: 1, text, id, number: String(part) });
+          outline.push({ level: 1, text, id, number: isTheTitle ? '' : String(part) });
         } else {
           section += 1;
           outline.push({
@@ -487,7 +489,7 @@ function renderDocument({ blocks, outline }, meta, css) {
     <div class="toc">
       ${outline
         .map(entry => entry.level === 1
-          ? `<div class="toc-parte"><span class="n">${entry.number}</span><a href="#${entry.id}">${inline(entry.text)}</a></div>`
+          ? `<div class="toc-parte${entry.number ? '' : ' toc-titulo'}">${entry.number ? `<span class="n">${entry.number}</span>` : ''}<a href="#${entry.id}">${inline(entry.text)}</a></div>`
           : `<div class="toc-seccion lvl-${entry.level}"><span class="n">${entry.number}</span><a href="#${entry.id}">${inline(entry.text)}</a></div>`)
         .join('\n        ')}
     </div>

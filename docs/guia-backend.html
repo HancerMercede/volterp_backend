@@ -17,6 +17,31 @@
  *   - Every section title starts on a new sheet (`break-before: page`).
  */
 
+/* La maqueta de los PDF del proyecto.
+ *
+ * These are the values of the house (multi-tenant-refactor.html): the same
+ * palette, the same typography, the same components. The PDF of the manuals
+ * has to look like the rest of the documentation.
+ *
+ * The rules that matter when printing:
+ *   - @page without margins: the air is the body's padding → the footer with
+ *     the page number (Chrome puts it there) does not eat the text.
+ *   - Every block that cannot be split carries `break-inside: avoid`.
+ *   - Every section title starts on a new sheet (`break-before: page`).
+ */
+
+/* The typography of the house: Inter for the text.
+ *
+ * The @import goes FIRST, before any other rule: by rule the browser ignores
+ * an @import that comes after another rule (that is why the title came out in
+ * Segoe UI).
+ *
+ * The code does NOT use JetBrains Mono: that font (the web one and the one of
+ * the IDE) does not have the drawing characters of the folder trees, and the
+ * browser falls back to another font for them → the tree loses its alignment.
+ * Cascadia Mono and Consolas have them and are really monospaced. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
   --accent-primary: #6366f1;
   --accent-secondary: #8b5cf6;
@@ -33,16 +58,7 @@
   --code-bg: #0f172a;
 }
 
-/* The typography of the house: Inter for the text.
- *
- * The @import goes FIRST: by rule the browser ignores an @import that comes
- * after another rule (that is why the title came out in Segoe UI).
- *
- * The code does NOT use JetBrains Mono: that font (the web one and the one of
- * the IDE) does not have the drawing characters of the folder trees, and the
- * browser falls back to another font for them → the tree loses its alignment.
- * Cascadia Mono and Consolas have them and are really monospaced. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* The typography of the house: Inter for the text. */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -567,6 +583,9 @@ figure.captura.pendiente .hueco {
   text-align: center;
 }
 
+/* El titulo del documento no lleva numero: no es una parte */
+.toc-parte.toc-titulo { border-bottom-color: color-mix(in srgb, var(--border) 70%, transparent); }
+
 </style>
 </head>
 <body>
@@ -581,7 +600,7 @@ figure.captura.pendiente .hueco {
         <div class="lbl">secciones</div>
       </div>
       <div class="cover-stat">
-        <div class="num">70</div>
+        <div class="num">68</div>
         <div class="lbl">páginas</div>
       </div>
       <div class="cover-stat">
@@ -597,38 +616,38 @@ figure.captura.pendiente .hueco {
   <div class="index">
     <h2 id="indice" style="break-before:auto">Índice</h2>
     <div class="toc">
-      <div class="toc-parte"><span class="n">1</span><a href="#net-api-backend-skeleton-template">.NET API Backend — Skeleton &amp; Template</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">1.1</span><a href="#metadata">Metadata</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">1.2</span><a href="#how-to-read-this-document">How to read this document</a></div>
-        <div class="toc-parte"><span class="n">2</span><a href="#parte-1-skeleton">PARTE 1 — SKELETON</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">2.1</span><a href="#1-1-solucion">1.1 Solución</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">2.2</span><a href="#1-2-regla-de-dependencias-entre-proyectos">1.2 Regla de dependencias entre proyectos</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">2.3</span><a href="#1-3-estructura-de-carpetas">1.3 Estructura de carpetas</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">2.4</span><a href="#1-4-csproj-minimos">1.4 csproj mínimos</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">2.5</span><a href="#1-5-appsettings-json-base">1.5 appsettings.json base</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">2.6</span><a href="#1-6-launchsettings-json-properties">1.6 launchSettings.json (Properties/)</a></div>
-        <div class="toc-parte"><span class="n">3</span><a href="#parte-2-template">PARTE 2 — TEMPLATE</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">3.1</span><a href="#2-1-domain-layer">2.1 Domain layer</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">3.2</span><a href="#2-2-application-layer">2.2 Application layer</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">3.3</span><a href="#2-3-infrastructure-layer">2.3 Infrastructure layer</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">3.4</span><a href="#2-4-api-layer">2.4 API layer</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">3.5</span><a href="#2-5-tests-layer">2.5 Tests layer</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">3.6</span><a href="#2-6-modulo-de-facturacion-electronica-e-cf">2.6 Módulo de facturación electrónica (e-CF)</a></div>
-        <div class="toc-parte"><span class="n">4</span><a href="#parte-3-workflow">PARTE 3 — WORKFLOW</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">4.1</span><a href="#3-1-crear-un-proyecto-nuevo-desde-este-template">3.1 Crear un proyecto nuevo desde este template</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">4.2</span><a href="#3-2-agregar-una-nueva-entidad">3.2 Agregar una nueva entidad</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">4.3</span><a href="#3-3-setup-inicial">3.3 Setup inicial</a></div>
-        <div class="toc-parte"><span class="n">5</span><a href="#parte-4-convenciones">PARTE 4 — CONVENCIONES</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">5.1</span><a href="#4-1-naming">4.1 Naming</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">5.2</span><a href="#4-2-multi-tenancy">4.2 Multi-tenancy</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">5.3</span><a href="#4-3-auth-y-roles">4.3 Auth y roles</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">5.4</span><a href="#4-4-error-handling">4.4 Error handling</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">5.5</span><a href="#4-5-logging">4.5 Logging</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">5.6</span><a href="#4-6-auditing-automatico">4.6 Auditing automático</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">5.7</span><a href="#4-7-mapping-mapflow">4.7 Mapping (MapFlow)</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">5.8</span><a href="#4-8-either-pipeline-eitherway">4.8 Either pipeline (EitherWay)</a></div>
-        <div class="toc-seccion lvl-2"><span class="n">5.9</span><a href="#4-9-decisions-intencionales-que-respetar">4.9 Decisions intencionales que respetar</a></div>
-        <div class="toc-parte"><span class="n">6</span><a href="#fin">FIN</a></div>
+      <div class="toc-parte toc-titulo"><a href="#net-api-backend-skeleton-template">.NET API Backend — Skeleton &amp; Template</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">1</span><a href="#metadata">Metadata</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">2</span><a href="#how-to-read-this-document">How to read this document</a></div>
+        <div class="toc-parte"><span class="n">1</span><a href="#parte-1-skeleton">PARTE 1 — SKELETON</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">1.1</span><a href="#1-1-solucion">1.1 Solución</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">1.2</span><a href="#1-2-regla-de-dependencias-entre-proyectos">1.2 Regla de dependencias entre proyectos</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">1.3</span><a href="#1-3-estructura-de-carpetas">1.3 Estructura de carpetas</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">1.4</span><a href="#1-4-csproj-minimos">1.4 csproj mínimos</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">1.5</span><a href="#1-5-appsettings-json-base">1.5 appsettings.json base</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">1.6</span><a href="#1-6-launchsettings-json-properties">1.6 launchSettings.json (Properties/)</a></div>
+        <div class="toc-parte"><span class="n">2</span><a href="#parte-2-template">PARTE 2 — TEMPLATE</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">2.1</span><a href="#2-1-domain-layer">2.1 Domain layer</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">2.2</span><a href="#2-2-application-layer">2.2 Application layer</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">2.3</span><a href="#2-3-infrastructure-layer">2.3 Infrastructure layer</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">2.4</span><a href="#2-4-api-layer">2.4 API layer</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">2.5</span><a href="#2-5-tests-layer">2.5 Tests layer</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">2.6</span><a href="#2-6-modulo-de-facturacion-electronica-e-cf">2.6 Módulo de facturación electrónica (e-CF)</a></div>
+        <div class="toc-parte"><span class="n">3</span><a href="#parte-3-workflow">PARTE 3 — WORKFLOW</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">3.1</span><a href="#3-1-crear-un-proyecto-nuevo-desde-este-template">3.1 Crear un proyecto nuevo desde este template</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">3.2</span><a href="#3-2-agregar-una-nueva-entidad">3.2 Agregar una nueva entidad</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">3.3</span><a href="#3-3-setup-inicial">3.3 Setup inicial</a></div>
+        <div class="toc-parte"><span class="n">4</span><a href="#parte-4-convenciones">PARTE 4 — CONVENCIONES</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">4.1</span><a href="#4-1-naming">4.1 Naming</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">4.2</span><a href="#4-2-multi-tenancy">4.2 Multi-tenancy</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">4.3</span><a href="#4-3-auth-y-roles">4.3 Auth y roles</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">4.4</span><a href="#4-4-error-handling">4.4 Error handling</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">4.5</span><a href="#4-5-logging">4.5 Logging</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">4.6</span><a href="#4-6-auditing-automatico">4.6 Auditing automático</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">4.7</span><a href="#4-7-mapping-mapflow">4.7 Mapping (MapFlow)</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">4.8</span><a href="#4-8-either-pipeline-eitherway">4.8 Either pipeline (EitherWay)</a></div>
+        <div class="toc-seccion lvl-2"><span class="n">4.9</span><a href="#4-9-decisions-intencionales-que-respetar">4.9 Decisions intencionales que respetar</a></div>
+        <div class="toc-parte"><span class="n">5</span><a href="#fin">FIN</a></div>
     </div>
   </div>
 <blockquote><p><strong>Propósito</strong>: punto de partida único y obligatorio para crear cualquier proyecto API backend en .NET siguiendo el estilo del usuario. Separa <strong>SKELETON</strong> (la forma del proyecto) de <strong>TEMPLATE</strong> (qué código va en cada archivo). Después de leerlo, se puede generar un proyecto nuevo sin tener que explicar Clean Architecture, repos, servicios o auth otra vez.
@@ -1201,7 +1220,7 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
 <span class="tok-punc">}</span></code></pre>
 <h3 id="iservicemanager-facade">IServiceManager (facade)</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.Application/Interfaces/IServiceManager.cs</code> + <code>Services/ServiceManager.cs</code><br><strong>Reglas</strong>:</p>
-<ul><li>Una propiedad por servicio.<li>Lazy init con <code>??=</code> (o <code>Lazy&lt;T&gt;</code> para Infrastructure si querés).</ul>
+<ul><li>Una propiedad por servicio.<li>Lazy init con <code>??=</code> (o <code>Lazy&lt;T&gt;</code> para Infrastructure si querés).<li><strong>La fachada expone todo lo que los controllers consumen</strong>: un controller solo recibe <code>IServiceManager</code> y pide sus servicios por ahí. Un controller que inyecta un servicio (o un repositorio) se salta la fachada.<li><strong>Los servicios no se registran en el DI</strong>: el DI registra <strong>solo</strong> el <code>ServiceManager</code> (y las excepciones de abajo).<li><strong>La excepción</strong>: un servicio que es un <strong>seam</strong> (un puerto hacia afuera: la DGII, el correo, un cliente HTTP) o que tiene <strong>dependencias con ciclo de vida propio en el DI</strong> (singletons, typed clients, background services) <strong>no se puede armar con <code>new</code></strong> → se registra en el DI, se <strong>inyecta en el constructor</strong> del <code>ServiceManager</code> y la fachada lo expone igual: el controller lo sigue pidiendo por la fachada.</ul>
 <p><strong>Snippet interface:</strong></p>
 <pre><code><span class="tok-key">namespace</span> <span class="tok-type">MyApp</span><span class="tok-punc">.</span><span class="tok-type">Application</span><span class="tok-punc">.</span><span class="tok-type">Interfaces</span><span class="tok-punc">;</span>
 
@@ -1228,6 +1247,9 @@ Tests ──► (Api, Infrastructure, Application, Domain)</code></pre>
     <span class="tok-key">public</span> <span class="tok-type">IUserService</span> <span class="tok-type">Users</span> <span class="tok-punc">=</span><span class="tok-punc">&gt;</span> _users <span class="tok-punc">?</span><span class="tok-punc">?</span><span class="tok-punc">=</span> <span class="tok-key">new</span> <span class="tok-type">UserService</span><span class="tok-punc">(</span>unitOfWork<span class="tok-punc">,</span> passwordHasher<span class="tok-punc">,</span> currentUserService<span class="tok-punc">)</span><span class="tok-punc">;</span>
 
     <span class="tok-com">// ... una por servicio</span>
+
+    <span class="tok-com">// La excepción: el seam se inyecta y la fachada lo expone igual.</span>
+    <span class="tok-key">public</span> <span class="tok-type">IElectronicInvoiceService</span> <span class="tok-type">ElectronicInvoices</span> <span class="tok-punc">=</span><span class="tok-punc">&gt;</span> electronicInvoices<span class="tok-punc">;</span>
 <span class="tok-punc">}</span></code></pre>
 <h3 id="dtos-convencion-por-entidad">DTOs — convención por entidad</h3>
 <p><strong>Ubicación</strong>: <code>MyApp.Application/DTOs/{Entity}Dtos/</code><br><strong>Reglas</strong>:</p>
