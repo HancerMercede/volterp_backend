@@ -47,7 +47,8 @@ El trabajo de esos dos PDF es **renderizar los templates y completar lo que falt
 | MP1 | S1, S2 | inline (parent) | DONE | El **pipeline**: MD → HTML → PDF + la maqueta (portada, índice navegable, numeración, código con resaltado, bloques de "principio" y "stack", las páginas del PDF) → la guía es la skill `styled-pdf`. Commits `82c6daf` (la maqueta y el conversor) y `4aa5b61` (Playwright) |
 | MP2 | S1, S3 | inline (parent) | DONE | El **PDF del frontend** desde `FRONTEND-SKELETON-TEMPLATE.md` → `erp-mvp/docs/guia-frontend.pdf` (85 páginas) + el link en el README |
 | MP3 | S1, S3 | inline (parent) | DONE | El **PDF del backend** desde `NET-API-SKELETON-TEMPLATE.md` → `docs/guia-backend.pdf` (con la sección nueva del e-CF y del readiness ✓) + el link en el README |
-| MP4 | S1, S4 | inline (parent) | PENDING | El **manual del usuario**: inventario de pantallas y flujos + el texto paso a paso + capturas de las pantallas reales. **Sin números de página** (se sigue paso a paso, no se consulta por página) |
+| MP4 | S1, S4 | inline (parent) | DONE | El **manual del usuario**: el inventario de pantallas (25 ✓) y flujos, el texto paso a paso con los nombres exactos de los botones (sacados del código ✓) y las limitaciones que hoy tiene el sistema ✓ → `erp-mvp/docs/manual-usuario.md` ✓ → `erp-mvp/docs/manual-usuario.pdf` (19 páginas ✓, **sin números de página** ✓: se sigue paso a paso) |
+| MP4b | S1, S4 | inline (parent) | PENDING | Las **capturas de las pantallas reales** (25 ✓): el script `scripts/pdf/capturas.mjs` ✓ (loguea con un usuario de prueba ✓ y recorre las pantallas ✓) → falta que el sistema esté arriba (el **Postgres no está corriendo** ✓ y su carpeta `bin` no está ✓ → hay que arrancarlo ✓) |
 | MP5 | S2, S5 | inline (parent) | PENDING | La **revisión**: que un dev nuevo arranque con el PDF del front sin preguntar nada, y que un usuario pueda hacer su tarea sin ayuda |
 
 ## Riesgos
@@ -82,4 +83,18 @@ El trabajo de esos dos PDF es **renderizar los templates y completar lo que falt
 
 **El template del back se completó** ✓: la sección **2.6** con el módulo de e-CF (la library vendible ✓, los enums fiscales ✓, el modelo ✓, los perfiles por tipo ✓, el writer ✓, el firmador ✓, el transporte ✓, las URLs de verificación ✓, el RFCE ✓, el camino normal ✓, el DI ✓, el readiness ✓ y el ciclo de vida ✓) + la library en la regla de dependencias ✓ y en la estructura ✓ → y se **corrigió una afirmación que mentía**: el template decía *"Multi-tenant filter en service, no global query filter"* y el código real **sí** tiene un global query filter (`VolterpDbContext.ApplyTenantFilters` ✓) → una guía que enseña lo contrario del código es peor que no tener guía ✓.
 
-**Lo que falta** ✗: el **manual del usuario** (MP4 ✓) — es el que hay que escribir ✗ → el inventario de pantallas ✗ → el paso a paso ✗ → las capturas de las pantallas reales ✗ (el front tiene que estar corriendo ✗).
+**Lo que falta** ✗: el **manual del usuario** (MP4 ✓) — el inventario de pantallas ✗ → el paso a paso ✗ → las capturas de las pantallas reales ✗ (el front tiene que estar corriendo ✗).
+
+### L4 — 2026-11-23 — la maqueta del PDF es la de la casa
+
+> (el dueño: *"la guia-backend no lo veo bien, no me gusta mucho, como que no tiene el estilo de los manuales que yo hago: valida y dale el estilo y mejora el encuadre de las paginas"*)
+
+**El estilo de referencia** ✓: el PDF que ya estaba en el repo (`multi-tenant-refactor.pdf` ✓ → su HTML ✓) → la maqueta ahora **copia sus valores** ✓ (no los parecidos ✓): el chip de la portada ✓, el título de 42pt con la parte en **degradado** ✓, el subtítulo a 12pt ✓, las **tarjetas de métricas** ✓ (con el número en degradado ✓), el encabezado corrido (marca y documento ✓) y el pie con el número de página ✓ · la tipografía ✓ (h1 32pt ✓ · h2 **en violeta** ✓ · h4 en versalitas atenuadas ✓ · el texto a 9.5pt ✓ · el código en línea en violeta ✓ · la primera columna de las tablas en monoespaciada violeta ✓).
+
+**Lo que la maqueta no puede copiar** ✓: el índice del PDF de la casa lleva el **número de página** de cada sección ✓ ("p. 03" ✓) → eso se sabe porque el documento está hecho hoja por hoja ✓ → en un PDF que se arma de un markdown largo **no se sabe** → el índice lleva el **número de sección** ✓ y el PDF sale con **marcadores** (el índice del lector ✓) ✓.
+
+**Lo que aprendió la maqueta** ✓ (por lo que se veía mal ✓): el `@import` de las fuentes **va primero** ✓ (después de otra regla el navegador lo ignora ✓) · el código **no usa JetBrains Mono** (ni la web ni el del IDE: no traen los caracteres de dibujo de los árboles ✓ → el navegador cae a otra fuente → **el árbol pierde la alineación** ✓) · el resaltado **solo cuando el bloque declara su lenguaje** ✓ (un árbol de carpetas no es C# ✓) · la portada **llena la hoja** ✓.
+
+**El manual del usuario** ✓: 25 pantallas ✓ · 19 páginas ✓ · el texto sale del **código** (los nombres de los botones y los avisos, con sus palabras exactas ✓) → y termina con **lo que hoy no se puede hacer** ✓ (el RNC del cliente no se captura en la UI ✓ → el crédito fiscal necesita un cliente con el RNC ya cargado ✓ · la venta a consumidor final de RD$250,000 o más sin RNC no se frena en la caja ✓ · no hay movimientos de inventario ✓ · no hay pantalla de categorías ✓ · nómina y asistencia no se guardan ✓ · reportes se arman en memoria ✓ · "Descargar PDF" imprime ✓ · emisores y rangos no se borran ✓ · recepción no tiene listado ✓).
+
+**Lo que falta** ✗: las **capturas de las pantallas reales** (MP4b ✓) → el script está ✓ (`scripts/pdf/capturas.mjs` ✓) → falta que el sistema esté arriba ✓ (**el Postgres no está corriendo ✓ y su carpeta `bin` no está ✓ → no se puede arrancar desde acá ✓**).

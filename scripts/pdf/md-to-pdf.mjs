@@ -232,9 +232,18 @@ function inline(text) {
     return `\u0000${codes.length - 1}\u0000`;
   });
 
-  // Las imagenes del markdown: la captura de una pantalla.
-  html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) =>
-    `<figure class="captura"><img src="${src}" alt="${alt}"><figcaption>${alt}</figcaption></figure>`);
+  // Las imagenes del markdown: la captura de una pantalla. Si el archivo no
+  // esta todavia (la captura se toma con el sistema arriba), se deja el
+  // recuadro con su nombre en vez de una imagen rota.
+  html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) => {
+    const file = src.split('/').pop();
+    const exists = existsSync(join(dirname(outputPath), src));
+    if (!exists) {
+      return `<figure class="captura pendiente"><div class="hueco">${escapeHtml(file ?? alt)}</div>`
+        + `<figcaption>${escapeHtml(alt)}</figcaption></figure>`;
+    }
+    return `<figure class="captura"><img src="${src}" alt="${alt}"><figcaption>${escapeHtml(alt)}</figcaption></figure>`;
+  });
 
   html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2">$1</a>');
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');

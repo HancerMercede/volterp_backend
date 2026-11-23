@@ -545,3 +545,14 @@ figure.captura figcaption { margin-top: 4px; font-size: 8pt; color: var(--text-m
 .avoid-break { break-inside: avoid; }
 .avoid-after { break-after: avoid; }
 .force-before { break-before: page; }
+
+/* El hueco de una captura que todavia no se tomo */
+figure.captura.pendiente .hueco {
+  border: 1px dashed var(--border);
+  border-radius: var(--border-radius);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 8.5pt;
+  padding: 14mm 8mm;
+  text-align: center;
+}
