@@ -22,4 +22,5 @@ public interface IServiceManager
     ICompanyEmissionModeService CompanyEmissionModes { get; }
     INormalFiscalDocumentService NormalFiscalDocuments { get; }
     IDashboardService Dashboard { get; }
+    IApiCredentialService ApiCredentials { get; }
 }

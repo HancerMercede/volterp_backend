@@ -130,7 +130,6 @@ public static class ServiceExtensions
     public static void ConfigureApiCredentials(IServiceCollection services)
     {
         services.AddScoped<IApiCredentialRepository, ApiCredentialRepository>();
-        services.AddScoped<IApiCredentialService, ApiCredentialService>();
     }
 
     public static void ConfigureRangeAnnulment(IServiceCollection services)

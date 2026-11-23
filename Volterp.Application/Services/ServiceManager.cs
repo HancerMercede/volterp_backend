@@ -48,6 +48,9 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
     private IDashboardService? _dashboard;
     public IDashboardService Dashboard => _dashboard ??= new DashboardService(unitOfWork);
 
+    private IApiCredentialService? _apiCredentials;
+    public IApiCredentialService ApiCredentials => _apiCredentials ??= new ApiCredentialService(unitOfWork);
+
     private INormalFiscalDocumentService? _normalFiscalDocuments;
     public INormalFiscalDocumentService NormalFiscalDocuments => _normalFiscalDocuments ??= new NormalFiscalDocumentService(unitOfWork);
 

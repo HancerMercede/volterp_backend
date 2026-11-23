@@ -21,6 +21,7 @@ public interface IUnitOfWork
     INormalFiscalSequenceRepository NormalFiscalSequences { get; }
     ICodeGeneratorService Codes { get; }
     IDashboardRepository Dashboard { get; }
+    IApiCredentialRepository ApiCredentials { get; }
     Task<int> CommitAsync(CancellationToken ct = default);
 
     // The transaction that makes a fiscal number and the document that

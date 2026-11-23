@@ -7,12 +7,14 @@ using Volterp.Domain.Entities;
 
 namespace Volterp.Application.Services;
 
-public class ApiCredentialService(IApiCredentialRepository credentials) : IApiCredentialService
+public class ApiCredentialService(IUnitOfWork unitOfWork) : IApiCredentialService
 {
+    private readonly IApiCredentialRepository _credentials = unitOfWork.ApiCredentials;
+
     public async Task<PagedResult<ApiCredentialDto>> GetAllAsync(
         Guid companyId, int pageNumber, int pageSize, CancellationToken ct = default)
     {
-        var list = await credentials.GetByCompanyAsync(companyId, pageNumber, pageSize, ct);
+        var list = await _credentials.GetByCompanyAsync(companyId, pageNumber, pageSize, ct);
 
         return list.MapTo<ApiCredential, ApiCredentialDto>();
     }
@@ -34,8 +36,8 @@ public class ApiCredentialService(IApiCredentialRepository credentials) : IApiCr
                 if (userId.HasValue)
                     issued.Credential.SetCreatedBy(userId.Value);
 
-                await credentials.AddAsync(issued.Credential, ct);
-                await credentials.CommitAsync(ct);
+                await _credentials.AddAsync(issued.Credential, ct);
+                await _credentials.CommitAsync(ct);
 
                 return issued;
             }, ex => new Error(ex.Message))
@@ -54,7 +56,7 @@ public class ApiCredentialService(IApiCredentialRepository credentials) : IApiCr
         return await EitherAsync<Error, Guid>
             .FromRight(id)
             .Ensure(x => x != Guid.Empty, new Error("The id must not be empty."))
-            .FlatMap(async credentialId => await credentials.GetByCondictionsAsync(
+            .FlatMap(async credentialId => await _credentials.GetByCondictionsAsync(
                     c => c.Id == credentialId && c.CompanyId == companyId, ct),
                 ex => new Error(ex.Message))
             .Ensure(c => c is not null, new Error("The credential does not exist.", ErrorKind.NotFound))
@@ -67,8 +69,8 @@ public class ApiCredentialService(IApiCredentialRepository credentials) : IApiCr
             })
             .FlatMap(async credential =>
             {
-                await credentials.UpdateAsync(credential, ct);
-                await credentials.CommitAsync(ct);
+                await _credentials.UpdateAsync(credential, ct);
+                await _credentials.CommitAsync(ct);
                 return credential;
             }, ex => new Error(ex.Message))
             .Map(c => c.MapTo<ApiCredential, ApiCredentialDto>())

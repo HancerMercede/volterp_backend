@@ -8,8 +8,10 @@ namespace Volterp.Api.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ApiCredentialsController(IApiCredentialService service) : BaseController
+public class ApiCredentialsController(IServiceManager serviceManager) : BaseController
 {
+    private IApiCredentialService Service => serviceManager.ApiCredentials;
+
     [HttpGet]
     [Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<ActionResult<PagedResult<ApiCredentialDto>>> GetAllCredentials(
@@ -17,7 +19,7 @@ public class ApiCredentialsController(IApiCredentialService service) : BaseContr
         CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await service.GetAllAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
+        var result = await Service.GetAllAsync(companyId, pagination.PageNumber, pagination.PageSize, ct);
 
         return Ok(result);
     }
@@ -30,7 +32,7 @@ public class ApiCredentialsController(IApiCredentialService service) : BaseContr
     {
         var companyId = GetCurrentUserCompanyId();
         var userId = GetCurrentUserId();
-        var result = await service.CreateAsync(request, companyId, userId, ct);
+        var result = await Service.CreateAsync(request, companyId, userId, ct);
 
         return result.Match<ActionResult<IssuedApiCredentialDto>>(
             error => BadRequest(new ErrorResponse(error.Message)),
@@ -42,7 +44,7 @@ public class ApiCredentialsController(IApiCredentialService service) : BaseContr
     public async Task<ActionResult> RevokeCredential(Guid id, CancellationToken ct = default)
     {
         var companyId = GetCurrentUserCompanyId();
-        var result = await service.RevokeAsync(id, companyId, ct);
+        var result = await Service.RevokeAsync(id, companyId, ct);
 
         return result.Match<ActionResult>(
             error => error.Kind == ErrorKind.NotFound

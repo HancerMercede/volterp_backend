@@ -750,6 +750,9 @@ public async Task<Either<Error, UserDto>> UpdateAsync(
 **Reglas**:
 - Una propiedad por servicio.
 - Lazy init con `??=` (o `Lazy<T>` para Infrastructure si querés).
+- **La fachada expone todo lo que los controllers consumen**: un controller solo recibe `IServiceManager` y pide sus servicios por ahí. Un controller que inyecta un servicio (o un repositorio) se salta la fachada.
+- **Los servicios no se registran en el DI**: el DI registra **solo** el `ServiceManager` (y las excepciones de abajo).
+- **La excepción**: un servicio que es un **seam** (un puerto hacia afuera: la DGII, el correo, un cliente HTTP) o que tiene **dependencias con ciclo de vida propio en el DI** (singletons, typed clients, background services) **no se puede armar con `new`** → se registra en el DI, se **inyecta en el constructor** del `ServiceManager` y la fachada lo expone igual: el controller lo sigue pidiendo por la fachada.
 
 **Snippet interface:**
 
@@ -783,6 +786,9 @@ public class ServiceManager(IUnitOfWork unitOfWork, IPasswordHasher passwordHash
     public IUserService Users => _users ??= new UserService(unitOfWork, passwordHasher, currentUserService);
 
     // ... una por servicio
+
+    // La excepción: el seam se inyecta y la fachada lo expone igual.
+    public IElectronicInvoiceService ElectronicInvoices => electronicInvoices;
 }
 ```
 
