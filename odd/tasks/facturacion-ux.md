@@ -182,7 +182,18 @@ E32 (consumo) por debajo de RD$250,000 puede ser en papel continuo; **desde RD$2
 
 | UX11 | S1 | handoff al front (`erp-mvp`) | PENDING | El módulo `side-menu` entra al **template del front** (`erp-mvp/FRONTEND-SKELETON-TEMPLATE.md` ✓) con el porqué ✓ → es la manera de tener un **menú reutilizable** ✓ (PRINCIPIO: el menú se construye desde las rutas ✓ · el filtrado de permisos en un solo lugar ✓ · sin ids internos en la app ✓) → también la carpeta en el §1.1 ✓, el paso del §3.1 ✓ y las convenciones del §4 ✓ → **va junto con la integración, no al final** ✓ (los templates son la fuente única ✓ y van par a par con el desarrollo ✓) |
 
-| UX12 | S13 | inline (parent) + handoff al front (`erp-mvp`) | PENDING | El **RNC del comprador es de la venta**: `CreateSaleRequest`/`UpdateSaleRequest` llevan `ReceptorTaxId` → la venta lo guarda y `ResolveReceptorTaxIdAsync` solo lo resuelve desde la ficha del cliente cuando la venta **no** trae uno. La caja pide el RNC cuando el cliente no existe y **lo deja en la venta**; el padrón de clientes solo se toca cuando el cliente **quiere quedar registrado** (un casillero). Las validaciones: **E31 y B01 exigen RNC** (siempre) y **el E32 de RD$250,000 para arriba también** (la caja avisa antes de firmar); el **E32 por debajo** y el **B02** van sin RNC (consumidor final). El **back primero** (contrato) → el front después |
+| UX12 | S13 | inline (parent) + handoff al front (`erp-mvp`) | **BACK CERRADO** (2026-11-24) · front pendiente | El **RNC del comprador es de la venta**: `CreateSaleRequest`/`UpdateSaleRequest` llevan `ReceptorTaxId` → la venta lo guarda y `ResolveReceptorTaxIdAsync` solo lo resuelve desde la ficha del cliente cuando la venta **no** trae uno. La caja pide el RNC cuando el cliente no existe y **lo deja en la venta**; el padrón de clientes solo se toca cuando el cliente **quiere quedar registrado** (un casillero). Las validaciones: **E31 y B01 exigen RNC** (siempre) y **el E32 de RD$250,000 para arriba también** (la caja avisa antes de firmar); el **E32 por debajo** y el **B02** van sin RNC (consumidor final). El **back primero** (contrato) → el front después |
+
+### UX12 — subtareas (2026-11-24)
+
+| ID | S# linked | Route | Status | Commit / evidencia |
+|---|---|---|---|---|
+| UX12.0 | S13 | inline (parent) | DONE | `e76d798` · el trabajo que quedó sin commitear de la sesión anterior (la lista de ventas pendientes trae sus líneas) → unidad propia, antes que UX12 |
+| UX12.1 | S13 | inline (parent) | DONE | RED observado: 6 tests nuevos en rojo antes de implementar (la regla del dominio, la resolución del RNC en create/update y la regla del consumo desde RD$250,000) |
+| UX12.2 | S13 | inline (parent) | DONE | `3183ea9` · `CreateSaleRequest`/`UpdateSaleRequest` llevan `ReceptorTaxId` · `ResolveReceptorTaxIdAsync` solo rellena desde el cliente cuando la venta **no** trae uno · el update **no borra** el RNC que la venta ya tenía |
+| UX12.3 | S13 | inline (parent) | DONE | `3183ea9` · `BuyerTaxIdPolicy` + `Sale.Complete()`: E31 y B01 exigen RNC siempre · E32 y B02 lo exigen desde RD$250,000 · falla cerrado **antes** de firmar el e-CF o de quemar el número del NCF · el mensaje del E31 no cambió |
+| UX12.4 | S13 | inline (parent) | DONE | `3183ea9` · suite completa **1141 verdes · 0 rojos · 9 saltados** (los que necesitan Postgres real) + build sin warnings |
+| UX12.5 | S13 | handoff al front (`erp-mvp`) | PENDING | **Fase 2, después del back** (`D:/source/my_projects/erp-mvp` ✓): la caja pide el RNC y lo deja en la venta · el padrón de clientes solo se toca si el cliente quiere quedar registrado |
 
 ## Riesgos
 
@@ -298,3 +309,14 @@ La validación (S2) y el mapa del front se hicieron con dos exploradores de solo
 **Lo que se decidió** ✓: el RNC que el cajero pide a un cliente que **no** está registrado **queda en la venta** ✓ → el padrón de clientes solo se toca cuando el cliente **quiere quedar registrado** ✓ → y como en un ERP el cliente **ya está registrado**, ese caso es el **aislado** ✓ → lo que pega en todas las ventas es la **validación** (UX12 ✓).
 
 **Riesgo** ✓: item 3 (contrato) — la venta acepta y expone un RNC propio ✓ → **el back primero** ✓ → el front después ✓ · item 1 (datos) — el RNC de una venta queda en esa venta ✓ (no toca el padrón de clientes salvo que el cajero lo marque ✓).
+
+### L11 — 2026-11-24 — UX12 arranca: el back primero, el front después, sin paralelo
+
+> (el dueño: *"Ok comencemos pero no hagas trabajo paralelo si es el backend primero y luego el front o viceversa"*)
+
+- **La instrucción** ✓: **nada de trabajo en paralelo** ✓ → el **back primero** ✓ (es el contrato) → el **front después** ✓ (la caja), cada uno en su repo y en su rama ✓.
+- **Alcance del back (UX12)** ✓: (1) `CreateSaleRequest`/`UpdateSaleRequest` llevan `ReceptorTaxId` ✓ → la venta lo guarda ✓ → `ResolveReceptorTaxIdAsync` solo lo resuelve desde la ficha del cliente **cuando la venta no trae uno** ✓ → (2) las reglas: **E31 y B01 exigen RNC siempre** ✓ · **E32 y B02 lo exigen desde RD$250,000** ✓ (el E32 y el B02 de RD$250,000 para arriba son nominativos ✓) · por debajo van sin RNC (consumidor final ✓).
+- **Dónde se validan** ✓: en el dominio (`Sale.Complete()` ✓) → el mismo camino para el e-CF y para el papel ✓ → **falla cerrado antes de quemar el número** ✓ (el e-CF se firma y el NCF se numera después ✓) → el E31 ya se validaba ahí ✓ → la regla nueva se suma ✓ · el umbral es el mismo que el del RFCE (`RfceDocument.MaximumAmount` ✓) → una sola constante ✓.
+- **Lo que NO cambia** ✓: la respuesta de la venta ya expone `receptorTaxId` ✓ (`SaleDto` ✓) → el front ya lo lee ✓ → **no hay migración** (la columna existe ✓).
+- **Decisiones del padre, escritas para que no se pierdan**: la **validación de formato del RNC** no se agrega en esta unidad ✓ (el RNC del mostrador se guarda recortado ✓ · el formato ya se valida en el padrón de clientes ✓) → y la regla **no se aplica al guardar el borrador** ✓ (la caja puede guardar el borrador y pedir el RNC al completar ✓ · lo que se rechaza es la **emisión** ✓) → el front avisa antes (fase 2 ✓).
+- **Riesgo** ✓: item 3 (contrato) — la API acepta un campo nuevo en `POST /api/sales` y en `PUT /api/sales/{id}` ✓ → **el back primero** ✓ → el front después ✓ · item 1 (datos) — el RNC queda en esa venta ✓ (no toca el padrón de clientes ✓).
