@@ -25,7 +25,8 @@ public class SaleRepository(VolterpDbContext context) : RepositoryBase<Sale>(con
     public async Task<PagedResult<Sale>> GetSalesByStatusAsync(SaleStatus status,
         int pageNumber, int pageSize, CancellationToken ct = default)
     {
-        return await GetAllAsync(s => s.Status == status, pageNumber, pageSize, ct);
+        return await GetAllAsync(s => s.Status == status, pageNumber, pageSize, ct,
+            s => s.Include(i => i.Items));
     }
 
     public async Task<Sale> AddSaleAsync(Sale sale, CancellationToken ct = default)
