@@ -53,6 +53,23 @@ public class ElectronicInvoiceReadinessTests
     }
 
     [Fact]
+    public async Task GetReadinessAsync_SaysFromWhichAmountTheDocumentHasToNameItsBuyer()
+    {
+        // The rule of the DGII: from RD$250,000 the consumption invoice is
+        // nominative and has to name its buyer. The front asks for the tax
+        // id before the cashier completes the sale, so the amount travels in
+        // the answer and the front does not carry a number of its own.
+        GivenCompany(CompanyEmissionMode.Electronic);
+        GivenCertificate(expiresAt: _now.AddDays(30));
+        GivenRange(EcfDocumentType.Consumer, from: 1, to: 100, current: 20);
+
+        var readiness = await ReadinessAsync();
+
+        readiness.Should().NotBeNull();
+        readiness!.BuyerTaxIdRequiredFrom.Should().Be(250000m);
+    }
+
+    [Fact]
     public async Task GetReadinessAsync_WithACertificateAndARangeWithRoom_SaysTheTaxpayerIsReady()
     {
         GivenCompany(CompanyEmissionMode.Electronic);

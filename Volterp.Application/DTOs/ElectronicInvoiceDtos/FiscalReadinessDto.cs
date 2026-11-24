@@ -38,6 +38,13 @@ public record FiscalReadinessDto
     // The types the taxpayer can issue on the path it takes: the e-NCF ones
     // (E31, E32, E33, E34) or the NCF ones (B01, B02, B03, B04).
     public IReadOnlyList<FiscalReadinessDocumentTypeDto> DocumentTypes { get; init; } = [];
+
+    // From this amount the document has to name its buyer: the rule is the
+    // one of the DGII (the consumption invoice is nominative from RD$250,000
+    // up). The front asks for the tax id before the cashier completes the
+    // sale, so the amount travels here and the front does not carry a number
+    // of its own.
+    public decimal BuyerTaxIdRequiredFrom { get; init; }
 }
 
 // One type the taxpayer can issue: the room its range has left and the

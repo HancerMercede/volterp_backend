@@ -45,6 +45,7 @@ pierde porque una actualización venga sin él.
 | T1 | S1 | inline (parent) | DONE | `3183ea9` · `CreateSaleRequest`/`UpdateSaleRequest` llevan `ReceptorTaxId` (el contrato) · el `MapTo` de create **no** lo copia: el service es su dueño |
 | T2 | S2, S3 | delegated (worker) + inline (parent) | DONE | `3183ea9` · `BuyerTaxIdPolicy` (nuevo) + el guard de `Sale.Complete()` + `SetReceptorTaxId` + la resolución en `SaleService` · RED observado antes (6 en rojo ✓) → VERDE (38/38 ✓) · el diff lo revisó el padre ✓ |
 | T3 | S1-S3 | inline (parent) | DONE | `e76d798` (el trabajo previo de la sesión, unidad propia ✓) + `3183ea9` · suite completa **1141 verdes · 0 rojos · 9 saltados** (los que necesitan Postgres real ✓) + build sin warnings ✓ |
+| T2b | S2 | inline (parent) | DONE | El **umbral viaja en el readiness** ✓ (`FiscalReadinessDto.BuyerTaxIdRequiredFrom` ✓) → el front pregunta "¿esta venta nombra al comprador?" con el número del back ✓ y no con uno escrito a mano ✓ |
 | T4 | S1 | handoff (repo `erp-mvp`) | PENDING | **Fase 2, después del back**: la caja pide el RNC y lo deja en la venta |
 
 ## Log
@@ -86,3 +87,14 @@ pierde porque una actualización venga sin él.
 - **Chequeo diferencial** ✓: el único camino que completa ventas es `SaleService.CompleteSaleAsync` ✓ → el seeder de demo crea la venta **ya completada** con `Total = 118` y sin RNC ✓ → no lo afecta ✓ → las ventas del seed viejo van por SQL ✓ (no pasan por el dominio ✓).
 - **Risk**: none ✓.
 - **Lo que sigue** ✓: la **fase 2** (front ✓) → la caja pide el RNC y lo deja en la venta ✓ → y la decisión del umbral (exponerlo en el readiness ✓ para que el front no duplique el número ✓).
+
+### L4 — 2026-11-24 — el umbral viaja en el readiness
+
+> (decisión del padre, para que la fase 2 no invente el número)
+
+- **El front necesita el umbral** ✓: la caja tiene que avisar **antes de firmar** que una venta de RD$300,000 es nominativa y tiene que nombrar a su comprador ✓ → y ese número **no puede estar escrito a mano en el front** ✓ (la regla es del back ✓ → el back la dice ✓).
+- **Dónde viaja** ✓: en el readiness (`GET /api/Sales/readiness` ✓ → `FiscalReadinessDto.BuyerTaxIdRequiredFrom` ✓) → que es donde el front ya pregunta si el contribuyente puede facturar ✓ → un solo lugar ✓ → una sola fuente ✓.
+- **El valor** ✓: el del dominio (`BuyerTaxIdPolicy.NominativeFrom` ✓ = `RfceDocument.MaximumAmount` ✓) → ni el back ni el front lo duplican ✓.
+- **Es un campo más de la respuesta** ✓ → no rompe a quien ya la consume ✓ (el front lo lee cuando está ✓).
+- **Verificación** ✓: RED antes ✓ (`Expected 250000M, but found 0M` ✓) → VERDE ✓ → suite completa ✓.
+- **Risk**: none ✓ (campo nuevo en una respuesta ✓ · la regla ya vive en el dominio ✓ · no cambia ninguna fila guardada ✓).
