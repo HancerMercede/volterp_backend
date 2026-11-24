@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// El pipeline de los PDF del proyecto: markdown → HTML → PDF.
+// El pipeline de los PDF del proyecto: markdown â†’ HTML â†’ PDF.
 //
 //   node scripts/pdf/md-to-pdf.mjs --in <archivo.md> --out <archivo.pdf> [opciones]
 //
@@ -242,13 +242,15 @@ function inline(text) {
 
   // Las imagenes del markdown: la captura de una pantalla. Si el archivo no
   // esta todavia (la captura se toma con el sistema arriba), se deja el
-  // recuadro con su nombre en vez de una imagen rota.
+  // recuadro del hueco en vez de una imagen rota.
   html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_, alt, src) => {
     const file = src.split('/').pop();
     const exists = existsSync(join(dirname(outputPath), src));
     if (!exists) {
-      return `<figure class="captura pendiente"><div class="hueco">${escapeHtml(file ?? alt)}</div>`
-        + `<figcaption>${escapeHtml(alt)}</figcaption></figure>`;
+      return `<figure class="captura pendiente"><div class="hueco">`
+        + `<span class="hueco-titulo">Captura de pantalla pendiente</span>`
+        + `<span class="hueco-nombre">${escapeHtml(file ?? alt)}</span>`
+        + `</div><figcaption>${escapeHtml(alt)}</figcaption></figure>`;
     }
     return `<figure class="captura"><img src="${src}" alt="${alt}"><figcaption>${escapeHtml(alt)}</figcaption></figure>`;
   });
@@ -423,14 +425,9 @@ function renderBlock(block) {
   switch (block.type) {
     case 'heading': {
       const tag = `h${Math.min(block.level, 4)}`;
-      // La barra de la hoja: la seccion con su numero a la izquierda y el
-      // documento a la derecha. Va dentro del flujo (no es fija), asi que
-      // cada seccion abre su hoja con su barra y nunca se superpone.
-      const header = block.level <= 2
-        ? `<div class="page-header"><span class="brand">${block.number ? block.number + ' · ' : ''}${inline(block.text)}</span>`
-          + `<span>${escapeHtml(meta.docTitle ?? meta.title ?? '')}</span></div>`
-        : '';
-      return header + `<${tag} id="${block.id}">${inline(block.text)}</${tag}>`;
+      // El encabezado corrido no va aqui: lo lleva la hoja, que sabe en que
+      // seccion esta. El titulo es solo el titulo.
+      return `<${tag} id="${block.id}">${inline(block.text)}</${tag}>`;
     }
     case 'code':
       // El resaltado solo cuando el bloque declara su lenguaje: un arbol de
@@ -480,6 +477,324 @@ function renderBlock(block) {
   }
 }
 
+// El script que reparte el documento en hojas. Va dentro del HTML generado
+// (el navegador es el que mide): cada hoja mide 210 x 297 mm y lleva su
+// encabezado corrido y su pie con el numero de pagina.
+const COMPOSE_JS = `
+(function () {
+  var brand = document.getElementById('brand').textContent;
+  var footText = document.getElementById('foot-text').textContent;
+  var withNumbers = !!document.getElementById('numbers');
+  var outline = JSON.parse(document.getElementById('outline-data').textContent);
+  var content = document.getElementById('content');
+  var indexHost = document.getElementById('index-blocks');
+
+  var stage = document.createElement('div');
+  stage.id = 'stage';
+  stage.style.cssText = 'position:absolute;left:-30000px;top:0;width:210mm;';
+  document.body.appendChild(stage);
+
+  function newSheet(descriptor) {
+    var sheet = document.createElement('div');
+    sheet.className = 'page';
+    sheet.innerHTML = '<div class="page-header"><span class="brand"></span><span class="descriptor"></span></div>'
+      + '<div class="page-body"></div>'
+      + '<div class="page-foot"><span class="repo"></span><span class="pn"></span></div>';
+    sheet.querySelector('.brand').textContent = brand;
+    sheet.querySelector('.descriptor').textContent = descriptor;
+    sheet.querySelector('.repo').textContent = footText;
+    stage.appendChild(sheet);
+    return sheet;
+  }
+
+  function fits(body) { return body.scrollHeight <= body.clientHeight + 1; }
+
+  // Las piezas de texto de un bloque de codigo: para partirlo por lineas sin
+  // perder el resaltado de sintaxis.
+  function piecesOf(code) {
+    var list = [];
+    (function walk(node) {
+      for (var i = 0; i < node.childNodes.length; i++) {
+        var child = node.childNodes[i];
+        if (child.nodeType === 3) list.push({ parent: node, node: child });
+        else walk(child);
+      }
+    })(code);
+    return list;
+  }
+
+  function countLines(pieces) {
+    var n = 0;
+    for (var i = 0; i < pieces.length; i++) {
+      var text = pieces[i].node.textContent;
+      for (var c = 0; c < text.length; c++) if (text.charAt(c) === '\\n') n++;
+    }
+    return n;
+  }
+
+  // Deja solo las primeras k lineas (las piezas siguientes quedan vacias).
+  function truncateAt(pieces, k) {
+    var seen = 0;
+    for (var i = 0; i < pieces.length; i++) {
+      var piece = pieces[i];
+      var text = piece.node.textContent;
+      var nl = 0;
+      for (var c = 0; c < text.length; c++) if (text.charAt(c) === '\\n') nl++;
+      if (seen + nl <= k) {
+        seen += nl;
+        if (seen === k) {
+          for (var j = i + 1; j < pieces.length; j++) pieces[j].node.textContent = '';
+          return { index: i + 1, tail: '' };
+        }
+        continue;
+      }
+      var cut = -1, cnt = 0;
+      for (var c2 = 0; c2 < text.length; c2++) {
+        if (text.charAt(c2) === '\\n') {
+          cnt++;
+          if (seen + cnt === k) { cut = c2 + 1; break; }
+        }
+      }
+      if (cut < 0) cut = text.length;
+      var tail = text.slice(cut);
+      piece.node.textContent = text.slice(0, cut);
+      for (var j2 = i + 1; j2 < pieces.length; j2++) pieces[j2].node.textContent = '';
+      return { index: i, tail: tail };
+    }
+    return { index: pieces.length, tail: '' };
+  }
+
+  // Un bloque de codigo que no entra ni en una hoja vacia se parte por
+  // lineas: la mitad entra en esta hoja y el resto sigue en la siguiente.
+  // El bloque tiene que estar en la hoja mientras se mide.
+  function splitCode(block, body) {
+    var pre = block.querySelector('pre');
+    if (!pre) return null;
+    var code = pre.querySelector('code') || pre;
+    var pieces = piecesOf(code);
+    var total = countLines(pieces);
+    if (total < 4) return null;
+
+    var saved = pieces.map(function (piece) { return piece.node.textContent; });
+    var restore = function () {
+      pieces.forEach(function (piece, i) { piece.node.textContent = saved[i]; });
+    };
+
+    var lo = 1, hi = total - 1, best = 0;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      restore();
+      truncateAt(pieces, mid);
+      if (fits(body)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    restore();
+    if (!best) return null;
+
+    var clone = pre.cloneNode(true);
+    var cloneCode = clone.querySelector('code') || clone;
+    var clonePieces = piecesOf(cloneCode);
+    var cut = truncateAt(pieces, best);
+    for (var i = 0; i < cut.index && clonePieces[i]; i++) {
+      if (clonePieces[i].parent) clonePieces[i].parent.removeChild(clonePieces[i].node);
+    }
+    if (cut.tail && clonePieces[cut.index]) clonePieces[cut.index].node.textContent = cut.tail;
+
+    var rest = block.cloneNode(true);
+    var restPre = rest.querySelector('pre');
+    restPre.parentNode.replaceChild(clone, restPre);
+
+    // La prueba de que al partir no se pierde ni una coma: lo que queda en la
+    // hoja mas lo que sigue tiene que ser el bloque entero.
+    var headText = pieces.map(function (piece) { return piece.node.textContent; }).join('');
+    var tailText = clonePieces.slice(cut.index).map(function (piece) { return piece.node.textContent; }).join('');
+    if (headText + tailText !== saved.join('')) {
+      console.log('VOLTERP: ALERTA - un bloque partido no conserva el texto');
+    }
+    return { tail: rest };
+  }
+
+  // Una tabla que no entra se parte por filas (el encabezado se repite).
+  function splitTable(block, body) {
+    var table = block.querySelector('table');
+    var tbody = table && table.querySelector('tbody');
+    if (!tbody) return null;
+    var rows = Array.prototype.slice.call(tbody.children);
+    if (rows.length < 4) return null;
+
+    var setRows = function (n) {
+      while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+      for (var i = 0; i < n; i++) tbody.appendChild(rows[i]);
+    };
+
+    var lo = 2, hi = rows.length - 1, best = 0;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      setRows(mid);
+      if (fits(body)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    setRows(rows.length);
+    if (!best) return null;
+
+    setRows(best);
+    var rest = block.cloneNode(true);
+    var restTbody = rest.querySelector('tbody');
+    while (restTbody.firstChild) restTbody.removeChild(restTbody.firstChild);
+    for (var i = best; i < rows.length; i++) restTbody.appendChild(rows[i]);
+    return { tail: rest };
+  }
+
+  // Un bloque con varias partes (una lista, una secuencia de parrafos) se
+  // parte por partes: la mitad entra y el resto sigue en la hoja siguiente.
+  function splitParts(block, body, depth) {
+    depth = depth || 0;
+    var kids = Array.from(block.childNodes);
+    if (kids.length < 1) return null;
+
+    if (kids.length === 1 && kids[0].nodeType === 1 && depth < 4) {
+      // El bloque tiene una sola parte: se parte esa parte (una lista, un
+      // recuadro con muchos parrafos).
+      var sub = splitParts(kids[0], body, depth + 1);
+      if (!sub) return null;
+      var rest = block.cloneNode(false);
+      rest.appendChild(sub.tail);
+      return { tail: rest };
+    }
+
+    if (kids.length < 2) return null;
+
+    var setKids = function (n) {
+      while (block.firstChild) block.removeChild(block.firstChild);
+      for (var i = 0; i < n; i++) block.appendChild(kids[i]);
+    };
+
+    var lo = 1, hi = kids.length - 1, best = 0;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      setKids(mid);
+      if (fits(body)) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    setKids(kids.length);
+    if (!best) return null;
+
+    setKids(best);
+    var rest2 = block.cloneNode(false);
+    for (var i = best; i < kids.length; i++) rest2.appendChild(kids[i]);
+    return { tail: rest2 };
+  }
+
+  // Reparte los bloques en hojas: el que no entra abre la hoja siguiente. Un
+  // bloque que no entra ni en una hoja vacia se parte (codigo, tabla o
+  // bloque de partes) o se deja desbordar (lo demas: no se pierde contenido).
+  function compose(nodes, descriptorFor, label) {
+    var sheets = [];
+    var i = 0;
+    var spilled = 0;
+    var split = 0;
+    while (i < nodes.length) {
+      var sheet = newSheet(descriptorFor(nodes[i]));
+      var body = sheet.querySelector('.page-body');
+      while (i < nodes.length) {
+        var node = nodes[i];
+
+        // Un titulo de seccion abre hoja nueva (como en la casa).
+        if (node.dataset.opens === '1' && body.children.length) break;
+
+        body.appendChild(node);
+        if (fits(body)) { i++; continue; }
+
+        // No entra: se parte para que entre.
+        var parts = splitCode(node, body) || splitTable(node, body) || splitParts(node, body);
+        if (parts) {
+          nodes.splice(i + 1, 0, parts.tail);
+          i++;
+          split++;
+          continue;
+        }
+
+        body.removeChild(node);
+        if (body.children.length === 0) {
+          body.appendChild(node);
+          body.style.overflow = 'visible';
+          sheet.style.height = 'auto';
+          sheet.style.minHeight = '297mm';
+          spilled++;
+          console.log('VOLTERP: desborda <' + node.tagName.toLowerCase() + '> '
+            + (node.textContent || '').trim().slice(0, 70).replace(/\\s+/g, ' '));
+          i++;
+        }
+        break;
+      }
+      sheets.push(sheet);
+    }
+    if (split) console.log('VOLTERP: ' + split + ' bloque(s) partidos (' + label + ')');
+    if (spilled) console.log('VOLTERP: ' + spilled + ' bloque(s) desbordan la hoja (' + label + ')');
+    return sheets;
+  }
+
+  var contentNodes = Array.prototype.slice.call(content.children);
+  var indexNodes = indexHost ? Array.prototype.slice.call(indexHost.children) : [];
+
+  // 1. El contenido, hoja por hoja.
+  var contentSheets = compose(contentNodes, function (node) { return node.dataset.sec || ''; }, 'contenido');
+
+  // En que hoja cae cada seccion: de ahi sale el numero de pagina del indice.
+  var sheetOf = {};
+  contentSheets.forEach(function (sheet, sheetIndex) {
+    Array.prototype.slice.call(sheet.querySelector('.page-body').children).forEach(function (node) {
+      if (node.dataset.outline !== undefined) sheetOf[node.dataset.outline] = sheetIndex;
+    });
+  });
+
+  // 2. El indice, hoja por hoja.
+  var indexSheets = indexNodes.length
+    ? compose(indexNodes, function () { return 'Tabla de contenidos'; }, 'indice')
+    : [];
+
+  // 3. Los numeros: la portada es la 1, el indice va detras y el contenido al
+  //    final. El total de hojas lo define el contenido.
+  var offset = 1 + indexSheets.length;
+  var total = offset + contentSheets.length;
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  indexSheets.forEach(function (sheet, i) {
+    if (withNumbers) sheet.querySelector('.pn').textContent = pad(2 + i);
+  });
+  contentSheets.forEach(function (sheet, i) {
+    if (withNumbers) sheet.querySelector('.pn').textContent = pad(offset + 1 + i);
+  });
+  indexNodes.forEach(function (node) {
+    var slot = node.querySelector('.toc-p');
+    if (!slot) return;
+    var at = sheetOf[node.dataset.outline];
+    slot.textContent = at === undefined ? '' : 'p. ' + pad(offset + 1 + at);
+  });
+
+  // 4. El orden final: portada, indice, contenido.
+  indexSheets.concat(contentSheets).forEach(function (sheet) {
+    document.body.appendChild(sheet);
+  });
+  stage.remove();
+  content.remove();
+  if (indexHost) indexHost.remove();
+
+  // 5. La portada cuenta las paginas ella misma: el dato no se escribe a
+  //    mano (un numero viejo en la portada es peor que no ponerlo).
+  var totalPages = 1 + indexSheets.length + contentSheets.length;
+  var stats = document.querySelectorAll('.cover-stat');
+  for (var s = 0; s < stats.length; s++) {
+    var label = (stats[s].dataset.metric || '').toLowerCase();
+    if (label.charAt(0) === 'p' && label.indexOf('gina') >= 0) {
+      var num = stats[s].querySelector('.num');
+      if (num) num.textContent = String(totalPages);
+    }
+  }
+
+  console.log('VOLTERP: hojas ' + totalPages + ' de ' + total);
+  document.body.dataset.composed = '1';
+})();
+`;
+
 function renderDocument({ blocks, outline }, meta, css) {
   // El título del documento (el primer # del markdown) es el de la portada:
   // si se queda en el cuerpo, el PDF repite el título dos veces.
@@ -497,31 +812,53 @@ function renderDocument({ blocks, outline }, meta, css) {
     : escapeHtml(meta.title);
 
   const stats = (meta.metrics ?? []).map(metric => `
-      <div class="cover-stat">
+      <div class="cover-stat" data-metric="${escapeHtml(metric.label)}">
         <div class="num">${escapeHtml(metric.value)}</div>
         <div class="lbl">${escapeHtml(metric.label)}</div>
       </div>`).join('');
   const cover = `
-  <div class="cover">
+  <div class="page cover">
     <div class="cover-tag">${escapeHtml(meta.kicker ?? 'Volterp')}</div>
     <div class="cover-title">${titleParts}</div>
     ${meta.subtitle ? `<div class="cover-sub">${escapeHtml(meta.subtitle)}</div>` : ''}
     ${stats ? `<div class="cover-stats">${stats}</div>` : ''}
+    <div class="cover-foot">
+      <span>${escapeHtml(meta.footer ?? '')}</span>
+      <span>${escapeHtml(meta.kind ?? 'Documento técnico')} · ${escapeHtml(meta.dateLabel ?? meta.date ?? '')}</span>
+    </div>
   </div>`;
 
-  const toc = outline.length && meta.index !== false ? `
-  <div class="index">
-    <h2 id="indice" style="break-before:auto">Índice</h2>
-    <div class="toc">
-      ${outline
-        .map(entry => entry.level === 1
-          ? `<div class="toc-parte${entry.number ? '' : ' toc-titulo'}">${entry.number ? `<span class="n">${entry.number}</span>` : ''}<a href="#${entry.id}">${inline(entry.text)}</a></div>`
-          : `<div class="toc-seccion lvl-${entry.level}"><span class="n">${entry.number}</span><a href="#${entry.id}">${inline(entry.text)}</a></div>`)
-        .join('\n        ')}
-    </div>
-  </div>` : '';
+  // El indice: cada entrada es un bloque que el generador reparte en hojas y
+  // al que le agrega el numero de pagina donde cae la seccion.
+  const indexBlocks = outline.length && meta.index !== false
+    ? `<div class="blk"><h2 class="index-title">Índice</h2></div>\n`
+      + outline.map((entry, index) => `
+      <div class="blk toc-entry" data-outline="${index}">
+        <div class="${entry.level === 1 ? 'toc-parte' : 'toc-seccion lvl-' + entry.level}">
+          ${entry.number ? `<span class="n">${escapeHtml(entry.number)}</span>` : ''}
+          <a href="#${entry.id}">${inline(entry.text)}</a>
+          <span class="toc-p"></span>
+        </div>
+      </div>`).join('')
+    : '';
 
-  const content = body.map(renderBlock).join('\n');
+  // El contenido: cada bloque lleva la seccion a la que pertenece (para el
+  // encabezado corrido de su hoja) y, si es un titulo, la entrada del indice
+  // que le corresponde (para saber en que pagina cae).
+  let section = '';
+  const contentBlocks = body.map(block => {
+    if (block.type === 'heading' && block.level <= 2) section = block.text;
+    const at = block.type === 'heading' ? outline.findIndex(entry => entry.id === block.id) : -1;
+    // Los titulos de seccion abren hoja nueva (como en la casa).
+    const opens = block.type === 'heading' && block.level <= 2 ? ' data-opens="1"' : '';
+    return `<div class="blk" data-sec="${escapeHtml(section)}"`
+      + (at >= 0 ? ` data-outline="${at}"` : '')
+      + opens
+      + `>${renderBlock(block)}</div>`;
+  }).join('\n');
+
+  // El encabezado corrido lleva la marca del documento a la izquierda.
+  const brand = meta.title ?? '';
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -534,8 +871,17 @@ ${css}
 </head>
 <body>
 ${cover}
-${toc}
-${content}
+<div id="index-blocks"${indexBlocks ? '' : ' hidden'}>${indexBlocks}</div>
+<div id="content">
+${contentBlocks}
+</div>
+<span id="brand" hidden>${escapeHtml(brand)}</span>
+<span id="foot-text" hidden>${escapeHtml(meta.footer ?? '')}</span>
+${meta.pageNumbers === false ? '' : '<span id="numbers" hidden></span>'}
+<script type="application/json" id="outline-data">${JSON.stringify(outline)}</script>
+<script>
+${COMPOSE_JS}
+</script>
 </body>
 </html>
 `;
@@ -599,27 +945,6 @@ async function resolvePlaywright() {
   return browsers ? { module: null, browsers } : null;
 }
 
-function footerTemplate(meta) {
-  if (meta.pageNumbers === false) return '<div></div>';
-  return `
-    <div style="font-size:7.5pt;width:100%;padding:0 55px 12px;color:#64748b;
-                display:flex;justify-content:space-between;font-family:Inter,sans-serif;">
-      <span>${escapeHtml(meta.footer ?? '')}</span>
-      <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
-    </div>`;
-}
-
-// El encabezado corrido: la marca a la izquierda, el documento a la derecha.
-function headerTemplate(meta) {
-  return `
-    <div style="font-size:7.5pt;width:100%;padding:14px 55px 0;color:#94a3b8;
-                display:flex;justify-content:space-between;text-transform:uppercase;
-                letter-spacing:0.5px;font-family:Inter,sans-serif;">
-      <span style="color:#6366f1;font-weight:700;">${escapeHtml(meta.kicker ?? '')}</span>
-      <span>${escapeHtml(meta.title ?? '')}</span>
-    </div>`;
-}
-
 async function printWithPlaywright(playwrightPath, htmlPath, pdfPath, meta) {
   const { chromium } = require(playwrightPath);
 
@@ -634,18 +959,25 @@ async function printWithPlaywright(playwrightPath, htmlPath, pdfPath, meta) {
   });
   try {
     const page = await browser.newPage();
+    // El generador de hojas avisa por consola (bloques partidos, desbordes).
+    page.on('console', message => console.log(`  ${message.text()}`));
+    page.on('pageerror', error => console.error(`  ERROR en la pagina: ${error.message}`));
     await page.goto(pathToFileURL(htmlPath).href, { waitUntil: 'networkidle' });
+
+    // Si el documento no quedo compuesto en hojas, el PDF no sirve: se para
+    // aca en vez de dejar un documento a medio hacer.
+    const composed = await page.evaluate(() => document.body.dataset.composed === '1');
+    if (!composed) throw new Error('las hojas no se compusieron (revisa el error del navegador).');
     await page.pdf({
       path: pdfPath,
       printBackground: true,
-      // Los margenes los pone Chrome: ahi viven el encabezado y el pie. Con
-      // los margenes en cero se dibujan encima del texto.
-      paperWidth: '8.27in',
-      paperHeight: '11.69in',
-      margin: { top: '0.55in', bottom: '0.5in', left: '0', right: '0' },
-      displayHeaderFooter: true,
-      headerTemplate: headerTemplate(meta),
-      footerTemplate: footerTemplate(meta)
+      // El tamano lo dice el `@page` de la maqueta (A4 exacto). Chrome no
+      // acepta `paperWidth`: las medidas en pulgadas de la pagina ficam en
+      // Letter y el PDF sale descuadrado.
+      preferCSSPageSize: true,
+      // El encabezado y el pie los lleva cada hoja (van dentro, no en el
+      // margen del papel): asi no pisan el texto ni salen en la portada.
+      displayHeaderFooter: false
     });
   } finally {
     await browser.close();
@@ -717,17 +1049,13 @@ async function printWithChrome(htmlPath, pdfPath, meta) {
     await send('Page.enable');
     await sleep(600); // las fuentes y el layout se asientan
 
-    const footer = footerTemplate(meta);
-
     const { data } = await send('Page.printToPDF', {
       printBackground: true,
-      // Los margenes van en el @page de la maqueta: ahi viven el pie con el
-      // numero de pagina. Con los margenes en cero, Chrome lo dibuja encima
-      // del texto.
+      // El tamano y los margenes van en el `@page` de la maqueta (A4 exacto y
+      // sin margenes: el aire lo lleva cada hoja). El encabezado y el pie van
+      // dentro de la hoja, asi que Chrome no dibuja nada encima.
       preferCSSPageSize: true,
-      displayHeaderFooter: true,
-      headerTemplate: '<div></div>',
-      footerTemplate: footerTemplate(meta),
+      displayHeaderFooter: false,
       marginTop: 0,
       marginBottom: 0,
       marginLeft: 0,
@@ -760,6 +1088,16 @@ const metrics = (Array.isArray(args.metric) ? args.metric : args.metric ? [args.
     return { value: value.trim(), label: rest.join('|').trim() };
   });
 
+const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+// La fecha en el pie de la portada: "Sept 2026".
+function dateLabel(iso) {
+  const parts = /^(\d{4})-(\d{2})/.exec(iso ?? '');
+  if (!parts) return iso ?? '';
+  const month = MONTHS[Number(parts[2]) - 1];
+  return month ? `${month} ${parts[1]}` : iso;
+}
+
 const meta = {
   kicker: args.kicker ?? 'Volterp',
   title: args.title ?? markdownTitle ?? sourcePath.split(/[\\/]/).pop().replace(/\.md$/i, ''),
@@ -768,6 +1106,8 @@ const meta = {
   repo: args.repo ?? '',
   commit: args.commit ?? '',
   date: args.date ?? new Date().toISOString().slice(0, 10),
+  dateLabel: dateLabel(args.date ?? new Date().toISOString().slice(0, 10)),
+  kind: args.kind ?? 'Documento técnico',
   metrics,
   footer: args.footer ?? (args.repo ? `Volterp · ${args.repo}` : 'Volterp'),
   pageNumbers: args.numbers !== false && !args['no-numbers'],

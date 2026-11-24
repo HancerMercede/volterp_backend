@@ -5,23 +5,11 @@
  * has to look like the rest of the documentation.
  *
  * The rules that matter when printing:
- *   - @page without margins: the air is the body's padding → the footer with
- *     the page number (Chrome puts it there) does not eat the text.
+ *   - `@page` without margins: the air lives inside each sheet (`.page`), so
+ *     the content never lands on the edge of the paper.
+ *   - One `.page` = one sheet (210mm x 297mm), with the running header and
+ *     the footer with the page number inside it.
  *   - Every block that cannot be split carries `break-inside: avoid`.
- *   - Every section title starts on a new sheet (`break-before: page`).
- */
-
-/* La maqueta de los PDF del proyecto.
- *
- * These are the values of the house (multi-tenant-refactor.html): the same
- * palette, the same typography, the same components. The PDF of the manuals
- * has to look like the rest of the documentation.
- *
- * The rules that matter when printing:
- *   - @page without margins: the air is the body's padding → the footer with
- *     the page number (Chrome puts it there) does not eat the text.
- *   - Every block that cannot be split carries `break-inside: avoid`.
- *   - Every section title starts on a new sheet (`break-before: page`).
  */
 
 /* The typography of the house: Inter for the text.
@@ -29,6 +17,8 @@
  * The @import goes FIRST, before any other rule: by rule the browser ignores
  * an @import that comes after another rule (that is why the title came out in
  * Segoe UI).
+ *
+ * NOTA: este bloque va repetido arriba; el de arriba es el que manda.
  *
  * The code does NOT use JetBrains Mono: that font (the web one and the one of
  * the IDE) does not have the drawing characters of the folder trees, and the
@@ -56,10 +46,15 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* El aire de la hoja: sin margenes, como el PDF de la casa. El encabezado
- * de cada seccion va dentro del flujo (no es fijo), y el pie con el numero de
- * pagina lo pone Chrome abajo, en el aire que deja el cuerpo. */
-@page { size: A4; margin: 0; }
+/* ---------- Hoja ----------
+ *
+ * Una hoja = un `.page` de 210 x 297 mm (A4). El aire de los lados y el del
+ * pie viven en el padding de la hoja, nunca en el margen de impresion: asi el
+ * texto nunca queda pegado al papel y el encabezado corrido no pisa el
+ * titulo. El generador reparte los bloques en hojas y escribe el numero de
+ * pagina en el pie de cada una. */
+
+@page { size: 210mm 297mm; margin: 0; }
 
 body {
   font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
@@ -67,9 +62,32 @@ body {
   line-height: 1.55;
   color: var(--text-primary);
   width: 210mm;
-  /* El aire de los lados y el del pie (ahi se dibuja el numero de pagina). */
-  padding: 0 55px 14mm;
+  margin: 0;
+  padding: 0;
   background: #fff;
+}
+
+.page {
+  width: 210mm;
+  height: 297mm;
+  padding: 50px 55px 55px;
+  page-break-after: always;
+  break-after: page;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.page:last-of-type { page-break-after: auto; break-after: auto; }
+
+/* El cuerpo de la hoja: lo que mide el generador para saber si el bloque
+ * siguiente entra o hay que abrir una hoja nueva. */
+.page-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ---------- Portada ---------- */
@@ -79,15 +97,8 @@ body {
   overflow: hidden;
   background: linear-gradient(135deg, #0f0c29 0%, #1e1b4b 50%, #312e81 100%);
   color: var(--text-light);
-  padding: 50px 55px;
-  /* La portada sangra al borde de la hoja: los margenes negativos la sacan de
-   * la caja de contenido y Chrome imprime el desborde. */
-  margin: 0 -55px 0;
-  height: 297mm;
-  box-sizing: border-box;
-  break-after: page;
-  display: flex;
-  flex-direction: column;
+  /* La portada es una hoja mas: sangra al borde porque el papel no tiene
+   * margenes y la hoja los lleva dentro. */
   justify-content: center;
 }
 
@@ -224,11 +235,36 @@ body {
 
 .page-header .brand { color: var(--accent-primary); font-weight: 700; }
 
+/* El pie de la hoja: el repositorio a la izquierda, el numero de pagina a la
+ * derecha (los dos dentro de la hoja, nunca en el margen del papel). */
+.page-foot {
+  position: absolute;
+  bottom: 22px;
+  left: 55px;
+  right: 55px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 7.5pt;
+  color: var(--text-muted);
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.page-foot .pn { color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; }
+
 /* ---------- Índice ---------- */
 
-.index { break-after: page; }
+/* Cada bloque lleva su propio alto: los margenes del titulo no se colapsan
+ * hacia afuera, asi la medicion de la hoja es exacta. */
+.blk { display: flow-root; }
 
-.index h2 { break-before: auto; color: var(--text-primary); border-bottom: 0; }
+.index-title {
+  color: var(--text-primary);
+  font-size: 15pt;
+  font-weight: 700;
+  margin: 0 0 5mm;
+}
 
 .toc { margin-top: 6mm; }
 
@@ -268,10 +304,22 @@ body {
 .toc a:hover { color: var(--accent-primary); }
 .toc-parte a:hover { color: var(--accent-primary); }
 
+/* El numero de pagina de cada entrada del indice (a la derecha, como en la
+ * casa). */
+.toc-p {
+  margin-left: auto;
+  padding-left: 6mm;
+  color: var(--text-muted);
+  font-size: 8.5pt;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ---------- Títulos ---------- */
 
+/* Los titulos de seccion abren hoja nueva: eso lo hace el generador al
+ * repartir los bloques, asi que aca no debe haber un salto de pagina. */
 h1 {
-  break-before: page;
   break-after: avoid;
   font-size: 32pt;
   font-weight: 800;
@@ -281,7 +329,6 @@ h1 {
 }
 
 h2 {
-  break-before: page;
   break-after: avoid;
   font-size: 15pt;
   font-weight: 700;
@@ -577,6 +624,24 @@ figure.captura.pendiente .hueco {
   font-size: 8.5pt;
   padding: 14mm 8mm;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2mm;
+}
+
+figure.captura.pendiente .hueco-titulo {
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+}
+
+figure.captura.pendiente .hueco-nombre {
+  font-family: 'Cascadia Mono', Consolas, monospace;
+  font-size: 7.5pt;
+  color: var(--accent-primary);
 }
 
 /* El titulo del documento no lleva numero: no es una parte */

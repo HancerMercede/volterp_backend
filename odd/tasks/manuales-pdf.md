@@ -1,7 +1,7 @@
 # Manuales en PDF: para el que programa y para el que usa
 
 Feature: `manuales-pdf`
-Estado: **PLAN. Al final del trabajo.**
+Estado: **PDF rehechos y verificados. Falta la revisión del dueño (MP5) y las capturas reales (MP4b).**
 Delivery: ask-on-risk
 Pipeline: **HTML + CSS → PDF** (nunca librerías nativas de PDF: el diseño se hace en HTML y se convierte — la guía del pipeline es la skill `styled-pdf`)
 
@@ -45,9 +45,9 @@ El trabajo de esos dos PDF es **renderizar los templates y completar lo que falt
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
 | MP1 | S1, S2 | inline (parent) | DONE | El **pipeline**: MD → HTML → PDF + la maqueta (portada, índice navegable, numeración, código con resaltado, bloques de "principio" y "stack", las páginas del PDF) → la guía es la skill `styled-pdf`. Commits `82c6daf`, `4aa5b61`, `8635447`. **El pipeline funciona** (markdown → HTML con la maqueta → PDF con Playwright conduciendo el Chrome del sistema) |
-| MP2 | S1, S3 | inline (parent) | PENDING | El **PDF del frontend** desde `FRONTEND-SKELETON-TEMPLATE.md`. **El PDF que hay no sirve**: el dueño lo vio y lo mandó a rehacer (2026-11-23). El problema: el pipeline **convierte** el markdown, pero un manual de la casa está **compuesto a mano** (cada hoja es un diseño: la comparativa en dos columnas, las tarjetas, la tabla de métricas) → hay que diseñar el HTML, no convertirlo |
-| MP3 | S1, S3 | inline (parent) | PENDING | El **PDF del backend** desde `NET-API-SKELETON-TEMPLATE.md` (+ la sección 2.6 del e-CF y el readiness ✓ ya escrita en el template ✓). Mismo estado que MP2 |
-| MP4 | S1, S4 | inline (parent) | PENDING | El **manual del usuario**: el texto ya está escrito en `erp-mvp/docs/manual-usuario.md` (25 pantallas ✓, los flujos ✓, los nombres exactos de los botones ✓ y las limitaciones ✓) → falta el PDF con la composición de la casa y las **capturas de las pantallas reales** (el script `scripts/pdf/capturas.mjs` ✓ está, pero necesita el sistema arriba: el **Postgres del dueño no está corriendo** ✓) |
+| MP2 | S1, S3 | inline (parent) | DONE | El **PDF del frontend** desde `FRONTEND-SKELETON-TEMPLATE.md` → **120 páginas A4** ✓ · el índice con el **número de página** de cada sección ✓ · encabezado corrido y pie por hoja ✓ · sin solapamientos ✓ · sin nada pegado al borde del papel ✓. Falta la revisión del dueño |
+| MP3 | S1, S3 | inline (parent) | DONE | El **PDF del backend** desde `NET-API-SKELETON-TEMPLATE.md` → **74 páginas A4** ✓ (mismas verificaciones que MP2 ✓). El template **no se tocó** ✓ |
+| MP4 | S1, S4 | inline (parent) | PARTIAL | El **manual del usuario**: el texto ya está escrito en `erp-mvp/docs/manual-usuario.md` (25 pantallas ✓, los flujos ✓, los nombres exactos de los botones ✓ y las limitaciones ✓) → el **PDF sale** ✓ (20 páginas A4 ✓) pero las **capturas de las pantallas reales** siguen sin estar (MP4b ✓) → los huecos quedan marcados como "captura pendiente" ✓ |
 | MP4b | S1, S4 | inline (parent) | PENDING | Las **capturas de las pantallas reales** (25 ✓): el script `scripts/pdf/capturas.mjs` ✓ (loguea con un usuario de prueba ✓ y recorre las pantallas ✓) → falta que el sistema esté arriba (el **Postgres no está corriendo** ✓ y su carpeta `bin` no está ✓ → hay que arrancarlo ✓) |
 | MP5 | S2, S5 | inline (parent) | PENDING | La **revisión**: que un dev nuevo arranque con el PDF del front sin preguntar nada, y que un usuario pueda hacer su tarea sin ayuda |
 
@@ -117,3 +117,29 @@ El trabajo de esos dos PDF es **renderizar los templates y completar lo que falt
 **El manual del usuario** ✓: 25 pantallas ✓ · 19 páginas ✓ · el texto sale del **código** (los nombres de los botones y los avisos, con sus palabras exactas ✓) → y termina con **lo que hoy no se puede hacer** ✓ (el RNC del cliente no se captura en la UI ✓ → el crédito fiscal necesita un cliente con el RNC ya cargado ✓ · la venta a consumidor final de RD$250,000 o más sin RNC no se frena en la caja ✓ · no hay movimientos de inventario ✓ · no hay pantalla de categorías ✓ · nómina y asistencia no se guardan ✓ · reportes se arman en memoria ✓ · "Descargar PDF" imprime ✓ · emisores y rangos no se borran ✓ · recepción no tiene listado ✓).
 
 **Lo que falta** ✗: las **capturas de las pantallas reales** (MP4b ✓) → el script está ✓ (`scripts/pdf/capturas.mjs` ✓) → falta que el sistema esté arriba ✓ (**el Postgres no está corriendo ✓ y su carpeta `bin` no está ✓ → no se puede arrancar desde acá ✓**).
+
+### L6 — 2026-11-23 — los tres PDF rehechos: el documento se compone hoja por hoja
+
+> (el dueño: *"la skill te dice como"*, *"los html ya estan escritos"*, *"estás dando muchas vueltas"*, *"termina"*)
+
+**Lo que estaba mal** ✓ (medido con PyMuPDF sobre los tres PDF): la hoja salía en **Carta** (612×792) en vez de A4 ✗ · el **encabezado de Chrome pisaba el título** (156 casos en el back, 268 en el front ✗) · el **encuadre descentrado** (el cuerpo de 210mm dentro de una hoja de 612pt → 16.7pt de aire muerto a la derecha ✗) · **código pegado al borde del papel** (front p.10 ✗) · la portada **sin el pie** (repo · documento · fecha ✗) y el índice **sin el número de página** ✗.
+
+**Por qué no salía A4** ✓: Playwright v1.61.1 **descarta** `paperWidth`/`paperHeight` ✗ → la hoja se quedaba en Letter ✗ → la forma correcta es `preferCSSPageSize: true` con `@page { size: 210mm 297mm }` ✓ (594.96×841.92 ✓).
+
+**Lo que se cambió** ✓ (el pipeline, no el contenido):
+- La **maqueta** (`scripts/pdf/maqueta.css` ✓) pasa a la anatomía de la casa: `@page { size: 210mm 297mm; margin: 0 }` ✓ · `body` sin padding ✓ · **una hoja = un `.page` de 210×297mm** ✓ (como `multi-tenant-refactor.html` ✓) con el aire adentro (50px 55px 55px ✓) → el texto nunca toca el papel ✓.
+- El **generador** (`scripts/pdf/md-to-pdf.mjs` ✓) compone el documento en hojas **en el navegador** (el navegador es el que mide ✓): el encabezado corrido y el pie con el número van **dentro** de la hoja ✓ (no en el margen del papel ✓ → no pisan nada ✓ y la portada sale limpia ✓) · **cada sección abre hoja** ✓ · el **índice lleva el número de página** de cada sección ✓ ("p. 03" ✓ como en la casa ✓) · la portada **cuenta sus propias páginas** ✓ (el dato no se escribe a mano ✗ → no se queda viejo ✓).
+- Los bloques que no entran en una hoja se **parten** (código por líneas ✓ sin perder el resaltado ✓, tablas por filas ✓, listas por partes ✓) → **0 desbordes** en los tres PDF ✓. El pipeline **falla loudly** si la composición no aplica ✓ (nunca un PDF a medio hacer ✓).
+
+**Los tres PDF, verificados** ✓ (PyMuPDF + render a imagen ✓):
+
+| PDF | Hojas | Tamaño | Encabezado que pisa | Texto en el borde | Índice |
+|---|---|---|---|---|---|
+| `Volterp/docs/guia-backend.pdf` | 74 | A4 ✓ | 0 ✓ | 0 ✓ | 31 entradas, 0 desfasadas ✓ |
+| `erp-mvp/docs/guia-frontend.pdf` | 120 | A4 ✓ | 0 ✓ | 0 ✓ | 37 entradas ✓ |
+| `erp-mvp/docs/manual-usuario.pdf` | 20 | A4 ✓ | 0 ✓ | 0 ✓ | 13 entradas, 0 desfasadas ✓ |
+
+**Lo que se cuidó** ✓: el **template del back no se tocó** ✓ (el PDF se renderiza desde él, no se edita ✓) · el texto **no se pierde** al partir los bloques ✓ (prueba en el navegador: lo que queda + lo que sigue = el bloque entero ✓) · sin **mojibake** ✓ (el "Índice" se había roto al arreglar un archivo con PowerShell: `Get-Content` leyó el UTF-8 como ANSI ✗ → doble codificación ✗ → revertida ✓).
+
+**Lo que falta** ✗: las **capturas de las pantallas reales** (MP4b ✓ → el Postgres no está corriendo ✗ → los huecos quedan marcados como "captura pendiente" ✓) · la **revisión del dueño** (MP5 ✓).
+
