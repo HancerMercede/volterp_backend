@@ -1,6 +1,7 @@
 using Volterp.Domain.Abstractions;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Exceptions;
+using Volterp.Domain.Policies;
 using Volterp.Domain.Time;
 using Volterp.ElectronicInvoicing;
 using Volterp.ElectronicInvoicing.Xml;
@@ -66,12 +67,25 @@ public class Sale : AuditEntity, ITenantScoped
                 Status.ToString(), SaleStatus.Completed.ToString(),
                 "Sale must have at least one item before completion.");
 
-        if (DocumentType == EcfDocumentType.FiscalCredit && string.IsNullOrWhiteSpace(ReceptorTaxId))
+        if (BuyerTaxIdPolicy.Requires(DocumentType, Total) && string.IsNullOrWhiteSpace(ReceptorTaxId))
             throw new InvalidSaleStateTransitionException(
                 Status.ToString(), SaleStatus.Completed.ToString(),
-                "Sale must have the receptor tax id to be completed as a fiscal credit.");
+                DocumentType == EcfDocumentType.FiscalCredit
+                    ? "Sale must have the receptor tax id to be completed as a fiscal credit."
+                    : "Sale must have the receptor tax id to be completed as a consumption invoice of RD$250,000 or more.");
 
         Status = SaleStatus.Completed;
+    }
+
+    // The tax id of the buyer. The sale carries it: the cashier asks for it
+    // at the counter and writes it down. A request that does not name a buyer
+    // does not erase the one the sale already has.
+    public void SetReceptorTaxId(string? taxId)
+    {
+        if (string.IsNullOrWhiteSpace(taxId))
+            return;
+
+        ReceptorTaxId = taxId.Trim();
     }
 
     public void Cancel()

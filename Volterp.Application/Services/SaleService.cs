@@ -7,6 +7,7 @@ using Volterp.Application.Interfaces;
 using Volterp.Domain.Entities;
 using Volterp.Domain.Enums;
 using Volterp.Domain.Policies;
+using Volterp.Domain.ValueObjects;
 using Volterp.ElectronicInvoicing;
 
 namespace Volterp.Application.Services;
@@ -49,6 +50,8 @@ public class SaleService(
         return await EitherAsync<Error, CreateSaleRequest>
             .FromRight(request)
             .Ensure(r => r.Items.Count > 0, new Error("Sale must have at least one item."))
+            .Ensure(r => string.IsNullOrWhiteSpace(r.ReceptorTaxId) || Rnc.TryParse(r.ReceptorTaxId, out _),
+                new Error("The receptor tax id is not valid."))
             .FlatMap(async req =>
             {
                 var sale = req.Project();
@@ -87,6 +90,10 @@ public class SaleService(
                     item.TaxCode = product.TaxCode;
                 }
 
+                // The tax id of the buyer travels with the sale: the cashier
+                // asks for it at the counter. The client file only fills the gap.
+                sale.SetReceptorTaxId(TheTaxIdOfTheBuyer(req.ReceptorTaxId));
+
                 await ResolveReceptorTaxIdAsync(sale, ct);
                 sale.CalculateTotals();
 
@@ -110,6 +117,8 @@ public class SaleService(
                 new Error("A sale can only be completed through the completion operation."))
             .Ensure(sale => sale is not null && sale.Status != SaleStatus.Completed,
                 new Error("A completed sale cannot be updated."))
+            .Ensure(sale => string.IsNullOrWhiteSpace(request.ReceptorTaxId) || Rnc.TryParse(request.ReceptorTaxId, out _),
+                new Error("The receptor tax id is not valid."))
             .FlatMap(async sale =>
             {
                 // The code is resolved before any stock movement: a rejected code
@@ -177,6 +186,11 @@ public class SaleService(
                     s.Notes = request.Notes;
                     s.Code = code;
                     s.IssuerTaxId = issuerTaxId;
+
+                    // A request that brings a buyer replaces it; a request that
+                    // does not bring one keeps the one the sale already has.
+                    s.SetReceptorTaxId(TheTaxIdOfTheBuyer(request.ReceptorTaxId));
+
                     s.UpdatedAt = DateTime.UtcNow;
                     if (userId.HasValue) s.SetUpdatedBy(userId.Value);
                     s.Items = newItems;
@@ -483,13 +497,25 @@ public class SaleService(
 
     private async Task ResolveReceptorTaxIdAsync(Sale sale, CancellationToken ct)
     {
+        // The tax id that travels with the sale wins: the cashier may ask for
+        // it to a buyer that is not in the registry. The client file only
+        // fills the gap when the sale does not bring one.
+        if (!string.IsNullOrWhiteSpace(sale.ReceptorTaxId))
+            return;
+
         if (sale.ClienteId is null)
             return;
 
         var client = await unitOfWork.Clients.GetClientByIdAsync(sale.ClienteId.Value, ct);
 
-        sale.ReceptorTaxId = client?.TaxId;
+        if (!string.IsNullOrWhiteSpace(client?.TaxId))
+            sale.ReceptorTaxId = client.TaxId;
     }
+
+    // The tax id of the buyer in the form the project uses everywhere: the
+    // value object is the only source of truth of what a tax id looks like.
+    private static string? TheTaxIdOfTheBuyer(string? taxId)
+        => Rnc.TryParse(taxId, out var rnc) ? rnc.Value : null;
 
     // The user may bring its own code; otherwise the per-company sequence
     // provides one. A user-provided code must be free inside the company.

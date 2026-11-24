@@ -249,6 +249,15 @@ Un tenant puede tener **varios RNC emisores**: el de la empresa y el de sus sucu
 - La recepción de un e-CF de un tercero atribuye el documento al tenant cuyo RNC —el propio o el de una sucursal— aparece como receptor. Si dos tenants registran el mismo RNC, la atribución **falla cerrado** por ambigua.
 - Una sucursal desactivada **no emite**: su RNC deja de ser un emisor válido y la venta que lo nombra falla cerrada. El RNC de un emisor no se cambia: el certificado y los rangos autorizados están atados a él.
 
+### El RNC del comprador (es de la venta)
+
+El **RNC del comprador es un dato de la venta**: el cajero se lo pide al que compra y lo deja en la venta, aunque ese comprador no esté en el padrón de clientes (el padrón solo se toca cuando el cliente **quiere quedar registrado**).
+
+- La venta lleva el `receptorTaxId` opcional (`POST`/`PUT /api/sales`): con valor, tiene que ser un RNC o una cédula válidos (se valida y se guarda en su forma canónica, solo dígitos); vacío, lo rellena la ficha del cliente, y sin ficha la venta sale sin comprador.
+- Un `PUT` **sin** `receptorTaxId` no borra el que la venta ya traía: el RNC que viaja con la venta gana siempre sobre el del padrón.
+- **Quién tiene que ser nombrado** lo dice la norma, no la memoria: el **crédito fiscal** (E31 en electrónico, B01 en papel) **siempre** nombra a su comprador, porque quien compra deduce el ITBIS; el **consumo** (E32 / B02) lo nombra **desde RD$250,000** — por debajo el comprador es el consumidor final y el documento no lo lleva.
+- La regla se cumple **al emitir** y **falla cerrado**: la venta no completa —ni firma el e-CF ni quema el número del NCF— si el documento que va a salir tiene que nombrar a su comprador y no lo tiene.
+
 ### El circuito contra la DGII de prueba
 
 El E2E contra la DGII real corre **solo** con las variables de entorno puestas: sin ellas los dos tests se saltan (no es un fallo). El `.p12` y su contraseña **nunca** viajan en el repositorio.

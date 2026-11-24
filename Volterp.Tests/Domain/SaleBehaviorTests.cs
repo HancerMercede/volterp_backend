@@ -77,6 +77,53 @@ public class SaleBehaviorTests
         sale.Status.Should().Be(SaleStatus.Completed);
     }
 
+    [Fact]
+    public void Complete_WhenConsumptionOf250000OrMoreWithoutReceptorTaxId_ThrowsInvalidSaleStateTransitionException()
+    {
+        // From RD$250,000 the consumption invoice is nominative: it names
+        // its buyer. Below that the buyer is the final consumer and the
+        // document carries no buyer at all.
+        var sale = CreateSale(items: [CreateSaleItem()], documentType: EcfDocumentType.Consumer, total: 250000m);
+
+        var act = () => sale.Complete();
+
+        act.Should().Throw<InvalidSaleStateTransitionException>()
+            .WithMessage("*receptor tax id*");
+    }
+
+    [Fact]
+    public void Complete_WhenConsumptionBelow250000WithoutReceptorTaxId_TransitionsToCompleted()
+    {
+        var sale = CreateSale(items: [CreateSaleItem()], documentType: EcfDocumentType.Consumer, total: 249999.99m);
+
+        sale.Complete();
+
+        sale.Status.Should().Be(SaleStatus.Completed);
+    }
+
+    [Fact]
+    public void Complete_WhenConsumptionOf250000OrMoreWithReceptorTaxId_TransitionsToCompleted()
+    {
+        var sale = CreateSale(items: [CreateSaleItem()], documentType: EcfDocumentType.Consumer, total: 250000m);
+        sale.ReceptorTaxId = "101010101";
+
+        sale.Complete();
+
+        sale.Status.Should().Be(SaleStatus.Completed);
+    }
+
+    [Fact]
+    public void Complete_WhenNoteWithoutReceptorTaxId_TransitionsToCompleted()
+    {
+        // A note takes the buyer from the document it modifies: it does not
+        // name a buyer of its own.
+        var sale = CreateSale(items: [CreateSaleItem()], documentType: EcfDocumentType.CreditNote, total: 300000m);
+
+        sale.Complete();
+
+        sale.Status.Should().Be(SaleStatus.Completed);
+    }
+
     // ===== Cancel =====
 
     [Fact]
@@ -296,13 +343,15 @@ public class SaleBehaviorTests
     private static Sale CreateSale(
         List<SaleItem>? items = null,
         SaleStatus status = SaleStatus.Pending,
-        EcfDocumentType documentType = EcfDocumentType.Consumer)
+        EcfDocumentType documentType = EcfDocumentType.Consumer,
+        decimal total = 0)
     {
         return new Sale
         {
             Id = Guid7TestValues.SaleA,
             Status = status,
             DocumentType = documentType,
+            Total = total,
             Items = items ?? [CreateSaleItem()]
         };
     }
