@@ -44,10 +44,10 @@ El trabajo de esos dos PDF es **renderizar los templates y completar lo que falt
 
 | ID | S# linked | Route | Status | Commit |
 |---|---|---|---|---|
-| MP1 | S1, S2 | inline (parent) | DONE | El **pipeline**: MD → HTML → PDF + la maqueta (portada, índice navegable, numeración, código con resaltado, bloques de "principio" y "stack", las páginas del PDF) → la guía es la skill `styled-pdf`. Commits `82c6daf` (la maqueta y el conversor) y `4aa5b61` (Playwright) |
-| MP2 | S1, S3 | inline (parent) | DONE | El **PDF del frontend** desde `FRONTEND-SKELETON-TEMPLATE.md` → `erp-mvp/docs/guia-frontend.pdf` (85 páginas) + el link en el README |
-| MP3 | S1, S3 | inline (parent) | DONE | El **PDF del backend** desde `NET-API-SKELETON-TEMPLATE.md` → `docs/guia-backend.pdf` (con la sección nueva del e-CF y del readiness ✓) + el link en el README |
-| MP4 | S1, S4 | inline (parent) | DONE | El **manual del usuario**: el inventario de pantallas (25 ✓) y flujos, el texto paso a paso con los nombres exactos de los botones (sacados del código ✓) y las limitaciones que hoy tiene el sistema ✓ → `erp-mvp/docs/manual-usuario.md` ✓ → `erp-mvp/docs/manual-usuario.pdf` (19 páginas ✓, **sin números de página** ✓: se sigue paso a paso) |
+| MP1 | S1, S2 | inline (parent) | DONE | El **pipeline**: MD → HTML → PDF + la maqueta (portada, índice navegable, numeración, código con resaltado, bloques de "principio" y "stack", las páginas del PDF) → la guía es la skill `styled-pdf`. Commits `82c6daf`, `4aa5b61`, `8635447`. **El pipeline funciona** (markdown → HTML con la maqueta → PDF con Playwright conduciendo el Chrome del sistema) |
+| MP2 | S1, S3 | inline (parent) | PENDING | El **PDF del frontend** desde `FRONTEND-SKELETON-TEMPLATE.md`. **El PDF que hay no sirve**: el dueño lo vio y lo mandó a rehacer (2026-11-23). El problema: el pipeline **convierte** el markdown, pero un manual de la casa está **compuesto a mano** (cada hoja es un diseño: la comparativa en dos columnas, las tarjetas, la tabla de métricas) → hay que diseñar el HTML, no convertirlo |
+| MP3 | S1, S3 | inline (parent) | PENDING | El **PDF del backend** desde `NET-API-SKELETON-TEMPLATE.md` (+ la sección 2.6 del e-CF y el readiness ✓ ya escrita en el template ✓). Mismo estado que MP2 |
+| MP4 | S1, S4 | inline (parent) | PENDING | El **manual del usuario**: el texto ya está escrito en `erp-mvp/docs/manual-usuario.md` (25 pantallas ✓, los flujos ✓, los nombres exactos de los botones ✓ y las limitaciones ✓) → falta el PDF con la composición de la casa y las **capturas de las pantallas reales** (el script `scripts/pdf/capturas.mjs` ✓ está, pero necesita el sistema arriba: el **Postgres del dueño no está corriendo** ✓) |
 | MP4b | S1, S4 | inline (parent) | PENDING | Las **capturas de las pantallas reales** (25 ✓): el script `scripts/pdf/capturas.mjs` ✓ (loguea con un usuario de prueba ✓ y recorre las pantallas ✓) → falta que el sistema esté arriba (el **Postgres no está corriendo** ✓ y su carpeta `bin` no está ✓ → hay que arrancarlo ✓) |
 | MP5 | S2, S5 | inline (parent) | PENDING | La **revisión**: que un dev nuevo arranque con el PDF del front sin preguntar nada, y que un usuario pueda hacer su tarea sin ayuda |
 
@@ -84,6 +84,25 @@ El trabajo de esos dos PDF es **renderizar los templates y completar lo que falt
 **El template del back se completó** ✓: la sección **2.6** con el módulo de e-CF (la library vendible ✓, los enums fiscales ✓, el modelo ✓, los perfiles por tipo ✓, el writer ✓, el firmador ✓, el transporte ✓, las URLs de verificación ✓, el RFCE ✓, el camino normal ✓, el DI ✓, el readiness ✓ y el ciclo de vida ✓) + la library en la regla de dependencias ✓ y en la estructura ✓ → y se **corrigió una afirmación que mentía**: el template decía *"Multi-tenant filter en service, no global query filter"* y el código real **sí** tiene un global query filter (`VolterpDbContext.ApplyTenantFilters` ✓) → una guía que enseña lo contrario del código es peor que no tener guía ✓.
 
 **Lo que falta** ✗: el **manual del usuario** (MP4 ✓) — el inventario de pantallas ✗ → el paso a paso ✗ → las capturas de las pantallas reales ✗ (el front tiene que estar corriendo ✗).
+
+### L5 — 2026-11-23 — los PDF no salieron bien: el dueño los manda a rehacer
+
+> (el dueño: *"la verdad esos pdf estan mal, mandare a otro agente a hacerlo"*)
+
+**El veredicto** ✓: los tres PDF **no sirven** ✗ → el dueño los manda a rehacer con otro agente ✓.
+
+**Por qué no salieron bien** ✓ (la lección, para el que lo rehaga): el pipeline **convierte** el markdown ✗ → y un manual de la casa está **compuesto a mano** ✓ (cada hoja de `multi-tenant-refactor.html` es un diseño ✓: el chip ✓, el título con degradado ✓, las tarjetas de métricas ✓, la barra de la hoja ✓, el recuadro del resumen ✓, la comparativa en dos columnas ✓, la tabla de métricas ✓) → **convertir** da un documento con la tipografía y los colores de la casa ✗ pero **sin la composición de una hoja diseñada** ✗ → eso fue lo que no gustó ✓.
+
+**Lo que sí sirve y queda** ✓:
+- El **texto del manual del usuario** (`erp-mvp/docs/manual-usuario.md` ✓): las 25 pantallas ✓, los flujos con los nombres exactos de los botones ✓ y las limitaciones ✓.
+- La **sección 2.6 del template del back** (el módulo e-CF y el readiness ✓) → es el contenido que faltaba ✗ ya está escrito ✓.
+- El **pipeline** (`scripts/pdf/md-to-pdf.mjs` ✓): markdown → HTML → PDF sin dependencias ✓ (Playwright si está ✓, y si no el Chrome por CDP ✓) → sirve para **revisar** el resultado ✓, no para reemplazar el diseño ✓.
+- La **maqueta** (`scripts/pdf/maqueta.css` ✓): los valores de la casa ✓ (la paleta ✓, la tipografía ✓, las tablas ✓, los componentes ✓) → es la referencia de los estilos ✓.
+- El **modelo a copiar**: `Volterp/multi-tenant-refactor.html` ✓ (y su PDF ✓) → es el HTML hecho a mano de un manual de la casa ✓ → **ahí está el diseño que hay que lograr** ✓.
+
+**Las tres cosas que la maqueta enseñó** ✓ (y que están en el código ✓): el `@import` de las fuentes va **primero** ✓ (después de otra regla el navegador lo ignora ✓) · el código **no** puede usar JetBrains Mono (no trae los caracteres de dibujo de los árboles ✓ → el árbol pierde la alineación ✓) → va con Cascadia Mono/Consolas ✓ · con `@page { margin: 0 }` el pie y el encabezado de Chrome se dibujan **encima** del texto ✓ → el encabezado de cada sección tiene que ir **dentro del flujo** ✓ (una barra por sección ✓).
+
+**Lo que falta para las capturas** ✗: el **Postgres del dueño no está corriendo** ✓ y su carpeta `C:\Program Files\PostgreSQL\14\` solo tiene `data` (sin `bin` ✓) → no se puede arrancar desde el harness ✓ → el script `scripts/pdf/capturas.mjs` ✓ (loguea con `demo.admin1` / `Demo123!` ✓) está listo ✓ para cuando levante la base ✓.
 
 ### L4 — 2026-11-23 — la maqueta del PDF es la de la casa
 
