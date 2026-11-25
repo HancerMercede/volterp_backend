@@ -39,6 +39,32 @@ public class SaleRepositoryTests
     }
 
     [Fact]
+    public async Task GetSalesByStatusAsync_KeepsLoadingTheItems()
+    {
+        await using var fixture = new SaleFixture();
+        await fixture.InitializeAsync();
+
+        var result = await fixture.Repository.GetSalesByStatusAsync(SaleStatus.Pending, 1, 10);
+
+        result.Items.Should().HaveCount(2);
+        result.Items.Should().OnlyContain(s => s.Items.Count == 1);
+        result.Items.Select(s => s.Items.First().ProductName).Should().BeEquivalentTo(["Producto", "Otro producto"]);
+    }
+
+    [Fact]
+    public async Task GetSalesByStatusAsync_WhenThePageIsShorter_ReturnsOnlyTheLinesOfThatSale()
+    {
+        await using var fixture = new SaleFixture();
+        await fixture.InitializeAsync();
+
+        var result = await fixture.Repository.GetSalesByStatusAsync(SaleStatus.Pending, 1, 1);
+
+        result.Items.Should().HaveCount(1);
+        result.RowCount.Should().Be(2);
+        result.Items.First().Items.Should().HaveCount(1);
+    }
+
+    [Fact]
     public async Task GetSaleByIdAsync_WhenTheSaleDoesNotExist_ReturnsNull()
     {
         await using var fixture = new SaleFixture();
@@ -89,11 +115,22 @@ public class SaleRepositoryTests
             {
                 Id = Guid.CreateVersion7(),
                 CompanyId = companyId,
-                Status = SaleStatus.Pending
+                Status = SaleStatus.Pending,
+                Code = "V-0001"
             };
             sale.AddItem(Guid.CreateVersion7(), "Producto", 2, 100m, TaxCode.ItbisTasa1);
 
+            var otherSale = new Sale
+            {
+                Id = Guid.CreateVersion7(),
+                CompanyId = companyId,
+                Status = SaleStatus.Pending,
+                Code = "V-0002"
+            };
+            otherSale.AddItem(Guid.CreateVersion7(), "Otro producto", 1, 50m, TaxCode.ItbisTasa1);
+
             _context.Sales.Add(sale);
+            _context.Sales.Add(otherSale);
             await _context.SaveChangesAsync();
 
             SaleId = sale.Id;

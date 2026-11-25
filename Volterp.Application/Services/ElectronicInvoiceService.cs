@@ -214,7 +214,11 @@ public class ElectronicInvoiceService(
             CertificateExpiresAt = certificate?.ExpiresAt,
             IsReady = blockers.Count == 0,
             Blockers = blockers,
-            DocumentTypes = documentTypes
+            DocumentTypes = documentTypes,
+
+            // The amount from which the document has to name its buyer: the
+            // domain owns the rule and the front asks for the tax id with it.
+            BuyerTaxIdRequiredFrom = BuyerTaxIdPolicy.NominativeFrom
         };
     }
 
