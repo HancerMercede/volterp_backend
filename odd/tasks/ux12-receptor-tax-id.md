@@ -98,3 +98,11 @@ pierde porque una actualización venga sin él.
 - **Es un campo más de la respuesta** ✓ → no rompe a quien ya la consume ✓ (el front lo lee cuando está ✓).
 - **Verificación** ✓: RED antes ✓ (`Expected 250000M, but found 0M` ✓) → VERDE ✓ → suite completa ✓.
 - **Risk**: none ✓ (campo nuevo en una respuesta ✓ · la regla ya vive en el dominio ✓ · no cambia ninguna fila guardada ✓).
+
+### L5 — 2026-11-25 — el merge a development y la suite que lo verifica
+
+- **El merge** ✓: `ea241a0` — `merge(ux12): el RNC del comprador entra a development` ✓ → la rama `feature/ux12-receptor-rnc` entra a `development` con `--no-ff` ✓ → 15 archivos ✓ · 650 inserciones ✓ · 10 borrados ✓ (los 4 commits de UX12: `e76d798` · `3183ea9` · `f3a91b8` · `1a2344b` ✓).
+- **Evidencia** ✓: suite completa del back **1142 verdes · 0 rojos · 9 saltados (1151)** ✓ → los mismos 9 de la sesión anterior ✓ (los que necesitan Postgres real ✓).
+- **Risk**: none ✓ (el merge no cambia código ✓ · las 4 unidades ya estaban medidas ✓ · `development` solo suma el commit de los PDF ✓).
+- **El push** ⏳: `development` queda **2 commits adelante de `origin/development`** (el de los PDF + el del merge ✓) → **esperando el OK del dueño** ✓ (el push es decisión suya ✓).
+- **Nota de operación (D:)** ✓: el primer intento de merge corrió en primer plano con timeout de 120s → el harness lo mató **en mitad de la escritura** ✓ → quedó el working tree adelantado al índice (el README de UX12 aplicado y el `FiscalReadinessDto.cs` borrado a medias ✓) sin `MERGE_HEAD` ✓ y con un `.git/index.lock` huérfano ✓ → se restauró con `git restore --worktree` (el índice nunca se llegó a escribir ✓ → el árbol volvió exacto a HEAD ✓ sin tocar el WIP de `CategoryRepository.cs` ✓) → y el merge corrió en **background** ✓ (1m12s ✓). **En D:, todo `git` que escribe va en background** ✓ (el drive es extraíble y ya falló antes ✓).
